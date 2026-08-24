@@ -1,0 +1,55 @@
+import type { SportsPoll } from "@/types";
+
+export const MOCK_POLLS: SportsPoll[] = [
+  {
+    id: "poll-01",
+    groupId: "grp-strikers",
+    createdAt: "2026-08-18T10:00:00.000Z",
+    updatedAt: "2026-08-19T15:00:00.000Z",
+    question: "Which venue for the October friendly?",
+    options: [
+      { id: "opt-1", label: "Cooperage Ground", votes: 11 },
+      { id: "opt-2", label: "Andheri Sports Complex", votes: 7 },
+      { id: "opt-3", label: "Priyadarshini Park", votes: 3 },
+    ],
+    multipleChoice: false,
+    expiresAt: "2026-08-25",
+    status: "Active",
+    createdBy: "Arjun Mehta",
+    votedOptionIds: [],
+  },
+  {
+    id: "poll-02",
+    groupId: "grp-deccan",
+    createdAt: "2026-08-17T14:00:00.000Z",
+    updatedAt: "2026-08-19T12:00:00.000Z",
+    question: "Winter tour destination — pick your favourites",
+    options: [
+      { id: "opt-4", label: "Goa", votes: 8 },
+      { id: "opt-5", label: "Pondicherry", votes: 5 },
+      { id: "opt-6", label: "Coorg", votes: 6 },
+    ],
+    multipleChoice: true,
+    expiresAt: "2026-08-30",
+    status: "Active",
+    createdBy: "Vikram Reddy",
+    votedOptionIds: [],
+  },
+  {
+    id: "poll-03",
+    groupId: "grp-apex",
+    createdAt: "2026-08-05T09:00:00.000Z",
+    updatedAt: "2026-08-15T09:00:00.000Z",
+    question: "New kit colour for the tournament?",
+    options: [
+      { id: "opt-7", label: "Black & Gold", votes: 12 },
+      { id: "opt-8", label: "Maroon", votes: 4 },
+      { id: "opt-9", label: "Teal", votes: 2 },
+    ],
+    multipleChoice: false,
+    expiresAt: "2026-08-15",
+    status: "Closed",
+    createdBy: "Neha Kapoor",
+    votedOptionIds: [],
+  },
+];

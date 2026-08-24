@@ -1,0 +1,43 @@
+import type { VenueBooking } from "@/types";
+
+export const MOCK_BOOKINGS: VenueBooking[] = [
+  {
+    id: "vb-01",
+    createdAt: "2026-08-20T10:15:00.000Z",
+    updatedAt: "2026-08-20T10:15:00.000Z",
+    venueId: "ven-01",
+    venueName: "Cooperage Turf Arena",
+    eventDate: "2026-08-25",
+    slotId: "slot-5",
+    slotLabel: "17:00 – 18:00",
+    groupName: "Strikers FC",
+    price: 1400,
+    status: "Confirmed",
+  },
+  {
+    id: "vb-02",
+    createdAt: "2026-08-12T09:30:00.000Z",
+    updatedAt: "2026-08-15T12:00:00.000Z",
+    venueId: "ven-02",
+    venueName: "Gymkhana Cricket Nets",
+    eventDate: "2026-08-15",
+    slotId: "slot-1",
+    slotLabel: "06:00 – 07:00",
+    groupName: "Deccan Cricket Club",
+    price: 800,
+    status: "Completed",
+  },
+  {
+    id: "vb-03",
+    createdAt: "2026-08-21T08:45:00.000Z",
+    updatedAt: "2026-08-21T08:45:00.000Z",
+    venueId: "ven-03",
+    venueName: "Pune Indoor Court",
+    eventDate: "2026-08-28",
+    slotId: "slot-7",
+    slotLabel: "19:00 – 20:00",
+    groupName: "Apex Basketball",
+    price: 1100,
+    status: "Pending",
+  },
+];

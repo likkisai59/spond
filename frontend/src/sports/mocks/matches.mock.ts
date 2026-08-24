@@ -1,0 +1,57 @@
+import type { MatchSummary } from "@/types";
+
+export const MOCK_MATCH_SUMMARIES: MatchSummary[] = [
+  {
+    id: "ms-evt-201",
+    createdAt: "2026-08-08T19:30:00.000Z",
+    updatedAt: "2026-08-09T09:00:00.000Z",
+    eventId: "evt-201",
+    homeTeam: "Strikers FC",
+    awayTeam: "Marine Lines FC",
+    homeScore: 3,
+    awayScore: 1,
+    result: "Win",
+    venue: "Cooperage Ground, Mumbai",
+    kickoff: "2026-08-08T17:00:00.000Z",
+    timeline: [
+      { id: "mt-01", minute: 12, kind: "Goal", side: "home", player: "Arjun Mehta", detail: "Assist: Kabir Singh" },
+      { id: "mt-02", minute: 29, kind: "Goal", side: "away", player: "Prakash Naik", detail: "Header from corner" },
+      { id: "mt-03", minute: 45, kind: "Half time", side: "home", player: "—", detail: "1 – 1" },
+      { id: "mt-04", minute: 58, kind: "Yellow card", side: "home", player: "Vihaan Rao", detail: "Tactical foul" },
+      { id: "mt-05", minute: 63, kind: "Substitution", side: "home", player: "Aditya Kaul", detail: "On for Ishaan Nair" },
+      { id: "mt-06", minute: 71, kind: "Goal", side: "home", player: "Rohan Verma", detail: "Assist: Arjun Mehta" },
+      { id: "mt-07", minute: 84, kind: "Goal", side: "home", player: "Arjun Mehta", detail: "Counter-attack finish" },
+      { id: "mt-08", minute: 90, kind: "Full time", side: "home", player: "—", detail: "3 – 1" },
+    ],
+    teamStats: {
+      home: { possession: 58, shots: 16, shotsOnTarget: 9, corners: 7, fouls: 11 },
+      away: { possession: 42, shots: 9, shotsOnTarget: 4, corners: 3, fouls: 14 },
+    },
+    topPerformers: [
+      { id: "tp-01", name: "Arjun Mehta", stat: "2 goals · 1 assist" },
+      { id: "tp-02", name: "Rohan Verma", stat: "1 goal · 4 key passes" },
+      { id: "tp-03", name: "Kabir Singh", stat: "2 assists · 5 tackles" },
+    ],
+    manOfTheMatch: "Arjun Mehta",
+  },
+  {
+    id: "ms-evt-101",
+    createdAt: "2026-08-19T09:00:00.000Z",
+    updatedAt: "2026-08-19T09:00:00.000Z",
+    eventId: "evt-101",
+    homeTeam: "Strikers FC",
+    awayTeam: "Rovers United",
+    homeScore: 0,
+    awayScore: 0,
+    result: "Scheduled",
+    venue: "Cooperage Ground, Mumbai",
+    kickoff: "2026-08-22T17:00:00.000Z",
+    timeline: [],
+    teamStats: {
+      home: { possession: 0, shots: 0, shotsOnTarget: 0, corners: 0, fouls: 0 },
+      away: { possession: 0, shots: 0, shotsOnTarget: 0, corners: 0, fouls: 0 },
+    },
+    topPerformers: [],
+    manOfTheMatch: null,
+  },
+];

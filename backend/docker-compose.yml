@@ -1,0 +1,75 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: unify-api
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: dev
+      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_DB_NAME: unify_platform
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-env}
+      CORS_ORIGINS: http://localhost:3000
+      BOOTSTRAP_SUPER_ADMIN_EMAIL: admin@unify.local
+      BOOTSTRAP_SUPER_ADMIN_PASSWORD: Admin@12345
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7
+    container_name: unify-mongodb
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  mongo-init:
+    image: mongo:7
+    container_name: unify-mongo-init
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    command: >
+      mongosh --host mongodb:27017 --eval '
+      try {
+        rs.status();
+        print("Replica set already initialized");
+      } catch (e) {
+        rs.initiate({_id: "rs0", members: [{_id: 0, host: "mongodb:27017"}]});
+        print("Replica set initialized");
+      }
+      '
+    restart: "no"
+
+  redis:
+    image: redis:7-alpine
+    container_name: unify-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  redis_data:

@@ -16,3 +16,4 @@ httpx==0.28.1
 razorpay==1.4.1
 aioboto3==12.3.0
 python-multipart==0.0.9
+setuptools<70.0.0

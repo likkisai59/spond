@@ -53,16 +53,22 @@ class AuthService:
         password: str,
         phone: str | None,
         accessible_modules: list[str],
+        role: str | None = None,
     ) -> dict:
         self._validate_password(password)
         if await self.users.email_exists(email):
             raise ConflictError("An account with this email already exists")
+            
+        # Ensure only MEMBER or VENUE_OWNER can be registered this way (prevent privilege escalation)
+        valid_roles = [MEMBER, "venue_owner"]
+        assign_role = role if role in valid_roles else MEMBER
+        
         document = new_user_document(
             full_name=full_name,
             email=email,
             password_hash=security.hash_password(password),
             phone=phone,
-            role=MEMBER,
+            role=assign_role,
             accessible_modules=accessible_modules,
         )
         created = await self.users.insert(document)

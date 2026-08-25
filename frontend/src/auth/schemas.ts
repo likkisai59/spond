@@ -15,6 +15,7 @@ export const registerSchema = z
     email: emailSchema,
     password: passwordSchema,
     confirmPassword: z.string().min(1, "Please confirm your password"),
+    role: z.enum(["member", "venue_owner"]).default("member"),
     terms: z.boolean().refine((value) => value === true, {
       message: "You must accept the Terms of Service to continue",
     }),

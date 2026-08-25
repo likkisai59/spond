@@ -16,6 +16,7 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     phone: str | None = Field(default=None, pattern=r"^[0-9+\-\s]{8,15}$")
     accessible_modules: list[ModuleKey] = Field(default_factory=lambda: ["sports", "band"])
+    role: str | None = None
 
 
 class LoginRequest(BaseModel):

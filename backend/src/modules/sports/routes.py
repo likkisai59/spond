@@ -148,8 +148,8 @@ async def delete_venue(id: str, _: dict = Depends(get_current_user)) -> dict:
 
 # --- Slots ---
 @router.post("/venues/{id}/slots")
-async def create_slot(id: str, data: SlotCreateRequest, _: dict = Depends(get_current_user)) -> dict:
-    slot = await service.create_slot(id, data)
+async def create_slot(id: str, data: SlotCreateRequest, user: dict = Depends(get_current_user)) -> dict:
+    slot = await service.create_slot(id, data, user["id"])
     return {"status": "success", "data": slot}
 
 @router.get("/venues/{id}/slots")
@@ -176,6 +176,11 @@ async def create_booking(data: BookingCreateRequest, user: dict = Depends(get_cu
 @router.get("/bookings")
 async def list_bookings(_: dict = Depends(get_current_user)) -> dict:
     bookings = await service.list_bookings()
+    return {"status": "success", "data": {"items": bookings}}
+
+@router.get("/bookings/owner")
+async def list_owner_bookings(user: dict = Depends(get_current_user)) -> dict:
+    bookings = await service.list_owner_bookings(user["id"])
     return {"status": "success", "data": {"items": bookings}}
 
 @router.get("/bookings/history")

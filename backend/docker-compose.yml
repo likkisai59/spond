@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: unify-api
     ports:
-      - "8000:8000"
+      - "6379:6379"
     environment:
       APP_ENV: dev
       MONGODB_URI: mongodb://mongodb:27017

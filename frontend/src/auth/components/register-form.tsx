@@ -9,13 +9,15 @@ import {
   FormCheckbox,
   FormInput,
   FormPassword,
+  FormSelect,
 } from "@/components/forms";
 import { AuthDivider, SocialAuthButtons } from "./social-auth-buttons";
-import { createDummyUser, dummyDelay } from "../dummy";
+import { authService } from "@/services";
 import { registerSchema, type RegisterFormData } from "../schemas";
 import { ROUTES } from "@/constants";
 import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
+import { credentialsReceived } from "@/store/slices/auth-slice";
 
 function TermsLabel() {
   const dispatch = useAppDispatch();
@@ -65,6 +67,7 @@ export function RegisterForm() {
       email: "",
       password: "",
       confirmPassword: "",
+      role: "member",
       terms: false,
     },
   });
@@ -72,17 +75,33 @@ export function RegisterForm() {
   const { control, handleSubmit, formState: { isSubmitting } } = form;
 
   const onSubmit: SubmitHandler<RegisterFormData> = async (data) => {
-    await dummyDelay();
+    try {
+      const session = await authService.register({
+        full_name: data.name,
+        email: data.email,
+        password: data.password,
+        role: data.role,
+        accessible_modules: ["sports", "band"],
+      });
 
-    const user = createDummyUser(data.email, data.name);
-    dispatch(
-      notificationAdded({
-        title: `Welcome aboard, ${user.firstName}!`,
-        message: "Your account has been created (demo mode). Please verify your email.",
-        variant: "success",
-      })
-    );
-    router.push(ROUTES.VERIFY_EMAIL);
+      dispatch(credentialsReceived(session));
+      dispatch(
+        notificationAdded({
+          title: `Welcome aboard, ${data.name}!`,
+          message: "Your account has been created successfully.",
+          variant: "success",
+        })
+      );
+      router.push(ROUTES.SELECT_PRODUCT);
+    } catch (error: unknown) {
+      dispatch(
+        notificationAdded({
+          title: "Registration failed",
+          message: error instanceof Error ? error.message : "Something went wrong. Please try again.",
+          variant: "error",
+        })
+      );
+    }
   };
 
   return (
@@ -118,6 +137,15 @@ export function RegisterForm() {
           label="Confirm password"
           placeholder="Re-enter your password"
           autoComplete="new-password"
+        />
+        <FormSelect
+          control={control}
+          name="role"
+          label="Account type"
+          options={[
+            { label: "Player / Member", value: "member" },
+            { label: "Venue Owner", value: "venue_owner" },
+          ]}
         />
         <FormCheckbox control={control} name="terms" label={<TermsLabel />} />
         <Button

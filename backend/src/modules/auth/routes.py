@@ -36,6 +36,7 @@ async def register(payload: RegisterRequest) -> dict:
         password=payload.password,
         phone=payload.phone,
         accessible_modules=payload.accessible_modules,
+        role=payload.role,
     )
     return _ok(TokenPairResponse(**session).model_dump(mode="json"), 201)
 

@@ -200,7 +200,11 @@ class SportsService:
     async def list_venues(self, query: dict = None) -> list[dict]:
         return await self.venues.find_many(query or {})
 
-    async def update_venue(self, venue_id: str, data: VenueUpdateRequest) -> dict:
+    async def update_venue(self, venue_id: str, data: VenueUpdateRequest, user_id: str) -> dict:
+        venue = await self.get_venue(venue_id)
+        if venue.get("created_by") != user_id:
+            raise AppException(403, "Not authorized to update this venue")
+            
         update_data = data.model_dump(exclude_unset=True)
         if update_data:
             updated = await self.venues.update_by_id(venue_id, update_data)
@@ -208,14 +212,22 @@ class SportsService:
                 raise NotFoundError("Venue not found")
         return await self.get_venue(venue_id)
 
-    async def delete_venue(self, venue_id: str) -> None:
+    async def delete_venue(self, venue_id: str, user_id: str) -> None:
+        venue = await self.get_venue(venue_id)
+        if venue.get("created_by") != user_id:
+            raise AppException(403, "Not authorized to delete this venue")
+            
         deleted = await self.venues.delete_by_id(venue_id)
         if not deleted:
             raise NotFoundError("Venue not found")
         await self.slots.collection.delete_many({"venue_id": venue_id})
 
     # Slots
-    async def create_slot(self, venue_id: str, data: SlotCreateRequest) -> dict:
+    async def create_slot(self, venue_id: str, data: SlotCreateRequest, user_id: str) -> dict:
+        venue = await self.get_venue(venue_id)
+        if venue.get("created_by") != user_id:
+            raise AppException(403, "Not authorized to create slots for this venue")
+        
         slot_doc = data.model_dump(exclude_unset=True)
         slot_doc["venue_id"] = venue_id
         slot_id = await self.slots.insert(slot_doc)
@@ -309,6 +321,17 @@ class SportsService:
 
     async def list_bookings(self, query: dict = None) -> list[dict]:
         return await self.bookings.find_many(query or {})
+
+    async def list_owner_bookings(self, user_id: str) -> list[dict]:
+        # Find all venues owned by this user
+        owner_venues = await self.venues.find_many({"created_by": user_id})
+        venue_ids = [str(v["_id"]) for v in owner_venues]
+        
+        if not venue_ids:
+            return []
+            
+        # Find bookings for these venues
+        return await self.bookings.find_many({"venue_id": {"$in": venue_ids}})
 
     async def cancel_booking(self, booking_id: str) -> dict:
         booking = await self.get_booking(booking_id)

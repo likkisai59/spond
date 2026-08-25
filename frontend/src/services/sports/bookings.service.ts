@@ -12,6 +12,11 @@ export const bookingsService = {
     return data;
   },
 
+  getOwnerBookings: async (): Promise<ApiResponse<Paginated<any>>> => {
+    const { data } = await apiClient.get("/api/v1/sports/bookings/owner");
+    return data;
+  },
+
   getById: async (id: string): Promise<ApiResponse<any>> => {
     const { data } = await apiClient.get(`/api/v1/sports/bookings/${id}`);
     return data;

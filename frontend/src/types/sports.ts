@@ -1,12 +1,9 @@
 import type { BaseEntity } from "./common";
 
 export const GROUP_CATEGORIES = [
-  "Football",
-  "Basketball",
-  "Cricket",
-  "Tennis",
-  "Training",
-  "Social",
+  "Beginner",
+  "Intermediate",
+  "Advanced",
 ] as const;
 export type GroupCategory = (typeof GROUP_CATEGORIES)[number];
 

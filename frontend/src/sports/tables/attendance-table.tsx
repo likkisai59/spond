@@ -24,22 +24,22 @@ const RESPONSE_ACTIONS: {
   icon: typeof Check;
   activeClass: string;
 }[] = [
-  {
-    response: "Going",
-    icon: Check,
-    activeClass: "bg-emerald-500 text-white",
-  },
-  {
-    response: "Maybe",
-    icon: HelpCircle,
-    activeClass: "bg-amber-500 text-white",
-  },
-  {
-    response: "No response",
-    icon: X,
-    activeClass: "bg-zinc-500 text-white",
-  },
-];
+    {
+      response: "Going",
+      icon: Check,
+      activeClass: "bg-emerald-500 text-white",
+    },
+    {
+      response: "Maybe",
+      icon: HelpCircle,
+      activeClass: "bg-amber-500 text-white",
+    },
+    {
+      response: "No response",
+      icon: X,
+      activeClass: "bg-zinc-500 text-white",
+    },
+  ];
 
 export function AttendanceTable({ records, onSetResponse }: AttendanceTableProps) {
   const columns: DataTableColumn<AttendanceRecord>[] = [

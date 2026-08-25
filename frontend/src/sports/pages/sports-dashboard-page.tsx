@@ -50,7 +50,7 @@ export function SportsDashboardPage() {
     paymentsDue: 0,
     unreadMessages: 0,
   });
-  
+
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -128,7 +128,7 @@ export function SportsDashboardPage() {
           icon={CreditCard}
           className="animate-fade-in-up [animation-delay:180ms]"
         />
-          <StatsCard
+        <StatsCard
           label="Unread messages"
           value={realStats.unreadMessages}
           icon={MessageSquare}

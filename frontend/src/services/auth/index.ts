@@ -12,6 +12,7 @@ export interface RegisterPayload {
   full_name: string;
   phone?: string;
   accessible_modules: string[];
+  role?: string;
 }
 
 export interface ForgotPasswordPayload {

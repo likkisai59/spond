@@ -71,15 +71,15 @@ export function AttendancePage() {
     );
     const base = mocked
       ? mocked.responses.map(({ memberId, memberName, response }) => ({
-          memberId,
-          memberName,
-          response,
-        }))
+        memberId,
+        memberName,
+        response,
+      }))
       : (selectedGroup?.members ?? []).map((member) => ({
-          memberId: member.id,
-          memberName: member.name,
-          response: "No response" as AttendanceResponse,
-        }));
+        memberId: member.id,
+        memberName: member.name,
+        response: "No response" as AttendanceResponse,
+      }));
     return base.map((record) => ({
       ...record,
       response: overrides[record.memberId] ?? record.response,
@@ -243,11 +243,10 @@ export function AttendancePage() {
                                 response === "No response" && "bg-zinc-400"
                               )}
                               style={{
-                                width: `${
-                                  total > 0
+                                width: `${total > 0
                                     ? (summary[response] / total) * 100
                                     : 0
-                                }%`,
+                                  }%`,
                               }}
                             />
                           </div>

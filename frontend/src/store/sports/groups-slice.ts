@@ -1,6 +1,6 @@
 import {
   createSlice,
-  nanoid,
+  createAsyncThunk,
   type PayloadAction,
 } from "@reduxjs/toolkit";
 import type {
@@ -11,7 +11,7 @@ import type {
   SportType,
   SportsGroup,
 } from "@/types";
-import { MOCK_GROUPS } from "@/sports/mocks/groups.mock";
+import { groupsService } from "@/services/sports/groups.service";
 
 export interface NewGroupInput {
   name: string;
@@ -24,31 +24,36 @@ export interface NewGroupInput {
 
 export interface GroupsState {
   groups: SportsGroup[];
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
 }
 
-const initialState: GroupsState = { groups: MOCK_GROUPS };
+const initialState: GroupsState = { 
+  groups: [],
+  status: 'idle',
+  error: null
+};
+
+export const fetchGroupsThunk = createAsyncThunk(
+  "sports/groups/fetchGroups",
+  async () => {
+    const response = await groupsService.list();
+    return response.data.items;
+  }
+);
+
+export const createGroupThunk = createAsyncThunk(
+  "sports/groups/createGroup",
+  async (input: NewGroupInput) => {
+    const response = await groupsService.create(input);
+    return response.data;
+  }
+);
 
 const groupsSlice = createSlice({
   name: "sports/groups",
   initialState,
   reducers: {
-    groupAdded: {
-      reducer(state, action: PayloadAction<SportsGroup>) {
-        state.groups.unshift(action.payload);
-      },
-      prepare(input: NewGroupInput) {
-        const now = new Date().toISOString();
-        const group: SportsGroup = {
-          id: nanoid(8),
-          createdAt: now,
-          updatedAt: now,
-          memberCount: 1,
-          members: [],
-          ...input,
-        };
-        return { payload: group };
-      },
-    },
     memberRemoved(
       state,
       action: PayloadAction<{ groupId: string; memberId: string }>
@@ -89,12 +94,29 @@ const groupsSlice = createSlice({
       group.updatedAt = new Date().toISOString();
     },
   },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchGroupsThunk.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(fetchGroupsThunk.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.groups = action.payload;
+      })
+      .addCase(fetchGroupsThunk.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message || 'Failed to fetch groups';
+      })
+      .addCase(createGroupThunk.fulfilled, (state, action) => {
+        state.groups.unshift(action.payload);
+      });
+  },
 });
 
 export const {
-  groupAdded,
   memberRemoved,
   memberAdded,
   memberRoleChanged,
 } = groupsSlice.actions;
+
 export default groupsSlice.reducer;

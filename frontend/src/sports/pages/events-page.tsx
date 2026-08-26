@@ -1,6 +1,5 @@
 "use client";
-
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { CalendarPlus, Search, SearchX } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
@@ -18,8 +17,11 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDebounce } from "@/hooks";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchEventsThunk } from "@/store/sports/events-slice";
+import { fetchGroupsThunk } from "@/store/sports/groups-slice";
 import {
+  selectAllGroups,
   selectPastEvents,
   selectUpcomingEvents,
 } from "@/store/sports/selectors";
@@ -28,11 +30,20 @@ import { EVENT_TYPES, type EventType } from "@/types";
 import { ROUTES } from "@/constants";
 
 export function EventsPage() {
+  const dispatch = useAppDispatch();
   const upcoming = useAppSelector(selectUpcomingEvents);
   const past = useAppSelector(selectPastEvents);
+  const groups = useAppSelector(selectAllGroups);
   const [search, setSearch] = useState("");
   const [type, setType] = useState<EventType | "all">("all");
   const debouncedSearch = useDebounce(search, 250);
+
+  useEffect(() => {
+    dispatch(fetchEventsThunk());
+    if (groups.length === 0) {
+      dispatch(fetchGroupsThunk());
+    }
+  }, [dispatch, groups.length]);
 
   const filterEvents = useMemo(
     () =>

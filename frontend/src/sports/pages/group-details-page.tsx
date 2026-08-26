@@ -1,6 +1,5 @@
 "use client";
-
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -26,7 +25,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDebounce } from "@/hooks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { memberRemoved } from "@/store/sports/groups-slice";
+import { memberRemoved, fetchGroupsThunk } from "@/store/sports/groups-slice";
+import { fetchPaymentsThunk } from "@/store/sports/payments-slice";
 import {
   selectAllFiles,
   selectAllPolls,
@@ -58,6 +58,13 @@ export function GroupDetailsPage() {
   const payments = useAppSelector(selectAllPayments);
   const files = useAppSelector(selectAllFiles);
 
+  useEffect(() => {
+    dispatch(fetchPaymentsThunk(groupId));
+    if (!group) {
+      dispatch(fetchGroupsThunk());
+    }
+  }, [dispatch, groupId, group]);
+
   const [memberSearch, setMemberSearch] = useState("");
   const [membersView, setMembersView] = useState<"cards" | "table">("cards");
   const debouncedMemberSearch = useDebounce(memberSearch, 250);
@@ -88,12 +95,13 @@ export function GroupDetailsPage() {
 
   const filteredMembers = useMemo(() => {
     if (!group) return [];
+    const members = group.members ?? [];
     const query = debouncedMemberSearch.trim().toLowerCase();
-    if (query.length === 0) return group.members;
-    return group.members.filter(
+    if (query.length === 0) return members;
+    return members.filter(
       (member) =>
-        (member.name || "").toLowerCase().includes(query) ||
-        (member.email || "").toLowerCase().includes(query)
+        member.name?.toLowerCase().includes(query) ||
+        member.email?.toLowerCase().includes(query)
     );
   }, [group, debouncedMemberSearch]);
 
@@ -258,7 +266,7 @@ export function GroupDetailsPage() {
               </h2>
               <Card className="p-5">
                 <ul className="space-y-3">
-                  {group.members.slice(0, 5).map((member) => (
+                  {(group.members ?? []).slice(0, 5).map((member) => (
                     <li key={member.id} className="flex items-center gap-3">
                       <Avatar className="h-9 w-9">
                         <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
@@ -273,7 +281,7 @@ export function GroupDetailsPage() {
                   ))}
                 </ul>
                 <p className="mt-4 text-center text-xs font-semibold text-muted-foreground">
-                  {group.memberCount} members in total
+                  {group.memberCount ?? (group.members ?? []).length} members in total
                 </p>
               </Card>
             </section>

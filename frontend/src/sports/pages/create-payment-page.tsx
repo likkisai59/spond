@@ -18,7 +18,7 @@ import {
 } from "@/components/forms";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { paymentAdded } from "@/store/sports/payments-slice";
+import { createPaymentThunk } from "@/store/sports/payments-slice";
 import { selectAllGroups } from "@/store/sports/selectors";
 import { createPaymentSchema, type CreatePaymentFormData } from "../schemas";
 import { ROUTES } from "@/constants";
@@ -40,24 +40,34 @@ export function CreatePaymentPage() {
   });
   const { control, handleSubmit, formState } = form;
 
-  const onSubmit: SubmitHandler<CreatePaymentFormData> = (data) => {
-    dispatch(
-      paymentAdded({
-        groupId: data.groupId,
-        title: data.title,
-        amount: data.amount,
-        dueDate: data.dueDate,
-        description: data.description || undefined,
-      })
-    );
-    dispatch(
-      notificationAdded({
-        title: "Payment request created",
-        message: `“${data.title}” is now collecting in the selected group.`,
-        variant: "success",
-      })
-    );
-    router.push(ROUTES.SPORTS_PAYMENTS);
+  const onSubmit: SubmitHandler<CreatePaymentFormData> = async (data) => {
+    try {
+      await dispatch(
+        createPaymentThunk({
+          groupId: data.groupId,
+          title: data.title,
+          amount: Number(data.amount),
+          dueDate: data.dueDate,
+          description: data.description || undefined,
+        })
+      ).unwrap();
+      dispatch(
+        notificationAdded({
+          title: "Payment request created",
+          message: `“${data.title}” is now collecting in the selected group.`,
+          variant: "success",
+        })
+      );
+      router.push(ROUTES.SPORTS_PAYMENTS);
+    } catch (error: any) {
+      dispatch(
+        notificationAdded({
+          title: "Error",
+          message: error?.message || "Failed to create payment request",
+          variant: "error",
+        })
+      );
+    }
   };
 
   return (

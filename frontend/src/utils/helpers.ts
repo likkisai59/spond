@@ -9,13 +9,14 @@ export function capitalize(value: string): string {
 }
 
 export function getInitials(name?: string | null): string {
-  if (!name) return "";
+  if (!name || typeof name !== "string") return "S";
   return name
-    .split(" ")
+    .trim()
+    .split(/\s+/)
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase())
     .slice(0, 2)
-    .join("");
+    .join("") || "S";
 }
 
 export function formatCount(value: number): string {
@@ -66,16 +67,4 @@ export function formatTime(value: string): string {
   const suffix = hours >= 12 ? "PM" : "AM";
   const hour12 = hours % 12 === 0 ? 12 : hours % 12;
   return `${hour12}:${String(minutes).padStart(2, "0")} ${suffix}`;
-}
-
-export function formatDate(dateString: string | Date): string {
-  try {
-    return new Intl.DateTimeFormat("en-IN", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    }).format(new Date(dateString));
-  } catch {
-    return String(dateString);
-  }
 }

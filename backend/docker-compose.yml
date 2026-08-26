@@ -5,15 +5,15 @@ services:
       dockerfile: Dockerfile
     container_name: unify-api
     ports:
-      - "6379:6379"
+      - "8000:8000"
     environment:
       APP_ENV: dev
-      MONGODB_URI: mongodb://mongodb:27017
+      MONGODB_URI: ${MONGODB_URI}
       MONGODB_DB_NAME: unify_platform
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-env}
       CORS_ORIGINS: http://localhost:3000
-      BOOTSTRAP_SUPER_ADMIN_EMAIL: admin@unify.local
+      BOOTSTRAP_SUPER_ADMIN_EMAIL: admin@unify.com
       BOOTSTRAP_SUPER_ADMIN_PASSWORD: Admin@12345
     depends_on:
       mongodb:

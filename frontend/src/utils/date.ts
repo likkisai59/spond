@@ -9,9 +9,14 @@ import {
 export const DEFAULT_DATE_FORMAT = "MMM d, yyyy";
 export const DEFAULT_DATETIME_FORMAT = "MMM d, yyyy · h:mm a";
 
-function toDate(value: Date | string | number): Date | null {
-  const date = value instanceof Date ? value : parseISO(String(value));
-  return isValid(date) ? date : null;
+function toDate(value?: Date | string | number | null): Date | null {
+  if (!value || value === "undefined" || value === "null") return null;
+  try {
+    const date = value instanceof Date ? value : parseISO(String(value));
+    return isValid(date) ? date : null;
+  } catch {
+    return null;
+  }
 }
 
 export function formatDate(

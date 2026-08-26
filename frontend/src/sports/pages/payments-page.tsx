@@ -1,6 +1,5 @@
 "use client";
-
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { CreditCard, Plus, Search, SearchX } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
@@ -17,7 +16,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDebounce } from "@/hooks";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchPaymentsThunk } from "@/store/sports/payments-slice";
+import { fetchGroupsThunk } from "@/store/sports/groups-slice";
 import { selectAllGroups, selectAllPayments } from "@/store/sports/selectors";
 import { PaymentCard, StatsCard } from "../components";
 import type { PaymentStatus } from "@/types";
@@ -25,11 +26,19 @@ import { formatCurrency } from "@/utils/helpers";
 import { ROUTES } from "@/constants";
 
 export function PaymentsPage() {
+  const dispatch = useAppDispatch();
   const payments = useAppSelector(selectAllPayments);
   const groups = useAppSelector(selectAllGroups);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<PaymentStatus | "all">("all");
   const debouncedSearch = useDebounce(search, 250);
+
+  useEffect(() => {
+    dispatch(fetchPaymentsThunk());
+    if (groups.length === 0) {
+      dispatch(fetchGroupsThunk());
+    }
+  }, [dispatch, groups.length]);
 
   const groupNames = useMemo(
     () => Object.fromEntries(groups.map((g) => [g.id, g.name])),

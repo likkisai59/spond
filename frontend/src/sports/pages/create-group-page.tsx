@@ -20,9 +20,8 @@ import {
 } from "@/components/forms";
 import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { groupAdded } from "@/store/sports/groups-slice";
+import { createGroupThunk } from "@/store/sports/groups-slice";
 import { createGroupSchema, type CreateGroupFormData } from "../schemas";
-import { groupsService } from "@/services/sports/groups.service";
 import { GROUP_CATEGORIES, SPORT_TYPES } from "@/types";
 import { ROUTES } from "@/constants";
 import { cn } from "@/utils/cn";
@@ -113,26 +112,36 @@ export function CreateGroupPage() {
 
   const onSubmit: SubmitHandler<CreateGroupFormData> = async (data) => {
     try {
-      const response = await groupsService.create(data);
-      const createdGroup = response.data;
-      
-      dispatch(groupAdded(createdGroup));
+      const actionResult = await dispatch(createGroupThunk(data)).unwrap();
       dispatch(
         notificationAdded({
           title: "Group created",
-          message: `${createdGroup.name} is ready. Invite members to get started.`,
+          message: `${data.name} is ready. Invite members to get started.`,
           variant: "success",
         })
       );
-      router.push(`${ROUTES.SPORTS_GROUPS}/${createdGroup.id}`);
+      router.push(`${ROUTES.SPORTS_GROUPS}/${actionResult.id}`);
     } catch (error: any) {
-      dispatch(
-        notificationAdded({
-          title: "Failed to create group",
-          message: error.message || "Something went wrong.",
-          variant: "error",
-        })
-      );
+      const msg: string = error?.message || "Failed to create group";
+
+      // Show error inline under the name field if it's a name conflict
+      const isNameConflict =
+        msg.toLowerCase().includes("name") ||
+        msg.toLowerCase().includes("exists") ||
+        msg.toLowerCase().includes("already");
+
+      if (isNameConflict) {
+        form.setError("name", { type: "server", message: msg });
+      } else {
+        // For other errors show a toast notification
+        dispatch(
+          notificationAdded({
+            title: "Failed to create group",
+            message: msg,
+            variant: "error",
+          })
+        );
+      }
     }
   };
 

@@ -49,6 +49,20 @@ function toApiRequestError(error: AxiosError<ApiErrorBody>): ApiRequestError {
   });
 }
 
+/** Recursively convert all snake_case keys → camelCase (pure TS, zero deps). */
+function deepCamel(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(deepCamel);
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [
+        k.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase()),
+        deepCamel(v),
+      ])
+    );
+  }
+  return value;
+}
+
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: API_TIMEOUT_MS,
@@ -70,7 +84,13 @@ apiClient.interceptors.request.use(
 );
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Auto-convert snake_case keys → camelCase for all successful responses
+    if (response.data && typeof response.data === "object") {
+      response.data = deepCamel(response.data);
+    }
+    return response;
+  },
   (error: AxiosError<ApiErrorBody>) => {
     const apiError = toApiRequestError(error);
 

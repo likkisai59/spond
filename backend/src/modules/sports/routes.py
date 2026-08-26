@@ -71,8 +71,8 @@ async def create_event(data: EventCreateRequest, user: dict = Depends(get_curren
     return {"status": "success", "data": event}
 
 @router.get("/events")
-async def list_events(_: dict = Depends(get_current_user)) -> dict:
-    events = await service.list_events()
+async def list_events(group_id: str = None, _: dict = Depends(get_current_user)) -> dict:
+    events = await service.list_events(group_id)
     return {"status": "success", "data": {"items": events}}
 
 @router.get("/events/{id}")

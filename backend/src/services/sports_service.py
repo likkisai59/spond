@@ -128,22 +128,22 @@ class SportsService:
     # Events
     async def create_event(self, user_id: str, data: EventCreateRequest) -> dict:
         event_doc = data.model_dump(exclude_unset=True)
-        if data.name and not data.title:
-            event_doc["title"] = data.name
-        elif data.title and not data.name:
-            event_doc["name"] = data.title
+        name_val = data.name or data.title or "Event"
+        event_doc["name"] = name_val
+        event_doc["title"] = name_val
 
-        if data.event_type and not data.type:
-            event_doc["type"] = data.event_type
-        elif data.type and not data.event_type:
-            event_doc["event_type"] = data.type
+        type_val = data.type or data.event_type or "Training"
+        event_doc["type"] = type_val
+        event_doc["event_type"] = type_val
 
         event_doc.update({
             "created_by": user_id,
-            "status": "Upcoming"
+            "status": "Upcoming",
+            "created_at": utc_now(),
+            "updated_at": utc_now(),
         })
-        event_id = await self.events.insert(event_doc)
-        return await self.get_event(event_id)
+        created = await self.events.insert(event_doc)
+        return await self.get_event(created["id"])
 
     async def get_event(self, event_id: str) -> dict:
         event = await self.events.find_by_id(event_id)
@@ -151,17 +151,35 @@ class SportsService:
             raise NotFoundError("Event not found")
         # Calc attendance summary
         going = await self.attendance.collection.count_documents({"event_id": event_id, "attendance_status": "Going"})
-        event["attendance"] = {"going": going, "maybe": 0, "not_responded": 0}
+        maybe = await self.rsvps.collection.count_documents({"event_id": event_id, "status": "Maybe"})
+        event.setdefault("name", event.get("title", "Event"))
+        event.setdefault("title", event.get("name", "Event"))
+        event.setdefault("type", event.get("event_type", "Training"))
+        event.setdefault("status", "Upcoming")
+        event["attendance"] = {"going": going, "maybe": maybe, "not_responded": 0}
         return event
         
-    async def list_events(self) -> list[dict]:
-        return await self.events.find_many({})
+    async def list_events(self, group_id: str = None) -> list[dict]:
+        query = {}
+        if group_id:
+            query["group_id"] = group_id
+        events = await self.events.find_many(query, sort=[("date", 1), ("created_at", -1)])
+        for event in events:
+            going = await self.attendance.collection.count_documents({"event_id": event["id"], "attendance_status": "Going"})
+            maybe = await self.rsvps.collection.count_documents({"event_id": event["id"], "status": "Maybe"})
+            event.setdefault("name", event.get("title", "Event"))
+            event.setdefault("title", event.get("name", "Event"))
+            event.setdefault("type", event.get("event_type", "Training"))
+            event.setdefault("status", "Upcoming")
+            event["attendance"] = {"going": going, "maybe": maybe, "not_responded": 0}
+        return events
 
     async def update_event(self, event_id: str, data: EventUpdateRequest) -> dict:
         update_data = data.model_dump(exclude_unset=True)
         if not update_data:
             return await self.get_event(event_id)
         
+        update_data["updated_at"] = utc_now()
         updated = await self.events.update_by_id(event_id, update_data)
         if not updated:
             raise NotFoundError("Event not found")

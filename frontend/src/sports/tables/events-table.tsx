@@ -62,7 +62,7 @@ export function EventsTable({ events }: EventsTableProps) {
       header: "Attendance",
       render: (event) => (
         <span className="text-xs font-semibold text-muted-foreground">
-          {event.attendance.going} going · {event.attendance.maybe} maybe
+          {event.attendance?.going ?? 0} going · {event.attendance?.maybe ?? 0} maybe
         </span>
       ),
     },

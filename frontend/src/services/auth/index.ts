@@ -44,12 +44,20 @@ export interface AuthService {
 
 export const authService: AuthService = {
   login: async (payload) => {
-    const { data } = await apiClient.post<{ status: string; data: AuthSession }>("/api/v1/auth/login", payload);
-    return data.data;
+    const { data } = await apiClient.post<{ status: string; data: any }>("/api/v1/auth/login", payload);
+    return {
+      user: data.data.user,
+      accessToken: data.data.access_token,
+      refreshToken: data.data.refresh_token,
+    } as AuthSession;
   },
   register: async (payload) => {
-    const { data } = await apiClient.post<{ status: string; data: AuthSession }>("/api/v1/auth/register", payload);
-    return data.data;
+    const { data } = await apiClient.post<{ status: string; data: any }>("/api/v1/auth/register", payload);
+    return {
+      user: data.data.user,
+      accessToken: data.data.access_token,
+      refreshToken: data.data.refresh_token,
+    } as AuthSession;
   },
   logout: async (payload) => {
     await apiClient.post("/api/v1/auth/logout", payload);
@@ -61,8 +69,12 @@ export const authService: AuthService = {
     await apiClient.post("/api/v1/auth/reset-password", payload);
   },
   refreshToken: async (payload) => {
-    const { data } = await apiClient.post<{ status: string; data: AuthSession }>("/api/v1/auth/refresh-token", payload);
-    return data.data;
+    const { data } = await apiClient.post<{ status: string; data: any }>("/api/v1/auth/refresh-token", payload);
+    return {
+      user: data.data.user,
+      accessToken: data.data.access_token,
+      refreshToken: data.data.refresh_token,
+    } as AuthSession;
   },
   getCurrentUser: async () => {
     const { data } = await apiClient.get<{ status: string; data: User }>("/api/v1/auth/me");

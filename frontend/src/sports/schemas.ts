@@ -107,3 +107,43 @@ export const preferencesSchema = z.object({
   timezone: z.enum(["IST", "GMT", "EST"]),
 });
 export type PreferencesFormData = z.infer<typeof preferencesSchema>;
+
+export const createVenueSchema = z.object({
+  name: requiredStringSchema("Venue name", 2),
+  description: requiredStringSchema("Description", 10),
+  sportType: z.enum(SPORT_TYPES, { message: "Select a sport" }).optional(),
+  address: requiredStringSchema("Address", 5),
+  city: requiredStringSchema("City", 2),
+  state: z.string().optional(),
+  country: z.string().optional(),
+  contactName: z.string().optional(),
+  contactPhone: z.string().optional(),
+  openingTime: z.string().optional(),
+  closingTime: z.string().optional(),
+});
+export type CreateVenueFormData = z.infer<typeof createVenueSchema>;
+
+export const createSlotSchema = z.object({
+  date: requiredStringSchema("Date"),
+  startTime: requiredStringSchema("Start time"),
+  endTime: requiredStringSchema("End time"),
+  price: z.coerce.number().positive("Price must be greater than zero"),
+}).refine((data) => data.endTime > data.startTime, {
+  message: "End time must be after start time",
+  path: ["endTime"],
+});
+export type CreateSlotFormData = z.infer<typeof createSlotSchema>;
+
+export const generateSlotsSchema = z.object({
+  startDate: requiredStringSchema("Start Date"),
+  endDate: requiredStringSchema("End Date"),
+  startTime: requiredStringSchema("Start time"),
+  endTime: requiredStringSchema("End time"),
+  slotDurationMinutes: z.coerce.number().positive("Duration must be greater than zero"),
+  price: z.coerce.number().positive("Price must be greater than zero"),
+}).refine((data) => data.endDate >= data.startDate, {
+  message: "End date must be after or same as start date",
+  path: ["endDate"],
+});
+export type GenerateSlotsFormData = z.infer<typeof generateSlotsSchema>;
+

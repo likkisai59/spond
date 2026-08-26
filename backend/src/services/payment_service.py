@@ -58,9 +58,9 @@ class PaymentService:
             "payment_method": data.payment_method,
             "created_at": utc_now()
         }
-        pid = await self.payments.insert(doc)
+        created = await self.payments.insert(doc)
         
-        payment = await self.get_payment(pid)
+        payment = await self.get_payment(created["id"])
         payment["razorpay_order_id"] = order_id
         return payment
 
@@ -69,7 +69,8 @@ class PaymentService:
         if not payment:
             raise NotFoundError("Payment order not found")
 
-        # Verify signature
+        # If valid, update payment
+        payment_id_str = str(payment.get("id") or payment.get("_id"))
         if self.client:
             try:
                 self.client.utility.verify_payment_signature({
@@ -78,19 +79,19 @@ class PaymentService:
                     'razorpay_signature': data.razorpay_signature
                 })
             except razorpay.errors.SignatureVerificationError:
-                await self.payments.update_by_id(payment["_id"], {"payment_status": "FAILED"})
+                await self.payments.update_by_id(payment_id_str, {"payment_status": "FAILED"})
                 raise AppException(400, "Invalid payment signature")
                 
         # If valid, update payment
-        await self.payments.update_by_id(payment["_id"], {
+        await self.payments.update_by_id(payment_id_str, {
             "payment_id": data.razorpay_payment_id,
             "payment_status": "SUCCESS",
             "updated_at": utc_now()
         })
         
         # Save transaction
-        tx_id = await self.transactions.insert({
-            "payment_id": str(payment["_id"]),
+        await self.transactions.insert({
+            "payment_id": payment_id_str,
             "gateway": "razorpay",
             "gateway_reference": data.razorpay_payment_id,
             "amount": payment["amount"],
@@ -99,7 +100,7 @@ class PaymentService:
         })
 
         # Return updated payment
-        return await self.get_payment(str(payment["_id"]))
+        return await self.get_payment(payment_id_str)
 
     async def generate_receipt(self, payment_id: str) -> dict:
         payment = await self.get_payment(payment_id)
@@ -117,8 +118,8 @@ class PaymentService:
             "receipt_url": f"https://s3.placeholder.url/{receipt_no}.pdf", # In reality, generate PDF and upload to S3
             "created_at": utc_now()
         }
-        rid = await self.receipts.insert(doc)
-        return await self.receipts.find_by_id(rid)
+        created_receipt = await self.receipts.insert(doc)
+        return await self.receipts.find_by_id(created_receipt["id"])
 
     async def get_payment(self, payment_id: str) -> dict:
         payment = await self.payments.find_by_id(payment_id)

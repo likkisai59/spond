@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { DataTable, type DataTableColumn } from "@/components/tables";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "../components/status-badge";
 import { formatCurrency } from "@/utils/helpers";
 import { formatDate } from "@/utils/date";
 import type { PaymentRequest } from "@/types";
+import { PaymentModal } from "../components/payment-modal";
 
 export interface PaymentsTableProps {
   payments: PaymentRequest[];
@@ -12,6 +15,9 @@ export interface PaymentsTableProps {
 }
 
 export function PaymentsTable({ payments, groupNameById }: PaymentsTableProps) {
+  const [selectedPayment, setSelectedPayment] = useState<PaymentRequest | null>(null);
+  
+
   const columns: DataTableColumn<PaymentRequest>[] = [
     {
       key: "title",
@@ -57,11 +63,10 @@ export function PaymentsTable({ payments, groupNameById }: PaymentsTableProps) {
             <span
               className="block h-full rounded-full bg-brand-gradient"
               style={{
-                width: `${
-                  payment.totalMembers > 0
-                    ? (payment.paidCount / payment.totalMembers) * 100
-                    : 0
-                }%`,
+                width: `${payment.totalMembers > 0
+                  ? (payment.paidCount / payment.totalMembers) * 100
+                  : 0
+                  }%`,
               }}
             />
           </div>
@@ -73,15 +78,39 @@ export function PaymentsTable({ payments, groupNameById }: PaymentsTableProps) {
       header: "Status",
       render: (payment) => <StatusBadge status={payment.status} />,
     },
+    {
+      key: "action",
+      header: "Action",
+      render: (payment) => (
+        <Button 
+          size="sm" 
+          variant="accent"
+          onClick={() => setSelectedPayment(payment)}
+        >
+          Pay now
+        </Button>
+      ),
+    },
   ];
 
   return (
-    <DataTable
-      columns={columns}
-      data={payments}
-      rowKey={(payment) => payment.id}
-      emptyTitle="No payment requests"
-      emptyDescription="Create a payment request to start collecting from members."
-    />
+    <>
+      <DataTable
+        columns={columns}
+        data={payments}
+        rowKey={(payment) => payment.id}
+        emptyTitle="No payment requests"
+        emptyDescription="Create a payment request to start collecting from members."
+      />
+      
+      {selectedPayment && (
+        <PaymentModal
+          isOpen={!!selectedPayment}
+          onClose={() => setSelectedPayment(null)}
+          payment={selectedPayment}
+          groupName={groupNameById?.[selectedPayment.groupId]}
+        />
+      )}
+    </>
   );
 }

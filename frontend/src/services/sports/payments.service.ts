@@ -1,4 +1,4 @@
-import { notImplemented } from "@/utils/helpers";
+import { apiClient } from "../api-client";
 import type {
   ApiResponse,
   Paginated,
@@ -18,20 +18,22 @@ export interface PaymentsService {
   markPaid(id: string): Promise<ApiResponse<PaymentRequest>>;
 }
 
-import { apiClient } from "../api-client";
-
 export const paymentsService: PaymentsService = {
   list: async (query) => {
-    return apiClient.get("/v1/payments/history", { params: query });
+    const { data } = await apiClient.get("/api/v1/sports/payment-requests", { params: query });
+    return data;
   },
   getById: async (id) => {
-    return apiClient.get(`/v1/payments/${id}`);
+    const { data } = await apiClient.get(`/api/v1/sports/payment-requests/${id}`);
+    return data;
   },
   create: async (input) => {
-    return apiClient.post("/v1/payments/create-order", input);
+    const { data } = await apiClient.post("/api/v1/sports/payment-requests", input);
+    return data;
   },
   markPaid: async (id) => {
-    // Replaced by verify logic, mapping to verify for simplicity or refund
-    return apiClient.post(`/v1/payments/verify`, { payment_id: id });
+    const { data } = await apiClient.put(`/api/v1/sports/payment-requests/${id}/status`, { status: "Paid" });
+    return data;
   },
 };
+

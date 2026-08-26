@@ -8,13 +8,15 @@ export function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-export function getInitials(name: string): string {
+export function getInitials(name?: string | null): string {
+  if (!name || typeof name !== "string") return "S";
   return name
-    .split(" ")
+    .trim()
+    .split(/\s+/)
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase())
     .slice(0, 2)
-    .join("");
+    .join("") || "S";
 }
 
 export function formatCount(value: number): string {

@@ -232,3 +232,26 @@ class BookingCreateRequest(CamelModel):
     amount: float
     booking_date: datetime | str | None = None
 
+# --- Payment Requests ---
+class PaymentRequestCreateRequest(CamelModel):
+    group_id: str
+    title: str = Field(min_length=2, max_length=150)
+    amount: float = Field(gt=0)
+    due_date: str
+    description: str | None = None
+
+class PaymentRequestResponse(CamelModel):
+    id: str
+    group_id: str
+    title: str
+    amount: float
+    due_date: str
+    description: str | None = None
+    status: str = "Pending"
+    paid_count: int = 0
+    total_members: int = 0
+    created_by: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+

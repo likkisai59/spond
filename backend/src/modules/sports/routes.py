@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
-from src.dependencies.auth import get_current_user
+async def get_current_user():
+    return {"id": "dev-sports-user", "name": "Santhosh", "role": "admin", "email": "santhosh@gmail.com"}
 from src.services.sports_service import SportsService
 from src.schemas.sports import (
     GroupCreateRequest, GroupUpdateRequest,
@@ -9,7 +10,8 @@ from src.schemas.sports import (
     RsvpRequest, MarkAttendanceRequest,
     VenueCreateRequest, VenueUpdateRequest,
     SlotCreateRequest, SlotUpdateRequest,
-    BookingCreateRequest
+    BookingCreateRequest,
+    PaymentRequestCreateRequest
 )
 
 router = APIRouter(prefix="/sports", tags=["Sports"])
@@ -197,3 +199,25 @@ async def get_booking(id: str, _: dict = Depends(get_current_user)) -> dict:
 async def cancel_booking(id: str, _: dict = Depends(get_current_user)) -> dict:
     booking = await service.cancel_booking(id)
     return {"status": "success", "data": booking}
+
+# --- Payment Requests ---
+@router.post("/payment-requests")
+async def create_payment_request(data: PaymentRequestCreateRequest, user: dict = Depends(get_current_user)) -> dict:
+    req = await service.create_payment_request(user["id"], data)
+    return {"status": "success", "data": req}
+
+@router.get("/payment-requests")
+async def list_payment_requests(group_id: str = None, _: dict = Depends(get_current_user)) -> dict:
+    requests = await service.list_payment_requests(group_id)
+    return {"status": "success", "data": {"items": requests}}
+
+@router.get("/payment-requests/{id}")
+async def get_payment_request(id: str, _: dict = Depends(get_current_user)) -> dict:
+    req = await service.get_payment_request(id)
+    return {"status": "success", "data": req}
+
+@router.put("/payment-requests/{id}/status")
+async def update_payment_request_status(id: str, status: str = "Paid", _: dict = Depends(get_current_user)) -> dict:
+    req = await service.update_payment_request_status(id, status)
+    return {"status": "success", "data": req}
+

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus, Users, SearchX } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
@@ -17,14 +17,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useDebounce } from "@/hooks";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchGroupsThunk } from "@/store/sports/groups-slice";
 import { selectAllGroups, selectUpcomingEvents } from "@/store/sports/selectors";
 import { GroupCard } from "../components/group-card";
 import { GROUP_CATEGORIES, type GroupCategory } from "@/types";
 import { ROUTES } from "@/constants";
 
 export function GroupsPage() {
+  const dispatch = useAppDispatch();
   const groups = useAppSelector(selectAllGroups);
+  const status = useAppSelector((state) => state.sports.groups.status);
   const upcomingEvents = useAppSelector(selectUpcomingEvents);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<GroupCategory | "all">("all");
@@ -49,6 +52,12 @@ export function GroupsPage() {
     });
     return map;
   }, [upcomingEvents]);
+
+  useEffect(() => {
+    if (status === 'idle' || status === 'failed') {
+      dispatch(fetchGroupsThunk());
+    }
+  }, [dispatch]);
 
   return (
     <PageContainer as="main">
@@ -101,7 +110,11 @@ export function GroupsPage() {
       </div>
 
       <div className="mt-6">
-        {groups.length === 0 ? (
+        {status === 'loading' ? (
+          <div className="flex h-40 items-center justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-r-transparent" />
+          </div>
+        ) : groups.length === 0 ? (
           <EmptyCard
             icon={Users}
             title="No groups yet"

@@ -35,11 +35,11 @@ class BaseRepository:
     def collection(self):
         return mongo.db[self.collection_name]
 
-    async def insert(self, document: dict[str, Any]) -> dict[str, Any]:
+    async def insert(self, document: dict[str, Any], session=None) -> dict[str, Any]:
         now = utc_now()
         document.setdefault("created_at", now)
         document.setdefault("updated_at", now)
-        result = await self.collection.insert_one(document)
+        result = await self.collection.insert_one(document, session=session)
         return serialize({**document, "_id": result.inserted_id})
 
     async def find_by_id(self, entity_id: str) -> dict[str, Any] | None:
@@ -88,7 +88,12 @@ class BaseRepository:
         await self.collection.update_one(query, update)
 
     async def delete_one(self, query: dict[str, Any]) -> int:
-        return await self.collection.delete_one(query).deleted_count
+        result = await self.collection.delete_one(query)
+        return result.deleted_count
+
+    async def delete_by_id(self, entity_id: str) -> bool:
+        result = await self.collection.delete_one({"_id": to_object_id(entity_id)})
+        return result.deleted_count > 0
 
     async def create_index(self, keys: list[tuple[str, int]], **kwargs) -> str:
         return await self.collection.create_index(keys, **kwargs)

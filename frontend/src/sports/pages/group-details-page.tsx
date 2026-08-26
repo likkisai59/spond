@@ -92,8 +92,8 @@ export function GroupDetailsPage() {
     if (query.length === 0) return group.members;
     return group.members.filter(
       (member) =>
-        member.name.toLowerCase().includes(query) ||
-        member.email.toLowerCase().includes(query)
+        (member.name || "").toLowerCase().includes(query) ||
+        (member.email || "").toLowerCase().includes(query)
     );
   }, [group, debouncedMemberSearch]);
 

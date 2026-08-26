@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -28,29 +28,13 @@ import {
 } from "@/components/ui/select";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { bookingCreated } from "@/store/sports/bookings-slice";
 import { selectAllGroups } from "@/store/sports/selectors";
-import { VenueCard } from "../components/venue-card";
-import {
-  MOCK_VENUES,
-  VENUE_SLOTS,
-  isSlotTaken,
-  slotLabel,
-  upcomingDates,
-} from "../mocks/venues.mock";
+import { venuesService } from "@/services/sports/venues.service";
+import { bookingsService } from "@/services/sports/bookings.service";
 import { formatDate } from "@/utils/date";
 import { formatCurrency } from "@/utils/helpers";
 import { ROUTES } from "@/constants";
 import { cn } from "@/utils/cn";
-
-function toDateLabel(date: string): { weekday: string; day: string; month: string } {
-  const parsed = new Date(`${date}T00:00:00`);
-  return {
-    weekday: parsed.toLocaleDateString("en-US", { weekday: "short" }),
-    day: parsed.toLocaleDateString("en-US", { day: "numeric" }),
-    month: parsed.toLocaleDateString("en-US", { month: "short" }),
-  };
-}
 
 export function VenueDetailsPage() {
   const params = useParams<{ venueId: string }>();
@@ -58,32 +42,67 @@ export function VenueDetailsPage() {
   const dispatch = useAppDispatch();
   const groups = useAppSelector(selectAllGroups);
 
-  const venue = MOCK_VENUES.find((v) => v.id === params.venueId);
-  const venueId = venue?.id;
+  const venueId = params.venueId;
+  const [venue, setVenue] = useState<any>(null);
+  const [slots, setSlots] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const dates = useMemo(
-    () => upcomingDates(14).map((date) => ({ date, ...toDateLabel(date) })),
-    []
-  );
-  const [selectedDate, setSelectedDate] = useState(dates[0].date);
+  // Group slots by date
+  const groupedSlots = useMemo(() => {
+    const map = new Map<string, any[]>();
+    slots.forEach(slot => {
+      const date = slot.date;
+      if (!map.has(date)) map.set(date, []);
+      map.get(date)?.push(slot);
+    });
+    // Sort dates
+    const dates = Array.from(map.keys()).sort();
+    return dates.map(date => ({
+      date,
+      slots: map.get(date)?.sort((a, b) => a.start_time.localeCompare(b.start_time)) || []
+    }));
+  }, [slots]);
+
+  const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
-  const [selectedGroupId, setSelectedGroupId] = useState<string>(
-    groups[0]?.id ?? ""
-  );
+  const [selectedGroupId, setSelectedGroupId] = useState<string>(groups[0]?.id ?? "");
+  const [bookingInProgress, setBookingInProgress] = useState(false);
+
+  useEffect(() => {
+    if (groupedSlots.length > 0 && !selectedDate) {
+      setSelectedDate(groupedSlots[0].date);
+    }
+  }, [groupedSlots, selectedDate]);
+
+  useEffect(() => {
+    const fetchVenue = async () => {
+      try {
+        const vRes = await venuesService.getById(venueId);
+        setVenue(vRes.data);
+        const sRes = await venuesService.listSlots(venueId);
+        setSlots(sRes.data?.items || []);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchVenue();
+  }, [venueId]);
 
   const slotsForDate = useMemo(
-    () =>
-      VENUE_SLOTS.map((slot) => ({
-        slot,
-        taken: venueId ? isSlotTaken(venueId, selectedDate, slot.id) : false,
-      })),
-    [venueId, selectedDate]
+    () => groupedSlots.find((g) => g.date === selectedDate)?.slots || [],
+    [groupedSlots, selectedDate]
   );
 
   const selectedSlot = useMemo(
-    () => VENUE_SLOTS.find((slot) => slot.id === selectedSlotId) ?? null,
-    [selectedSlotId]
+    () => slots.find((slot) => slot.id === selectedSlotId) ?? null,
+    [slots, selectedSlotId]
   );
+
+  if (loading) {
+    return <PageContainer as="main"><p>Loading venue details...</p></PageContainer>;
+  }
 
   if (!venue) {
     return (
@@ -111,29 +130,38 @@ export function VenueDetailsPage() {
   }
 
   const selectedGroup = groups.find((group) => group.id === selectedGroupId);
-  const otherVenues = MOCK_VENUES.filter((v) => v.id !== venue?.id);
 
-  const handleConfirmBooking = () => {
+  const handleConfirmBooking = async () => {
     if (!selectedSlot || !selectedGroup) return;
-    dispatch(
-      bookingCreated({
+    setBookingInProgress(true);
+    try {
+      await bookingsService.create({
         venueId: venue.id,
-        venueName: venue.name,
-        eventDate: selectedDate,
         slotId: selectedSlot.id,
-        slotLabel: slotLabel(selectedSlot),
-        groupName: selectedGroup.name,
-        price: selectedSlot.price,
-      })
-    );
-    dispatch(
-      notificationAdded({
-        title: "Booking confirmed",
-        message: `${venue.name} · ${formatDate(selectedDate)} · ${slotLabel(selectedSlot)} for ${selectedGroup.name} (demo mode).`,
-        variant: "success",
-      })
-    );
-    router.push(ROUTES.SPORTS_BOOKINGS);
+        groupId: selectedGroup.id,
+        amount: selectedSlot.price,
+        bookingDate: selectedDate,
+      });
+
+      dispatch(
+        notificationAdded({
+          title: "Booking confirmed",
+          message: `Your booking for ${venue.name} on ${formatDate(selectedDate)} at ${selectedSlot.start_time} is confirmed.`,
+          variant: "success",
+        })
+      );
+      router.push(ROUTES.SPORTS_BOOKINGS);
+    } catch (error: any) {
+      dispatch(
+        notificationAdded({
+          title: "Booking Failed",
+          message: error.message || "Something went wrong.",
+          variant: "error",
+        })
+      );
+    } finally {
+      setBookingInProgress(false);
+    }
   };
 
   return (
@@ -161,33 +189,27 @@ export function VenueDetailsPage() {
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
                   <MapPin className="h-4 w-4 text-accent" />
-                  {venue.address}
+                  {venue.address}, {venue.city}
                 </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Star className="h-4 w-4 text-accent" />
-                  {venue.rating.toFixed(1)} ({venue.reviewCount} reviews)
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <Users className="h-4 w-4 text-accent" />
-                  Fits {venue.capacity}
-                </span>
+                {venue.sportType && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Star className="h-4 w-4 text-accent" />
+                    {venue.sportType}
+                  </span>
+                )}
               </div>
               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                 {venue.description}
               </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <Badge variant="secondary">{venue.surface}</Badge>
-                {venue.sports.map((sport) => (
-                  <Badge key={sport} variant="outline">
-                    {sport}
-                  </Badge>
-                ))}
-                {venue.amenities.map((amenity) => (
-                  <Badge key={amenity} variant="gradient" className="text-[10px]">
-                    {amenity}
-                  </Badge>
-                ))}
-              </div>
+              {venue.amenities && venue.amenities.length > 0 && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {venue.amenities.map((amenity: string) => (
+                    <Badge key={amenity} variant="gradient" className="text-[10px]">
+                      {amenity}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <Button asChild variant="ghost" className="shrink-0">
@@ -206,40 +228,49 @@ export function VenueDetailsPage() {
               <CalendarDays className="h-4 w-4 text-accent" />
               Select a date
             </h2>
-            <div
-              className="mt-4 flex gap-2 overflow-x-auto pb-1"
-              role="group"
-              aria-label="Select a booking date"
-            >
-              {dates.map(({ date, weekday, day, month }) => {
-                const selected = date === selectedDate;
-                return (
-                  <button
-                    key={date}
-                    type="button"
-                    onClick={() => {
-                      setSelectedDate(date);
-                      setSelectedSlotId(null);
-                    }}
-                    aria-pressed={selected}
-                    className={cn(
-                      "flex w-16 shrink-0 flex-col items-center rounded-xl border px-2 py-2.5 transition-all",
-                      selected
-                        ? "border-transparent bg-brand-gradient text-white shadow-sm"
-                        : "border-border/70 hover:border-accent/40 hover:bg-muted/50"
-                    )}
-                  >
-                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
-                      {weekday}
-                    </span>
-                    <span className="text-lg font-extrabold leading-tight">{day}</span>
-                    <span className="text-[10px] font-semibold uppercase opacity-80">
-                      {month}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            {groupedSlots.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">No available dates.</p>
+            ) : (
+              <div
+                className="mt-4 flex gap-2 overflow-x-auto pb-1"
+                role="group"
+                aria-label="Select a booking date"
+              >
+                {groupedSlots.map(({ date }) => {
+                  const selected = date === selectedDate;
+                  const parsed = new Date(date);
+                  const weekday = parsed.toLocaleDateString("en-US", { weekday: "short" });
+                  const day = parsed.toLocaleDateString("en-US", { day: "numeric" });
+                  const month = parsed.toLocaleDateString("en-US", { month: "short" });
+
+                  return (
+                    <button
+                      key={date}
+                      type="button"
+                      onClick={() => {
+                        setSelectedDate(date);
+                        setSelectedSlotId(null);
+                      }}
+                      aria-pressed={selected}
+                      className={cn(
+                        "flex w-16 shrink-0 flex-col items-center rounded-xl border px-2 py-2.5 transition-all",
+                        selected
+                          ? "border-transparent bg-brand-gradient text-white shadow-sm"
+                          : "border-border/70 hover:border-accent/40 hover:bg-muted/50"
+                      )}
+                    >
+                      <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
+                        {weekday}
+                      </span>
+                      <span className="text-lg font-extrabold leading-tight">{day}</span>
+                      <span className="text-[10px] font-semibold uppercase opacity-80">
+                        {month}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </Card>
 
           <Card className="p-5 sm:p-6 animate-fade-in-up">
@@ -248,44 +279,49 @@ export function VenueDetailsPage() {
               Select a slot
             </h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Hourly slots for {formatDate(selectedDate)}. Booked slots are
-              disabled (demo availability).
+              Hourly slots for {selectedDate ? formatDate(selectedDate) : "selected date"}.
             </p>
-            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {slotsForDate.map(({ slot, taken }) => {
-                const selected = slot.id === selectedSlotId;
-                return (
-                  <button
-                    key={slot.id}
-                    type="button"
-                    disabled={taken}
-                    onClick={() => setSelectedSlotId(slot.id)}
-                    aria-pressed={selected}
-                    aria-label={taken ? `${slotLabel(slot)} — booked` : `Select ${slotLabel(slot)}`}
-                    className={cn(
-                      "flex flex-col items-center gap-1 rounded-xl border px-3 py-3 transition-all",
-                      taken && "cursor-not-allowed border-border/50 opacity-40",
-                      !taken &&
-                        selected &&
-                        "border-transparent bg-brand-gradient text-white shadow-sm",
-                      !taken &&
-                        !selected &&
-                        "border-border/70 hover:border-accent/40 hover:bg-muted/50"
-                    )}
-                  >
-                    <span className="text-sm font-bold">{slotLabel(slot)}</span>
-                    <span
+            {slotsForDate.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">No slots available for this date.</p>
+            ) : (
+              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {slotsForDate.map((slot: any) => {
+                  const selected = slot.id === selectedSlotId;
+                  const taken = !slot.is_available;
+                  const label = `${slot.start_time} - ${slot.end_time}`;
+                  
+                  return (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      disabled={taken}
+                      onClick={() => setSelectedSlotId(slot.id)}
+                      aria-pressed={selected}
                       className={cn(
-                        "text-xs font-semibold",
-                        selected ? "text-white/85" : "text-muted-foreground"
+                        "flex flex-col items-center gap-1 rounded-xl border px-3 py-3 transition-all",
+                        taken && "cursor-not-allowed border-border/50 opacity-40",
+                        !taken &&
+                          selected &&
+                          "border-transparent bg-brand-gradient text-white shadow-sm",
+                        !taken &&
+                          !selected &&
+                          "border-border/70 hover:border-accent/40 hover:bg-muted/50"
                       )}
                     >
-                      {taken ? "Booked" : formatCurrency(slot.price)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                      <span className="text-sm font-bold">{label}</span>
+                      <span
+                        className={cn(
+                          "text-xs font-semibold",
+                          selected ? "text-white/85" : "text-muted-foreground"
+                        )}
+                      >
+                        {taken ? "Booked" : formatCurrency(slot.price)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </Card>
         </div>
 
@@ -302,7 +338,7 @@ export function VenueDetailsPage() {
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Date
               </p>
-              <p className="text-sm font-bold">{formatDate(selectedDate)}</p>
+              <p className="text-sm font-bold">{selectedDate ? formatDate(selectedDate) : "—"}</p>
             </div>
             <div className="rounded-xl bg-muted/40 px-4 py-3">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -310,7 +346,7 @@ export function VenueDetailsPage() {
               </p>
               <p className="text-sm font-bold">
                 {selectedSlot
-                  ? `${slotLabel(selectedSlot)} · 1 hour`
+                  ? `${selectedSlot.start_time} - ${selectedSlot.end_time}`
                   : "No slot selected"}
               </p>
             </div>
@@ -347,31 +383,15 @@ export function VenueDetailsPage() {
           <Button
             variant="accent"
             className="mt-5 w-full rounded-full"
-            disabled={!selectedSlot || !selectedGroup}
+            disabled={!selectedSlot || !selectedGroup || bookingInProgress}
+            loading={bookingInProgress}
             onClick={handleConfirmBooking}
           >
             <CheckCircle2 />
             Confirm booking
           </Button>
-          <p className="mt-3 text-center text-[11px] leading-relaxed text-muted-foreground">
-            Demo mode — no payment is processed. The booking is added to your
-            history.
-          </p>
         </Card>
       </div>
-
-      {otherVenues.length > 0 ? (
-        <section className="mt-10">
-          <h2 className="mb-3 text-lg font-extrabold tracking-tight">
-            More venues
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {otherVenues.map((other) => (
-              <VenueCard key={other.id} venue={other} />
-            ))}
-          </div>
-        </section>
-      ) : null}
     </PageContainer>
   );
 }

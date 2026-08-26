@@ -22,6 +22,7 @@ import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { groupAdded } from "@/store/sports/groups-slice";
 import { createGroupSchema, type CreateGroupFormData } from "../schemas";
+import { groupsService } from "@/services/sports/groups.service";
 import { GROUP_CATEGORIES, SPORT_TYPES } from "@/types";
 import { ROUTES } from "@/constants";
 import { cn } from "@/utils/cn";
@@ -110,16 +111,29 @@ export function CreateGroupPage() {
     setLogoName(null);
   };
 
-  const onSubmit: SubmitHandler<CreateGroupFormData> = (data) => {
-    const action = dispatch(groupAdded(data));
-    dispatch(
-      notificationAdded({
-        title: "Group created",
-        message: `${data.name} is ready. Invite members to get started.`,
-        variant: "success",
-      })
-    );
-    router.push(`${ROUTES.SPORTS_GROUPS}/${action.payload.id}`);
+  const onSubmit: SubmitHandler<CreateGroupFormData> = async (data) => {
+    try {
+      const response = await groupsService.create(data);
+      const createdGroup = response.data;
+      
+      dispatch(groupAdded(createdGroup));
+      dispatch(
+        notificationAdded({
+          title: "Group created",
+          message: `${createdGroup.name} is ready. Invite members to get started.`,
+          variant: "success",
+        })
+      );
+      router.push(`${ROUTES.SPORTS_GROUPS}/${createdGroup.id}`);
+    } catch (error: any) {
+      dispatch(
+        notificationAdded({
+          title: "Failed to create group",
+          message: error.message || "Something went wrong.",
+          variant: "error",
+        })
+      );
+    }
   };
 
   return (

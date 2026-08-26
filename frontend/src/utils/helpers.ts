@@ -8,7 +8,8 @@ export function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-export function getInitials(name: string): string {
+export function getInitials(name?: string | null): string {
+  if (!name) return "";
   return name
     .split(" ")
     .filter(Boolean)
@@ -65,4 +66,16 @@ export function formatTime(value: string): string {
   const suffix = hours >= 12 ? "PM" : "AM";
   const hour12 = hours % 12 === 0 ? 12 : hours % 12;
   return `${hour12}:${String(minutes).padStart(2, "0")} ${suffix}`;
+}
+
+export function formatDate(dateString: string | Date): string {
+  try {
+    return new Intl.DateTimeFormat("en-IN", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(new Date(dateString));
+  } catch {
+    return String(dateString);
+  }
 }

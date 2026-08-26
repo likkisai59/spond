@@ -15,6 +15,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { EmptyCard } from "@/components/cards";
 import { Card } from "@/components/shared/card";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks";
 import { apiClient } from "@/services/api-client";
@@ -43,6 +44,8 @@ import { formatCurrency } from "@/utils/helpers";
 
 export function SportsDashboardPage() {
   const { user } = useAuth();
+  const router = useRouter();
+  
   const [realStats, setRealStats] = useState({
     groups: 0,
     events: 0,
@@ -52,9 +55,13 @@ export function SportsDashboardPage() {
   });
 
   useEffect(() => {
+    if (user?.role === "venue_owner") {
+      router.replace(ROUTES.SPORTS_OWNER_DASHBOARD);
+      return;
+    }
     const fetchStats = async () => {
       try {
-        const response = await apiClient.get("/sports/dashboard");
+        const response = await apiClient.get("/api/v1/sports/dashboard");
         const data = response.data.overview || response.data;
         setRealStats({
           groups: data.groups || 0,

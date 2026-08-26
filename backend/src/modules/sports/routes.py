@@ -9,7 +9,7 @@ from src.schemas.sports import (
     RsvpRequest, MarkAttendanceRequest,
     VenueCreateRequest, VenueUpdateRequest,
     SlotCreateRequest, SlotUpdateRequest,
-    BookingCreateRequest
+    BookingCreateRequest, GenerateSlotsRequest
 )
 
 router = APIRouter(prefix="/sports", tags=["Sports"])
@@ -131,6 +131,11 @@ async def list_venues(_: dict = Depends(get_current_user)) -> dict:
     venues = await service.list_venues()
     return {"status": "success", "data": {"items": venues}}
 
+@router.get("/venues/owner")
+async def list_owner_venues(user: dict = Depends(get_current_user)) -> dict:
+    venues = await service.list_owner_venues(user["id"])
+    return {"status": "success", "data": {"items": venues}}
+
 @router.get("/venues/{id}")
 async def get_venue(id: str, _: dict = Depends(get_current_user)) -> dict:
     venue = await service.get_venue(id)
@@ -142,9 +147,14 @@ async def update_venue(id: str, data: VenueUpdateRequest, _: dict = Depends(get_
     return {"status": "success", "data": venue}
 
 @router.delete("/venues/{id}")
-async def delete_venue(id: str, _: dict = Depends(get_current_user)) -> dict:
-    await service.delete_venue(id)
+async def delete_venue(id: str, user: dict = Depends(get_current_user)) -> dict:
+    await service.delete_venue(id, user["id"])
     return {"status": "success"}
+
+@router.put("/venues/{id}/publish")
+async def publish_venue(id: str, user: dict = Depends(get_current_user)) -> dict:
+    venue = await service.update_venue(id, VenueUpdateRequest(status="Published"), user["id"])
+    return {"status": "success", "data": venue}
 
 # --- Slots ---
 @router.post("/venues/{id}/slots")
@@ -166,6 +176,11 @@ async def update_slot(id: str, data: SlotUpdateRequest, _: dict = Depends(get_cu
 async def delete_slot(id: str, _: dict = Depends(get_current_user)) -> dict:
     await service.delete_slot(id)
     return {"status": "success"}
+
+@router.post("/venues/{id}/slots/generate")
+async def generate_slots(id: str, data: GenerateSlotsRequest, user: dict = Depends(get_current_user)) -> dict:
+    slots = await service.generate_slots(id, data.model_dump(), user["id"])
+    return {"status": "success", "data": {"items": slots}}
 
 # --- Bookings ---
 @router.post("/bookings")

@@ -88,6 +88,28 @@ export const SPORTS_NAV: NavSection[] = [
   },
 ];
 
+export const OWNER_NAV: NavSection[] = [
+  {
+    title: "Venue Management",
+    items: [
+      { label: "Overview", href: ROUTES.SPORTS_OWNER_DASHBOARD, icon: LayoutDashboard },
+      { label: "My Venues", href: ROUTES.SPORTS_OWNER_VENUES, icon: Building2 },
+    ],
+  },
+  {
+    title: "Operations",
+    items: [
+      { label: "Bookings", href: ROUTES.SPORTS_OWNER_BOOKINGS, icon: CalendarCheck },
+      { label: "Payments", href: ROUTES.SPORTS_OWNER_PAYMENTS, icon: CreditCard },
+    ],
+  },
+  {
+    items: [
+      { label: "Settings", href: ROUTES.SPORTS_SETTINGS, icon: Settings },
+    ],
+  },
+];
+
 export const BAND_NAV: NavSection[] = [
   {
     items: [

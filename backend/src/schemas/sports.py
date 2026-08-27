@@ -161,6 +161,7 @@ class VenueResponse(CamelModel):
     contact_phone: str | None = None
     opening_time: str | None = None
     closing_time: str | None = None
+    status: str = "Draft"
     created_by: str
     created_at: datetime
 
@@ -178,6 +179,7 @@ class VenueCreateRequest(CamelModel):
     contact_phone: str | None = None
     opening_time: str | None = None
     closing_time: str | None = None
+    status: str = "Draft"
 
 class VenueUpdateRequest(CamelModel):
     name: str | None = None
@@ -193,6 +195,7 @@ class VenueUpdateRequest(CamelModel):
     contact_phone: str | None = None
     opening_time: str | None = None
     closing_time: str | None = None
+    status: str | None = None
 
 # --- Slots ---
 class SlotResponse(CamelModel):
@@ -217,6 +220,14 @@ class SlotUpdateRequest(CamelModel):
     end_time: str | None = None
     price: float | None = None
     is_available: bool | None = None
+
+class GenerateSlotsRequest(CamelModel):
+    start_date: str
+    end_date: str
+    start_time: str
+    end_time: str
+    slot_duration_minutes: int = 60
+    price: float
 
 # --- Bookings ---
 class BookingResponse(CamelModel):

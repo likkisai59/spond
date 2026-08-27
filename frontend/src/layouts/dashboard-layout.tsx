@@ -1,7 +1,8 @@
 "use client";
 
-import { BAND_NAV, PRODUCT_CONFIGS, SPORTS_NAV } from "@/constants";
+import { BAND_NAV, PRODUCT_CONFIGS, SPORTS_NAV, OWNER_NAV } from "@/constants";
 import { useSidebar } from "@/hooks";
+import { useAppSelector } from "@/store/hooks";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { Sidebar, SidebarNav } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
@@ -24,7 +25,14 @@ export function DashboardLayout({
   const { isCollapsed, toggle, isMobileOpen, openMobile, closeMobile } =
     useSidebar();
 
-  const sections = product === "sports" ? SPORTS_NAV : BAND_NAV;
+  const user = useAppSelector((state) => state.auth.user);
+
+  const sections =
+    product === "sports"
+      ? user?.role === "venue_owner"
+        ? OWNER_NAV
+        : SPORTS_NAV
+      : BAND_NAV;
   const config = PRODUCT_CONFIGS[product];
 
   const breadcrumbs = pathToBreadcrumbs(`/${product}`);

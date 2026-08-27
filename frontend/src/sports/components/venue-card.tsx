@@ -12,9 +12,10 @@ import { cn } from "@/utils/cn";
 export interface VenueCardProps {
   venue: SportsVenue;
   className?: string;
+  href?: string;
 }
 
-export function VenueCard({ venue, className }: VenueCardProps) {
+export function VenueCard({ venue, className, href }: VenueCardProps) {
   const priceFrom = Math.min(...VENUE_SLOTS.map((slot) => slot.price));
 
   return (
@@ -47,7 +48,7 @@ export function VenueCard({ venue, className }: VenueCardProps) {
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-muted/50 px-3.5 py-2.5 text-xs font-semibold text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
           <Star className="h-4 w-4 text-accent" />
-          {venue.rating.toFixed(1)} ({venue.reviewCount})
+          {(venue.rating || 0).toFixed(1)} ({venue.reviewCount || 0})
         </span>
         <span className="inline-flex items-center gap-1.5">
           <Users className="h-4 w-4 text-accent" />
@@ -59,7 +60,7 @@ export function VenueCard({ venue, className }: VenueCardProps) {
       </div>
 
       <Button asChild variant="outline" className="mt-4 w-full rounded-full">
-        <Link href={`${ROUTES.SPORTS_VENUES}/${venue.id}`}>View & book</Link>
+        <Link href={href || `${ROUTES.SPORTS_VENUES}/${venue.id}`}>View details</Link>
       </Button>
     </Card>
   );

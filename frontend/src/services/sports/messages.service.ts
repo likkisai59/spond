@@ -1,14 +1,18 @@
-import { notImplemented } from "@/utils/helpers";
-import type { ApiResponse, Conversation } from "@/types";
+import { apiClient } from "@/services/api-client";
+import type { ChatMessage, Conversation } from "@/types";
 
 export interface MessagesService {
-  listConversations(): Promise<ApiResponse<Conversation[]>>;
-  getMessages(conversationId: string): Promise<ApiResponse<unknown>>;
-  sendMessage(conversationId: string, content: string): Promise<ApiResponse<unknown>>;
+  listConversations(): Promise<Conversation[]>;
+  getMessages(conversationId: string): Promise<ChatMessage[]>;
 }
 
 export const messagesService: MessagesService = {
-  listConversations: () => notImplemented("messagesService.listConversations"),
-  getMessages: () => notImplemented("messagesService.getMessages"),
-  sendMessage: () => notImplemented("messagesService.sendMessage"),
+  listConversations: async () => {
+    const { data } = await apiClient.get("/api/v1/messages/conversations");
+    return data;
+  },
+  getMessages: async (conversationId: string) => {
+    const { data } = await apiClient.get(`/api/v1/messages/${conversationId}/history`);
+    return data;
+  },
 };

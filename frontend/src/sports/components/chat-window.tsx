@@ -18,7 +18,8 @@ import { selectConversationById } from "@/store/sports/selectors";
 import { AttachmentMenuButton } from "./attachment-menu-button";
 import { ConversationCard } from "./conversation-card";
 import { EmojiPickerButton } from "./emoji-picker-button";
-import { MOCK_CHAT_PARTICIPANTS, MOCK_REALTIME_MESSAGES } from "@/data";
+import { useChatWebSocket } from "@/hooks/use-chat-websocket";
+import { MOCK_CHAT_PARTICIPANTS } from "@/data";
 import { formatDate } from "@/utils/date";
 import { getInitials } from "@/utils/helpers";
 import { ROUTES } from "@/constants";
@@ -43,9 +44,10 @@ export function ChatWindow({ conversationId, className }: ChatWindowProps) {
   );
 
   const [draft, setDraft] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
   const [justSent, setJustSent] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const { sendMessage } = useChatWebSocket(conversationId);
 
   const participants = useMemo(
     () => MOCK_CHAT_PARTICIPANTS[conversationId] ?? [],
@@ -57,34 +59,18 @@ export function ChatWindow({ conversationId, className }: ChatWindowProps) {
     if (conversationId) dispatch(conversationOpened(conversationId));
   }, [conversationId, dispatch]);
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [conversation?.messages.length, isTyping, conversationId]);
-
   const replyName = useMemo(() => {
-    const lastIncoming = conversation?.messages.findLast((m) => !m.isMine);
+    const lastIncoming = conversation?.messages?.findLast((m) => !m.isMine);
     if (lastIncoming) return lastIncoming.senderName;
     const onlineParticipant = participants.find((p) => p.online);
     return onlineParticipant?.name ?? conversation?.name ?? "Team member";
   }, [conversation, participants]);
 
   useEffect(() => {
-    if (!conversation) return;
-    const timer = window.setInterval(() => {
-      const sender =
-        participants.find((p) => p.online)?.name ?? replyName;
-      const content =
-        MOCK_REALTIME_MESSAGES[
-          Math.floor(Math.random() * MOCK_REALTIME_MESSAGES.length)
-        ];
-      dispatch(
-        messageReceived({ conversationId, senderName: sender, content })
-      );
-    }, 45000);
-    return () => window.clearInterval(timer);
-  }, [conversationId, conversation, participants, replyName, dispatch]);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [conversation?.messages?.length, conversationId]);
 
   if (!conversation) return null;
 
@@ -92,21 +78,10 @@ export function ChatWindow({ conversationId, className }: ChatWindowProps) {
     const content = draft.trim();
     if (content.length === 0) return;
     dispatch(messageSent({ conversationId, content }));
+    sendMessage(content);
     setDraft("");
     setJustSent(true);
-    setIsTyping(true);
-    window.setTimeout(() => {
-      const reply = AUTO_REPLIES[Math.floor(Math.random() * AUTO_REPLIES.length)];
-      dispatch(
-        messageReceived({
-          conversationId,
-          senderName: replyName,
-          content: reply,
-        })
-      );
-      setIsTyping(false);
-      setJustSent(false);
-    }, 1400);
+    window.setTimeout(() => setJustSent(false), 2000);
   };
 
   const handleAttachment = (fileName: string) => {
@@ -219,20 +194,6 @@ export function ChatWindow({ conversationId, className }: ChatWindowProps) {
             </div>
           </div>
         ))}
-
-        {isTyping ? (
-          <div className="flex justify-start">
-            <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-border/60 bg-card px-4 py-3 shadow-sm">
-              {[0, 150, 300].map((delay) => (
-                <span
-                  key={delay}
-                  className="h-2 w-2 animate-bounce rounded-full bg-accent/70"
-                  style={{ animationDelay: `${delay}ms` }}
-                />
-              ))}
-            </div>
-          </div>
-        ) : null}
       </div>
 
       <div className="flex items-center gap-2 border-t border-border/70 p-3">

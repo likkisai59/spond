@@ -64,7 +64,8 @@ async def lifespan(app: FastAPI):
             PaymentRepository, TransactionRepository, PaymentReceiptRepository,
             FileRepository, FolderRepository, NotificationRepository, NotificationLogRepository,
             MatchRepository, MatchSummaryRepository, PlayerStatsRepository,
-            BandArtistAnalyticsRepository, BandVenueAnalyticsRepository, DashboardAnalyticsRepository
+            BandArtistAnalyticsRepository, BandVenueAnalyticsRepository, DashboardAnalyticsRepository,
+            ConversationRepository, MessageRepository
         )
 
         for repo in (
@@ -75,7 +76,8 @@ async def lifespan(app: FastAPI):
             PaymentRepository(), TransactionRepository(), PaymentReceiptRepository(),
             FileRepository(), FolderRepository(), NotificationRepository(), NotificationLogRepository(),
             MatchRepository(), MatchSummaryRepository(), PlayerStatsRepository(),
-            BandArtistAnalyticsRepository(), BandVenueAnalyticsRepository(), DashboardAnalyticsRepository()
+            BandArtistAnalyticsRepository(), BandVenueAnalyticsRepository(), DashboardAnalyticsRepository(),
+            ConversationRepository(), MessageRepository()
         ):
             await repo.ensure_indexes()
         await RoleService().seed_roles()

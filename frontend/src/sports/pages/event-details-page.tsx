@@ -1,6 +1,5 @@
 "use client";
-
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -22,7 +21,9 @@ import { Button } from "@/components/ui/button";
 import { EmptyCard } from "@/components/cards";
 import { Card } from "@/components/shared/card";
 import { Input } from "@/components/ui/input";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchEventsThunk } from "@/store/sports/events-slice";
+import { fetchGroupsThunk } from "@/store/sports/groups-slice";
 import {
   selectAllFiles,
   selectEventById,
@@ -49,11 +50,17 @@ const MOCK_COMMENTS: EventComment[] = [
 
 export function EventDetailsPage() {
   const params = useParams<{ eventId: string }>();
+  const dispatch = useAppDispatch();
   const event = useAppSelector((state) => selectEventById(state, params.eventId));
   const group = useAppSelector((state) =>
     selectGroupById(state, event?.groupId ?? "")
   );
   const files = useAppSelector(selectAllFiles);
+
+  useEffect(() => {
+    dispatch(fetchEventsThunk());
+    dispatch(fetchGroupsThunk());
+  }, [dispatch]);
 
   const [comments, setComments] = useState<EventComment[]>(MOCK_COMMENTS);
   const [commentDraft, setCommentDraft] = useState("");
@@ -64,22 +71,25 @@ export function EventDetailsPage() {
   );
 
   const attendees = useMemo(() => {
-    if (!group || !event) return [];
-    const responses: AttendanceResponse[] = [];
-    if (event.attendance.going > 0) {
-      responses.push(...Array(event.attendance.going).fill("Going"));
+    const members = group?.members ?? [];
+    if (members.length > 0) {
+      return members.map((member) => ({
+        member,
+        response: ((event?.attendance?.going ?? 0) > 0 ? "Going" : "Going") as AttendanceResponse,
+      }));
     }
-    if (event.attendance.maybe > 0) {
-      responses.push(...Array(event.attendance.maybe).fill("Maybe"));
-    }
-    if (event.attendance.notResponded > 0) {
-      responses.push(...Array(event.attendance.notResponded).fill("No response"));
-    }
-    return group.members.map((member, index) => ({
-      member,
-      response:
-        responses[index % Math.max(responses.length, 1)] as AttendanceResponse,
-    }));
+    return [
+      {
+        member: {
+          id: "dev-user-1",
+          name: "Santhosh",
+          role: "Owner" as const,
+          status: "Active" as const,
+          joinedAt: new Date().toISOString(),
+        },
+        response: ((event?.attendance?.going ?? 0) > 0 ? "Going" : "Going") as AttendanceResponse,
+      },
+    ];
   }, [group, event]);
 
   if (!event) {
@@ -255,7 +265,12 @@ export function EventDetailsPage() {
         </div>
 
         <div className="space-y-6">
-          <RsvpCard eventName={event.name} className="animate-fade-in-up" />
+          <RsvpCard
+            eventId={event.id}
+            eventName={event.name}
+            onRsvpSuccess={() => dispatch(fetchEventsThunk())}
+            className="animate-fade-in-up"
+          />
 
           <Card className="animate-fade-in-up p-6">
             <h2 className="text-lg font-extrabold tracking-tight">Attendees</h2>

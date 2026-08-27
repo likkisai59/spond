@@ -15,10 +15,12 @@ export interface EventCardProps {
 }
 
 export function EventCard({ event, className }: EventCardProps) {
-  const total =
-    event.attendance.going + event.attendance.maybe + event.attendance.notResponded;
-  const goingPct = total > 0 ? (event.attendance.going / total) * 100 : 0;
-  const maybePct = total > 0 ? (event.attendance.maybe / total) * 100 : 0;
+  const goingCount = event.attendance?.going ?? 0;
+  const maybeCount = event.attendance?.maybe ?? 0;
+  const notRespondedCount = event.attendance?.notResponded ?? 0;
+  const total = goingCount + maybeCount + notRespondedCount;
+  const goingPct = total > 0 ? (goingCount / total) * 100 : 0;
+  const maybePct = total > 0 ? (maybeCount / total) * 100 : 0;
 
   return (
     <Card

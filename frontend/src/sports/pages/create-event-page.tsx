@@ -19,16 +19,24 @@ import {
 } from "@/components/forms";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { eventAdded } from "@/store/sports/events-slice";
+import { createEventThunk } from "@/store/sports/events-slice";
+import { fetchGroupsThunk } from "@/store/sports/groups-slice";
 import { selectAllGroups } from "@/store/sports/selectors";
 import { createEventSchema, type CreateEventFormData } from "../schemas";
 import { EVENT_TYPES } from "@/types";
 import { ROUTES } from "@/constants";
+import { useEffect } from "react";
 
 export function CreateEventPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const groups = useAppSelector(selectAllGroups);
+
+  useEffect(() => {
+    if (groups.length === 0) {
+      dispatch(fetchGroupsThunk());
+    }
+  }, [dispatch, groups.length]);
 
   const form = useForm<CreateEventFormData>({
     resolver: zodResolver(createEventSchema),
@@ -46,25 +54,48 @@ export function CreateEventPage() {
   });
   const { control, handleSubmit, formState } = form;
 
-  const onSubmit: SubmitHandler<CreateEventFormData> = (data) => {
-    const action = dispatch(eventAdded(data));
-    if (data.notifyMembers) {
+  const onSubmit: SubmitHandler<CreateEventFormData> = async (data) => {
+    try {
+      const actionResult = await dispatch(
+        createEventThunk({
+          groupId: data.groupId,
+          name: data.name,
+          type: data.type,
+          date: data.date,
+          startTime: data.startTime,
+          endTime: data.endTime,
+          location: data.location,
+          description: data.description,
+          notifyMembers: data.notifyMembers,
+        })
+      ).unwrap();
+
+      if (data.notifyMembers) {
+        dispatch(
+          notificationAdded({
+            title: "Members notified",
+            message: `Invites for “${data.name}” are on their way.`,
+            variant: "info",
+          })
+        );
+      }
       dispatch(
         notificationAdded({
-          title: "Members notified",
-          message: `Invites for “${data.name}” are on their way (demo mode).`,
-          variant: "info",
+          title: "Event created",
+          message: `“${data.name}” was added to the calendar.`,
+          variant: "success",
+        })
+      );
+      router.push(`${ROUTES.SPORTS_EVENTS}/${actionResult.id}`);
+    } catch (error: any) {
+      dispatch(
+        notificationAdded({
+          title: "Failed to create event",
+          message: error?.message || "Something went wrong while creating the event.",
+          variant: "error",
         })
       );
     }
-    dispatch(
-      notificationAdded({
-        title: "Event created",
-        message: `“${data.name}” was added to the calendar.`,
-        variant: "success",
-      })
-    );
-    router.push(`${ROUTES.SPORTS_EVENTS}/${action.payload.id}`);
   };
 
   return (

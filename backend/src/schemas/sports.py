@@ -75,46 +75,51 @@ class EventAttendanceSummary(CamelModel):
 class EventResponse(CamelModel):
     id: str
     group_id: str
-    title: str
+    title: str | None = None
     name: str | None = None  # alias for title
-    description: str
+    description: str | None = None
     date: str | None = None
-    start_time: datetime | str
-    end_time: datetime | str
+    start_time: str | None = None
+    end_time: str | None = None
     location: str | None = None
     venue_name: str | None = None
-    type: str | None = None
+    type: str | None = "Training"
     event_type: str | None = None
     status: str = "Upcoming"
     max_participants: int | None = None
-    created_by: str
+    notify_members: bool = True
+    created_by: str | None = None
     attendance: EventAttendanceSummary = Field(default_factory=EventAttendanceSummary)
 
 class EventCreateRequest(CamelModel):
     group_id: str
-    title: str
+    title: str | None = None
     name: str | None = None
-    description: str
-    start_time: datetime | str
-    end_time: datetime | str
+    description: str = ""
+    date: str | None = None
+    start_time: str | None = None
+    end_time: str | None = None
     venue_name: str | None = None
     location: str | None = None
     event_type: str | None = None
-    type: str | None = None
+    type: str | None = "Training"
     max_participants: int | None = None
+    notify_members: bool = True
 
 class EventUpdateRequest(CamelModel):
     title: str | None = None
     name: str | None = None
     description: str | None = None
-    start_time: datetime | str | None = None
-    end_time: datetime | str | None = None
+    date: str | None = None
+    start_time: str | None = None
+    end_time: str | None = None
     venue_name: str | None = None
     location: str | None = None
     event_type: str | None = None
     type: str | None = None
     max_participants: int | None = None
     status: str | None = None
+    notify_members: bool | None = None
 
 # --- RSVP ---
 class RsvpRequest(CamelModel):

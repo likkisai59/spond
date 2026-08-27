@@ -10,6 +10,8 @@ export interface EventsService {
   list(query?: EventQuery): Promise<ApiResponse<Paginated<SportsEvent>>>;
   getById(id: string): Promise<ApiResponse<SportsEvent>>;
   create(input: unknown): Promise<ApiResponse<SportsEvent>>;
+  update(id: string, input: unknown): Promise<ApiResponse<SportsEvent>>;
+  delete(id: string): Promise<ApiResponse<void>>;
   setAttendance(id: string, response: unknown): Promise<ApiResponse<SportsEvent>>;
 }
 
@@ -24,6 +26,14 @@ export const eventsService: EventsService = {
   },
   create: async (input) => {
     const { data } = await apiClient.post("/api/v1/sports/events", input);
+    return data;
+  },
+  update: async (id, input) => {
+    const { data } = await apiClient.put(`/api/v1/sports/events/${id}`, input);
+    return data;
+  },
+  delete: async (id) => {
+    const { data } = await apiClient.delete(`/api/v1/sports/events/${id}`);
     return data;
   },
   setAttendance: async (id, response) => {

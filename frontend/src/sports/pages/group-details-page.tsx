@@ -27,6 +27,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { memberRemoved, fetchGroupsThunk } from "@/store/sports/groups-slice";
 import { fetchPaymentsThunk } from "@/store/sports/payments-slice";
+import { fetchEventsThunk } from "@/store/sports/events-slice";
 import {
   selectAllFiles,
   selectAllPolls,
@@ -60,6 +61,7 @@ export function GroupDetailsPage() {
 
   useEffect(() => {
     dispatch(fetchPaymentsThunk(groupId));
+    dispatch(fetchEventsThunk(groupId));
     if (!group) {
       dispatch(fetchGroupsThunk());
     }

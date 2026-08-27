@@ -38,7 +38,8 @@ export const fetchGroupsThunk = createAsyncThunk(
   "sports/groups/fetchGroups",
   async () => {
     const response = await groupsService.list();
-    return response.data.items;
+    const data = response.data as any;
+    return Array.isArray(data) ? data : (data?.items || []);
   }
 );
 
@@ -46,7 +47,8 @@ export const createGroupThunk = createAsyncThunk(
   "sports/groups/createGroup",
   async (input: NewGroupInput) => {
     const response = await groupsService.create(input);
-    return response.data;
+    const data = response.data as any;
+    return data?.data || data;
   }
 );
 

@@ -8,6 +8,8 @@ import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { cn } from "@/utils/cn";
 
+import { eventsService } from "@/services/sports/events.service";
+
 export type RsvpChoice = "Going" | "Maybe" | "Not going";
 
 const RSVP_OPTIONS: {
@@ -21,23 +23,37 @@ const RSVP_OPTIONS: {
 ];
 
 export interface RsvpCardProps {
+  eventId?: string;
   eventName: string;
   className?: string;
+  onRsvpSuccess?: (choice: RsvpChoice) => void;
 }
 
-export function RsvpCard({ eventName, className }: RsvpCardProps) {
+export function RsvpCard({ eventId, eventName, className, onRsvpSuccess }: RsvpCardProps) {
   const dispatch = useAppDispatch();
   const [response, setResponse] = useState<RsvpChoice | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleRespond = (choice: RsvpChoice) => {
+  const handleRespond = async (choice: RsvpChoice) => {
     setResponse(choice);
-    dispatch(
-      notificationAdded({
-        title: `RSVP saved — ${choice}`,
-        message: `Your response for "${eventName}" was recorded (demo mode).`,
-        variant: choice === "Not going" ? "info" : "success",
-      })
-    );
+    setIsSubmitting(true);
+    try {
+      if (eventId) {
+        await eventsService.setAttendance(eventId, { status: choice });
+      }
+      dispatch(
+        notificationAdded({
+          title: `RSVP saved — ${choice}`,
+          message: `Your response for "${eventName}" has been recorded.`,
+          variant: choice === "Not going" ? "info" : "success",
+        })
+      );
+      if (onRsvpSuccess) onRsvpSuccess(choice);
+    } catch (error: any) {
+      console.error("Failed to save RSVP", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

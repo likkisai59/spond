@@ -19,14 +19,23 @@ import {
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { createPaymentThunk } from "@/store/sports/payments-slice";
+import { fetchGroupsThunk } from "@/store/sports/groups-slice";
 import { selectAllGroups } from "@/store/sports/selectors";
 import { createPaymentSchema, type CreatePaymentFormData } from "../schemas";
 import { ROUTES } from "@/constants";
+
+import { useEffect } from "react";
 
 export function CreatePaymentPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const groups = useAppSelector(selectAllGroups);
+
+  useEffect(() => {
+    if (groups.length === 0) {
+      dispatch(fetchGroupsThunk());
+    }
+  }, [dispatch, groups.length]);
 
   const form = useForm<CreatePaymentFormData>({
     resolver: zodResolver(createPaymentSchema),

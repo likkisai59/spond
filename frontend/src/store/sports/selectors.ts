@@ -35,8 +35,8 @@ export const selectUpcomingEvents = createSelector(
   [selectAllEvents],
   (events) =>
     events
-      .filter((e) => e.status === "Upcoming" || e.status === "Ongoing")
-      .sort((a, b) => a.date.localeCompare(b.date))
+      .filter((e) => e.status === "Upcoming" || e.status === "Ongoing" || !e.status)
+      .sort((a, b) => (a.date || "").localeCompare(b.date || ""))
 );
 
 export const selectPastEvents = createSelector(
@@ -44,7 +44,7 @@ export const selectPastEvents = createSelector(
   (events) =>
     events
       .filter((e) => e.status === "Completed" || e.status === "Cancelled")
-      .sort((a, b) => b.date.localeCompare(a.date))
+      .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
 );
 
 export const selectAllPolls = (state: RootState): SportsPoll[] =>

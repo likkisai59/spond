@@ -1,10 +1,10 @@
 import {
   createSlice,
-  nanoid,
+  createAsyncThunk,
   type PayloadAction,
 } from "@reduxjs/toolkit";
 import type { EventType, SportsEvent } from "@/types";
-import { MOCK_EVENTS } from "@/sports/mocks/events.mock";
+import { eventsService } from "@/services/sports/events.service";
 
 export interface NewEventInput {
   groupId: string;
@@ -20,36 +20,78 @@ export interface NewEventInput {
 
 export interface EventsState {
   events: SportsEvent[];
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
 }
 
-const initialState: EventsState = { events: MOCK_EVENTS };
+const initialState: EventsState = {
+  events: [],
+  status: 'idle',
+  error: null
+};
+
+export const fetchEventsThunk = createAsyncThunk(
+  "sports/events/fetchEvents",
+  async (groupId?: string) => {
+    const response = await eventsService.list(groupId ? { groupId } : undefined);
+    const data = response.data as any;
+    return Array.isArray(data) ? data : (data?.items || []);
+  }
+);
+
+export const createEventThunk = createAsyncThunk(
+  "sports/events/createEvent",
+  async (input: NewEventInput) => {
+    const response = await eventsService.create(input);
+    return response.data as SportsEvent;
+  }
+);
+
+export const deleteEventThunk = createAsyncThunk(
+  "sports/events/deleteEvent",
+  async (eventId: string) => {
+    await eventsService.delete(eventId);
+    return eventId;
+  }
+);
+
+export const rsvpEventThunk = createAsyncThunk(
+  "sports/events/rsvpEvent",
+  async ({ eventId, status }: { eventId: string; status: string }) => {
+    const response = await eventsService.setAttendance(eventId, { status });
+    return { eventId, data: response.data };
+  }
+);
 
 const eventsSlice = createSlice({
   name: "sports/events",
   initialState,
   reducers: {
-    eventAdded: {
-      reducer(state, action: PayloadAction<SportsEvent>) {
-        state.events.unshift(action.payload);
-      },
-      prepare(input: NewEventInput) {
-        const now = new Date().toISOString();
-        const event: SportsEvent = {
-          id: nanoid(8),
-          createdAt: now,
-          updatedAt: now,
-          status: "Upcoming",
-          attendance: { going: 0, maybe: 0, notResponded: 0 },
-          ...input,
-        };
-        return { payload: event };
-      },
-    },
     eventRemoved(state, action: PayloadAction<string>) {
       state.events = state.events.filter((e) => e.id !== action.payload);
     },
   },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchEventsThunk.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(fetchEventsThunk.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.events = action.payload;
+      })
+      .addCase(fetchEventsThunk.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.error.message || 'Failed to fetch events';
+      })
+      .addCase(createEventThunk.fulfilled, (state, action) => {
+        state.events.unshift(action.payload);
+      })
+      .addCase(deleteEventThunk.fulfilled, (state, action) => {
+        state.events = state.events.filter((e) => e.id !== action.payload);
+      });
+  },
 });
 
-export const { eventAdded, eventRemoved } = eventsSlice.actions;
+export const { eventRemoved } = eventsSlice.actions;
 export default eventsSlice.reducer;

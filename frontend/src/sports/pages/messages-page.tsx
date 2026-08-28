@@ -75,9 +75,13 @@ export function MessagesPage() {
     });
   }, [conversations, filter, debouncedSearch]);
 
+  const messagesStatus = useAppSelector((state) => state.sports.messages.status);
+
   useEffect(() => {
-    dispatch(fetchConversations());
-  }, [dispatch]);
+    if (messagesStatus === "idle" || messagesStatus === "failed") {
+      dispatch(fetchConversations());
+    }
+  }, [dispatch, messagesStatus]);
 
   useEffect(() => {
     if (scrollRef.current) {

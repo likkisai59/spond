@@ -45,7 +45,7 @@ import { formatCurrency } from "@/utils/helpers";
 export function SportsDashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
-  
+
   const [realStats, setRealStats] = useState({
     groups: 0,
     events: 0,

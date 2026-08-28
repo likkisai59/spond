@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { BandDashboardPage } from "@/band/pages/band-dashboard-page";
+import { BandLandingPage } from "@/band/pages/band-landing-page";
 
 export const metadata: Metadata = {
-  title: "BandConnect Dashboard",
+  title: "EventHub · Celebrate Every Moment",
+  description: "Find the perfect venue, artists & bands for your next event.",
 };
 
 export default function Page() {
-  return <BandDashboardPage />;
+  return <BandLandingPage />;
 }

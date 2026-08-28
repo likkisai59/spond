@@ -39,6 +39,9 @@ export const ROUTES = {
   BAND_REVIEWS: "/band/reviews",
   BAND_SETTINGS: "/band/settings",
   BAND_SEARCH: "/band/search",
+  BAND_EVENTS: "/band/events",
+  BAND_PROVIDER_DASHBOARD: "/band/provider/dashboard",
+  BAND_PROVIDER_ONBOARDING: "/band/provider/onboarding",
   ADMIN: "/admin",
 } as const;
 

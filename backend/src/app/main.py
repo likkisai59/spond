@@ -66,11 +66,12 @@ async def lifespan(app: FastAPI):
             MatchRepository, MatchSummaryRepository, PlayerStatsRepository,
             BandArtistAnalyticsRepository, BandVenueAnalyticsRepository, DashboardAnalyticsRepository
         )
+        from src.repositories.eventhub import EventHubEventRepository
 
         for repo in (
             RoleRepository(), TokenRepository(), AuditRepository(),
             GroupRepository(), GroupMemberRepository(), EventRepository(), RsvpRepository(), AttendanceRepository(),
-            ArtistRepository(), BandRepository(), VenueRepository(), BookingRepository(),
+            ArtistRepository(), BandRepository(), VenueRepository(), BookingRepository(), EventHubEventRepository(),
             SportsVenueRepository(), SportsSlotRepository(), SportsBookingRepository(), BandVenueBookingRepository(),
             PaymentRepository(), TransactionRepository(), PaymentReceiptRepository(),
             FileRepository(), FolderRepository(), NotificationRepository(), NotificationLogRepository(),

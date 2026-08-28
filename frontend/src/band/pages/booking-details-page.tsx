@@ -28,6 +28,8 @@ import { bookingStatusUpdated } from "@/store/band/marketplace-slice";
 import { selectBookingById } from "@/store/band/selectors";
 import { StatusBadge } from "@/sports/components";
 import { BookingTimeline } from "../components/booking-timeline";
+import { PaymentCountdownCard } from "../components/payment-countdown-card";
+import type { EventHubBooking } from "@/types";
 
 const ConfirmationModal = dynamic(
   () =>
@@ -178,6 +180,30 @@ export function BookingDetailsPage() {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
+          {booking.status.toLowerCase() === "accepted" ? (
+            <PaymentCountdownCard
+              booking={{
+                id: booking.id,
+                title: booking.title,
+                bandName: booking.bandName,
+                venueName: booking.venueName,
+                eventDate: booking.eventDate,
+                startTime: booking.startTime,
+                endTime: booking.endTime,
+                amount: booking.amount,
+                advanceAmount: Math.round(booking.amount * 0.25),
+                finalAmount: Math.round(booking.amount * 0.75),
+                bookingStatus: "ACCEPTED",
+                paymentStatus: "ADVANCE_PAYMENT_PENDING",
+                acceptedAt: booking.updatedAt || new Date().toISOString(),
+                guestCount: booking.guestCount,
+                createdAt: booking.createdAt,
+                updatedAt: booking.updatedAt,
+              }}
+              onPaymentSuccess={handleConfirm}
+            />
+          ) : null}
+
           <Card className="animate-fade-in-up p-6 sm:p-7">
             <h2 className="text-lg font-extrabold tracking-tight">
               Booking summary

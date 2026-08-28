@@ -7,6 +7,7 @@ import type {
   BandBooking,
   BookingEventType,
   BookingStatus,
+  EventHubEvent,
 } from "@/types";
 import { MOCK_BOOKINGS } from "@/band/mocks/band.mock";
 
@@ -24,6 +25,7 @@ export interface MarketplaceFilters {
 export type MarketplaceSort = "rating" | "price-asc" | "price-desc" | "popular";
 
 export interface BookingDraft {
+  eventId: string | null;
   performerId: string | null;
   performerName: string | null;
   performerKind: "Artist" | "Band" | "Venue" | null;
@@ -50,6 +52,7 @@ export interface MarketplaceState {
   sortBy: MarketplaceSort;
   recentSearches: string[];
   selectedId: string | null;
+  activeEvent: EventHubEvent | null;
   bookings: BandBooking[];
   bookingDraft: BookingDraft;
 }
@@ -68,8 +71,10 @@ const initialState: MarketplaceState = {
   sortBy: "rating",
   recentSearches: [],
   selectedId: null,
+  activeEvent: null,
   bookings: MOCK_BOOKINGS,
   bookingDraft: {
+    eventId: null,
     performerId: null,
     performerName: null,
     performerKind: null,
@@ -127,6 +132,18 @@ const marketplaceSlice = createSlice({
     selectedSet(state, action: PayloadAction<string | null>) {
       state.selectedId = action.payload;
     },
+    activeEventSet(state, action: PayloadAction<EventHubEvent | null>) {
+      state.activeEvent = action.payload;
+      if (action.payload) {
+        state.bookingDraft.eventId = action.payload.id;
+        state.bookingDraft.date = action.payload.date;
+        state.filters.city = action.payload.location || "all";
+      }
+    },
+    activeEventCleared(state) {
+      state.activeEvent = null;
+      state.bookingDraft.eventId = null;
+    },
     bookingDraftStarted(
       state,
       action: PayloadAction<{
@@ -137,6 +154,8 @@ const marketplaceSlice = createSlice({
     ) {
       state.bookingDraft = {
         ...initialState.bookingDraft,
+        eventId: state.activeEvent?.id || null,
+        date: state.activeEvent?.date || "",
         ...action.payload,
       };
     },
@@ -147,7 +166,11 @@ const marketplaceSlice = createSlice({
       state.bookingDraft = { ...state.bookingDraft, ...action.payload };
     },
     bookingDraftReset(state) {
-      state.bookingDraft = { ...initialState.bookingDraft };
+      state.bookingDraft = {
+        ...initialState.bookingDraft,
+        eventId: state.activeEvent?.id || null,
+        date: state.activeEvent?.date || "",
+      };
     },
     bookingAdded: {
       reducer(state, action: PayloadAction<BandBooking>) {
@@ -204,6 +227,8 @@ export const {
   recentSearchAdded,
   recentSearchesCleared,
   selectedSet,
+  activeEventSet,
+  activeEventCleared,
   bookingDraftStarted,
   bookingDraftUpdated,
   bookingDraftReset,

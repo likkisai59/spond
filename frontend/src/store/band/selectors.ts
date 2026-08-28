@@ -17,6 +17,9 @@ export const selectRecentSearches = (state: RootState): string[] =>
 export const selectBookingDraft = (state: RootState): BookingDraft =>
   state.band.marketplace.bookingDraft;
 
+export const selectActiveEvent = (state: RootState) =>
+  state.band.marketplace.activeEvent;
+
 export const selectBandBookings = (state: RootState): BandBooking[] =>
   state.band.marketplace.bookings;
 

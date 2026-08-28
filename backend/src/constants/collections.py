@@ -15,12 +15,13 @@ SPORTS_VENUE_SLOTS = "sports_venue_slots"
 SPORTS_BOOKINGS = "sports_bookings"
 SPORTS_PAYMENT_REQUESTS = "sports_payment_requests"
 
-# Band Module Collections
+# Band & EventHub Module Collections
 BAND_ARTISTS = "artists"
 BAND_BANDS = "bands"
 BAND_VENUES = "band_venues"
 BAND_BOOKINGS = "band_bookings"
 BAND_VENUE_BOOKINGS = "band_venue_bookings"
+EVENTHUB_EVENTS = "eventhub_events"
 
 # System/Cross-Module Collections (Phase 4)
 PAYMENTS = "payments"

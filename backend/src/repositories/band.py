@@ -31,6 +31,7 @@ class BookingRepository(BaseRepository):
     async def ensure_indexes(self) -> None:
         await self.create_index([("band_id", 1)])
         await self.create_index([("venue_id", 1)])
+        await self.create_index([("event_id", 1)])
 
 class BandVenueBookingRepository(BaseRepository):
     collection_name = BAND_VENUE_BOOKINGS
@@ -38,3 +39,4 @@ class BandVenueBookingRepository(BaseRepository):
     async def ensure_indexes(self) -> None:
         await self.create_index([("band_id", 1)])
         await self.create_index([("venue_id", 1)])
+        await self.create_index([("event_id", 1)])

@@ -223,8 +223,8 @@ class SportsService:
             "created_by": user_id,
             "created_at": utc_now()
         })
-        venue_id = await self.venues.insert(venue_doc)
-        return await self.get_venue(venue_id)
+        created = await self.venues.insert(venue_doc)
+        return await self.get_venue(created["id"])
 
     async def get_venue(self, venue_id: str) -> dict:
         venue = await self.venues.find_by_id(venue_id)
@@ -234,6 +234,9 @@ class SportsService:
 
     async def list_venues(self, query: dict = None) -> list[dict]:
         return await self.venues.find_many(query or {})
+
+    async def list_owner_venues(self, user_id: str) -> list[dict]:
+        return await self.venues.find_many({"created_by": user_id})
 
     async def update_venue(self, venue_id: str, data: VenueUpdateRequest) -> dict:
         update_data = data.model_dump(exclude_unset=True)
@@ -285,9 +288,52 @@ class SportsService:
         if not deleted:
             raise NotFoundError("Slot not found")
 
+    async def generate_slots(self, venue_id: str, data: dict, user_id: str) -> list[dict]:
+        from datetime import datetime, timedelta
+        
+        venue = await self.get_venue(venue_id)
+        if venue.get("created_by") != user_id:
+            raise AppException(403, "Not authorized to create slots for this venue")
+
+        start_date = datetime.strptime(data["start_date"], "%Y-%m-%d").date()
+        end_date = datetime.strptime(data["end_date"], "%Y-%m-%d").date()
+        start_time = datetime.strptime(data["start_time"], "%H:%M").time()
+        end_time = datetime.strptime(data["end_time"], "%H:%M").time()
+        
+        duration = timedelta(minutes=data.get("slot_duration_minutes", 60))
+        price = data["price"]
+        
+        slots_created = []
+        current_date = start_date
+        
+        while current_date <= end_date:
+            current_dt = datetime.combine(current_date, start_time)
+            end_dt = datetime.combine(current_date, end_time)
+            
+            while current_dt + duration <= end_dt:
+                slot_end_dt = current_dt + duration
+                
+                slot_doc = {
+                    "venue_id": venue_id,
+                    "date": current_date.strftime("%Y-%m-%d"),
+                    "start_time": current_dt.strftime("%H:%M"),
+                    "end_time": slot_end_dt.strftime("%H:%M"),
+                    "price": price,
+                    "is_available": True
+                }
+                
+                created = await self.slots.insert(slot_doc)
+                slots_created.append(await self.get_slot(created["id"]))
+                
+                current_dt = slot_end_dt
+                
+            current_date += timedelta(days=1)
+            
+        return slots_created
+
     # Bookings
     async def create_booking(self, user_id: str, data: BookingCreateRequest) -> dict:
-        from src.database.mongo import get_client
+        from src.database.mongo import mongo
         from src.database.redis import RedisClient
         import asyncio
 
@@ -310,7 +356,7 @@ class SportsService:
                 "created_at": utc_now()
             })
 
-            mongo_client = get_client()
+            mongo_client = mongo.client
             
             # Since Motor doesn't support transactions on standalone easily without a replica set,
             # we will try to use transactions. If it fails, fallback to simple operations.
@@ -331,14 +377,22 @@ class SportsService:
                     {"_id": ObjectId(data.slot_id)},
                     {"$set": {"is_available": False}}
                 )
+            
+            booking_id_str = booking_id["id"] if isinstance(booking_id, dict) else str(booking_id)
 
-            # Confirm payment pending flow (in real app, we'd wait for payment hook)
-            # Here we just mark it CONFIRMED for simplicity
-            await self.bookings.update_by_id(booking_id, {"booking_status": "CONFIRMED"})
-            return await self.get_booking(booking_id)
+            # Return the HELD booking, waiting for payment confirmation
+            return await self.get_booking(booking_id_str)
         finally:
             # Release lock after we have successfully persisted to DB (or failed)
             await redis_client.delete(lock_key)
+
+    async def confirm_booking(self, booking_id: str) -> dict:
+        booking = await self.get_booking(booking_id)
+        if booking.get("booking_status") == "CONFIRMED":
+            return booking
+            
+        await self.bookings.update_by_id(booking_id, {"booking_status": "CONFIRMED"})
+        return await self.get_booking(booking_id)
 
     async def get_booking(self, booking_id: str) -> dict:
         booking = await self.bookings.find_by_id(booking_id)

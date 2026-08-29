@@ -3,6 +3,8 @@
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useRazorpay } from "@/hooks/use-razorpay";
+import { apiClient } from "@/services/api-client";
 import {
   ArrowLeft,
   Building2,
@@ -40,6 +42,7 @@ export function VenueDetailsPage() {
   const params = useParams<{ venueId: string }>();
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const isRazorpayLoaded = useRazorpay();
   const groups = useAppSelector(selectAllGroups);
 
   const venueId = params.venueId;
@@ -59,7 +62,7 @@ export function VenueDetailsPage() {
     const dates = Array.from(map.keys()).sort();
     return dates.map(date => ({
       date,
-      slots: map.get(date)?.sort((a, b) => a.start_time.localeCompare(b.start_time)) || []
+      slots: map.get(date)?.sort((a, b) => a.startTime.localeCompare(b.startTime)) || []
     }));
   }, [slots]);
 
@@ -133,34 +136,117 @@ export function VenueDetailsPage() {
 
   const handleConfirmBooking = async () => {
     if (!selectedSlot || !selectedGroup) return;
+    
+    if (!isRazorpayLoaded) {
+      dispatch(
+        notificationAdded({
+          title: "Error",
+          message: "Payment system is initializing. Please try again.",
+          variant: "error",
+        })
+      );
+      return;
+    }
+
     setBookingInProgress(true);
     try {
-      await bookingsService.create({
+      const bookingRes = await bookingsService.create({
         venueId: venue.id,
         slotId: selectedSlot.id,
         groupId: selectedGroup.id,
         amount: selectedSlot.price,
         bookingDate: selectedDate,
       });
+      
+      const booking = bookingRes.data || bookingRes;
 
-      dispatch(
-        notificationAdded({
-          title: "Booking confirmed",
-          message: `Your booking for ${venue.name} on ${formatDate(selectedDate)} at ${selectedSlot.start_time} is confirmed.`,
-          variant: "success",
-        })
-      );
-      router.push(ROUTES.SPORTS_BOOKINGS);
+      const { data } = await apiClient.post("/api/v1/payments/create-order", {
+        module: "sports",
+        module_id: booking.id,
+        amount: selectedSlot.price,
+        currency: "INR"
+      });
+      
+      const orderData = data?.data || data;
+      const orderId = orderData.razorpayOrderId || orderData.razorpay_order_id || orderData.orderId;
+
+      if (!orderId) {
+        throw new Error(data?.message || "Failed to create payment order");
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_TULqDq70HBh5oH",
+        amount: selectedSlot.price * 100,
+        currency: "INR",
+        name: venue.name,
+        description: `Booking for ${formatDate(selectedDate)} at ${selectedSlot.startTime}`,
+        order_id: orderId,
+        handler: async function (response: any) {
+          try {
+            await apiClient.post("/api/v1/payments/verify", {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              payment_id: orderData.id
+            });
+
+            await apiClient.put(`/api/v1/sports/bookings/${booking.id}/confirm`);
+
+            dispatch(
+              notificationAdded({
+                title: "Booking confirmed",
+                message: `Your booking for ${venue.name} on ${formatDate(selectedDate)} is confirmed.`,
+                variant: "success",
+              })
+            );
+            router.push(ROUTES.SPORTS_BOOKINGS);
+          } catch (error: any) {
+             console.error("Payment verification failed", error);
+             dispatch(
+               notificationAdded({
+                 title: "Verification Failed",
+                 message: error.message || "Please contact support.",
+                 variant: "error",
+               })
+             );
+          } finally {
+             setBookingInProgress(false);
+          }
+        },
+        prefill: {
+          name: "Santhosh",
+          email: "santhosh@gmail.com",
+          contact: "9876543210",
+        },
+        theme: {
+          color: "#F97316",
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      
+      rzp.on("payment.failed", function (response: any) {
+        setBookingInProgress(false);
+        dispatch(
+          notificationAdded({
+            title: "Payment Failed",
+            message: response.error?.description || "Payment failed",
+            variant: "error",
+          })
+        );
+      });
+
+      rzp.open();
     } catch (error: any) {
+      console.error(error);
+      setBookingInProgress(false);
       dispatch(
         notificationAdded({
-          title: "Booking Failed",
-          message: error.message || "Something went wrong.",
+          title: "Booking Error",
+          message: error.message || "Failed to initiate booking payment",
           variant: "error",
         })
       );
-    } finally {
-      setBookingInProgress(false);
     }
   };
 
@@ -287,8 +373,8 @@ export function VenueDetailsPage() {
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {slotsForDate.map((slot: any) => {
                   const selected = slot.id === selectedSlotId;
-                  const taken = !slot.is_available;
-                  const label = `${slot.start_time} - ${slot.end_time}`;
+                  const taken = !slot.isAvailable;
+                  const label = `${slot.startTime} - ${slot.endTime}`;
                   
                   return (
                     <button
@@ -346,7 +432,7 @@ export function VenueDetailsPage() {
               </p>
               <p className="text-sm font-bold">
                 {selectedSlot
-                  ? `${selectedSlot.start_time} - ${selectedSlot.end_time}`
+                  ? `${selectedSlot.startTime} - ${selectedSlot.endTime}`
                   : "No slot selected"}
               </p>
             </div>

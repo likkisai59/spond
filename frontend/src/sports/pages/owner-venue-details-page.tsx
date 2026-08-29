@@ -16,7 +16,7 @@ import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { venuesService } from "@/services/sports";
 import { ROUTES } from "@/constants";
-import { formatDate } from "@/utils/helpers";
+import { formatDate } from "@/utils/date";
 import { generateSlotsSchema, type GenerateSlotsFormData } from "../schemas";
 
 export function OwnerVenueDetailsPage({ venueId }: { venueId: string }) {
@@ -219,13 +219,13 @@ export function OwnerVenueDetailsPage({ venueId }: { venueId: string }) {
               {slots.map((slot) => (
                 <div
                   key={slot.id}
-                  className={`rounded-xl border ${slot.is_available ? 'border-border/70' : 'border-red-200 bg-red-50/10'} bg-card p-4 transition-shadow hover:shadow-sm flex flex-col justify-between`}
+                  className={`rounded-xl border ${slot.isAvailable ? 'border-border/70' : 'border-red-200 bg-red-50/10'} bg-card p-4 transition-shadow hover:shadow-sm flex flex-col justify-between`}
                 >
                   <div>
                     <p className="font-bold text-sm">{formatDate(slot.date)}</p>
                     <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                       <Clock className="h-4 w-4" />
-                      <span>{slot.start_time} - {slot.end_time}</span>
+                      <span>{slot.startTime} - {slot.endTime}</span>
                     </div>
                     <div className="mt-2 flex items-center gap-1 font-semibold text-emerald-600">
                       <IndianRupee className="h-4 w-4" />
@@ -233,18 +233,18 @@ export function OwnerVenueDetailsPage({ venueId }: { venueId: string }) {
                     </div>
                   </div>
                   <div className="mt-4 flex items-center justify-between border-t pt-2">
-                    <span className={`text-xs font-bold ${slot.is_available ? 'text-blue-500' : 'text-red-500'}`}>
-                      {slot.is_available ? "Available" : "Blocked/Booked"}
+                    <span className={`text-xs font-bold ${slot.isAvailable ? 'text-blue-500' : 'text-red-500'}`}>
+                      {slot.isAvailable ? "Available" : "Blocked/Booked"}
                     </span>
                     <Button 
                       size="sm" 
                       variant="ghost" 
                       disabled={updatingSlotId === slot.id}
-                      onClick={() => toggleSlotAvailability(slot.id, slot.is_available)}
+                      onClick={() => toggleSlotAvailability(slot.id, slot.isAvailable)}
                       className="h-8 px-2"
                     >
-                      {slot.is_available ? <EyeOff className="h-4 w-4 mr-1"/> : <Eye className="h-4 w-4 mr-1"/>}
-                      {slot.is_available ? "Block" : "Unblock"}
+                      {slot.isAvailable ? <EyeOff className="h-4 w-4 mr-1"/> : <Eye className="h-4 w-4 mr-1"/>}
+                      {slot.isAvailable ? "Block" : "Unblock"}
                     </Button>
                   </div>
                 </div>

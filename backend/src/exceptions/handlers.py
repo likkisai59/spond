@@ -71,6 +71,8 @@ def register_exception_handlers(app: FastAPI) -> None:
         for error in exc.errors():
             loc = ".".join(str(part) for part in error.get("loc", []) if part != "body")
             fields[loc or "body"] = error.get("msg", "Invalid value")
+        import logging
+        logging.error(f"422 Validation Error: {fields} - Body: {exc.body}")
         return _error(422, "Validation failed", "VALIDATION_ERROR", {"fields": fields})
 
     @app.exception_handler(Exception)

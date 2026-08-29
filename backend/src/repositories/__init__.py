@@ -1,5 +1,5 @@
 """Repositories (data access only, no business rules)."""
-from src.constants.collections import AUDIT_LOGS, REFRESH_TOKENS, ROLES, USERS
+from src.constants.collections import AUDIT_LOGS, REFRESH_TOKENS, ROLES, USERS, OTPS
 from src.database.base_repository import BaseRepository
 from src.database.mongo import utc_now
 
@@ -131,3 +131,12 @@ class AuditRepository(BaseRepository):
     async def ensure_indexes(self) -> None:
         await self.create_index([("user_id", 1), ("created_at", -1)])
         await self.create_index([("action", 1)])
+
+
+class OtpRepository(BaseRepository):
+    collection_name = OTPS
+
+    async def ensure_indexes(self) -> None:
+        await self.create_index([("email", 1)])
+        # Expire automatically using TTL index
+        await self.create_index([("expires_at", 1)], expireAfterSeconds=0)

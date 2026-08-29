@@ -150,12 +150,12 @@ async def update_venue(id: str, data: VenueUpdateRequest, _: dict = Depends(get_
 
 @router.delete("/venues/{id}")
 async def delete_venue(id: str, user: dict = Depends(get_current_user)) -> dict:
-    await service.delete_venue(id, user["id"])
+    await service.delete_venue(id)
     return {"status": "success"}
 
 @router.put("/venues/{id}/publish")
 async def publish_venue(id: str, user: dict = Depends(get_current_user)) -> dict:
-    venue = await service.update_venue(id, VenueUpdateRequest(status="Published"), user["id"])
+    venue = await service.update_venue(id, VenueUpdateRequest(status="Published"))
     return {"status": "success", "data": venue}
 
 # --- Slots ---
@@ -213,6 +213,11 @@ async def get_booking(id: str, _: dict = Depends(get_current_user)) -> dict:
 @router.put("/bookings/{id}/cancel")
 async def cancel_booking(id: str, _: dict = Depends(get_current_user)) -> dict:
     booking = await service.cancel_booking(id)
+    return {"status": "success", "data": booking}
+
+@router.put("/bookings/{id}/confirm")
+async def confirm_booking(id: str, _: dict = Depends(get_current_user)) -> dict:
+    booking = await service.confirm_booking(id)
     return {"status": "success", "data": booking}
 
 # --- Payment Requests ---

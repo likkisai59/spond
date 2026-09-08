@@ -255,7 +255,7 @@ function SecurityTab() {
                   )}
                 </span>
                 <div className="min-w-0">
-                  <p className="flex flex-wrap items-center gap-2 text-sm font-bold">
+                  <div className="flex flex-wrap items-center gap-2 text-sm font-bold">
                     {session.device}
                     <span className="text-xs font-semibold text-muted-foreground">
                       {session.browser}
@@ -265,7 +265,7 @@ function SecurityTab() {
                         This device
                       </Badge>
                     ) : null}
-                  </p>
+                  </div>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {session.location} · {session.lastActive}
                   </p>

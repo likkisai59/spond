@@ -3,6 +3,8 @@ from src.database.mongo import utc_now
 from src.repositories.system import NotificationRepository, NotificationLogRepository
 from src.exceptions.handlers import NotFoundError
 
+from src.database.base_repository import to_object_id
+
 class NotificationService:
     def __init__(self):
         self.notifications = NotificationRepository()
@@ -18,7 +20,8 @@ class NotificationService:
             "is_read": False,
             "created_at": utc_now()
         }
-        nid = await self.notifications.insert(doc)
+        created = await self.notifications.insert(doc)
+        nid = created["id"]
         
         # In a real app we might trigger push notifications or websockets here
         await self.logs.insert({
@@ -52,7 +55,7 @@ class NotificationService:
         )
 
     async def delete_notification(self, nid: str, user_id: str) -> None:
-        deleted = await self.notifications.collection.delete_one({"_id": self.notifications._object_id(nid), "user_id": user_id})
+        deleted = await self.notifications.collection.delete_one({"_id": to_object_id(nid), "user_id": user_id})
         if deleted.deleted_count == 0:
             raise NotFoundError("Notification not found")
         await self.logs.collection.delete_many({"notification_id": nid})
@@ -60,7 +63,8 @@ class NotificationService:
     async def clear_all(self, user_id: str) -> None:
         notifs = await self.list_notifications(user_id)
         for n in notifs:
-            await self.logs.collection.delete_many({"notification_id": str(n["_id"])})
+            nid_str = str(n.get("id") or n.get("_id"))
+            await self.logs.collection.delete_many({"notification_id": nid_str})
         await self.notifications.collection.delete_many({"user_id": user_id})
 
 # Background Task Helper

@@ -23,6 +23,7 @@ import { createVenueSchema, type CreateVenueFormData } from "../schemas";
 import { SPORT_TYPES } from "@/types";
 import { ROUTES } from "@/constants";
 import { venuesService } from "@/services/sports";
+import { cn } from "@/utils/cn";
 
 export function OwnerCreateVenuePage() {
   const router = useRouter();
@@ -45,6 +46,16 @@ export function OwnerCreateVenuePage() {
     },
   });
 
+  const [selectedSports, setSelectedSports] = useState<string[]>([]);
+
+  const toggleSport = (sport: string) => {
+    const updated = selectedSports.includes(sport)
+      ? selectedSports.filter((s) => s !== sport)
+      : [...selectedSports, sport];
+    setSelectedSports(updated);
+    form.setValue("sportType", updated.join(", "));
+  };
+
   const { control, handleSubmit, formState } = form;
 
   const onSubmit: SubmitHandler<CreateVenueFormData> = async (data) => {
@@ -52,7 +63,7 @@ export function OwnerCreateVenuePage() {
       await venuesService.create({
         name: data.name,
         description: data.description,
-        sport_type: data.sportType,
+        sport_type: selectedSports.length > 0 ? selectedSports.join(", ") : (data.sportType || ""),
         address: data.address,
         city: data.city,
         state: data.state,
@@ -125,16 +136,29 @@ export function OwnerCreateVenuePage() {
               placeholder="Tell players about your venue..."
               rows={4}
             />
-            <FormSelect
-              control={control}
-              name="sportType"
-              label="Primary Sport"
-              placeholder="Select a sport"
-              options={SPORT_TYPES.map((item) => ({
-                label: item,
-                value: item,
-              }))}
-            />
+            <div className="space-y-2">
+              <label className="text-sm font-semibold">Available Sports (Select multiple)</label>
+              <div className="flex flex-wrap gap-2">
+                {SPORT_TYPES.map((sport) => {
+                  const isSelected = selectedSports.includes(sport);
+                  return (
+                    <button
+                      key={sport}
+                      type="button"
+                      onClick={() => toggleSport(sport)}
+                      className={cn(
+                        "rounded-xl border px-3.5 py-1.5 text-xs font-semibold transition-all",
+                        isSelected
+                          ? "border-accent bg-accent text-accent-foreground shadow-sm"
+                          : "border-border/70 bg-card hover:border-border hover:bg-muted/50 text-muted-foreground"
+                      )}
+                    >
+                      {sport}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <div className="grid gap-6 sm:grid-cols-2">
               <FormInput
                 control={control}
@@ -170,13 +194,13 @@ export function OwnerCreateVenuePage() {
                 control={control}
                 name="openingTime"
                 label="Opening Time"
-                placeholder="09:00"
+                type="time"
               />
               <FormInput
                 control={control}
                 name="closingTime"
                 label="Closing Time"
-                placeholder="22:00"
+                type="time"
               />
             </div>
 

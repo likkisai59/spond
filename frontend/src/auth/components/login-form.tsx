@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm, type SubmitHandler } from "react-hook-form";
@@ -25,6 +26,7 @@ import { credentialsReceived } from "@/store/slices/auth-slice";
 export function LoginForm() {
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -38,6 +40,7 @@ export function LoginForm() {
   const { control, handleSubmit, formState: { isSubmitting } } = form;
 
   const onSubmit: SubmitHandler<LoginFormData> = async (data) => {
+    setErrorMessage(null);
     try {
       const session = await authService.login({
         email: data.email,
@@ -54,6 +57,7 @@ export function LoginForm() {
       );
       router.push(ROUTES.SELECT_PRODUCT);
     } catch (error: unknown) {
+      setErrorMessage("Invalid email or password");
       dispatch(
         notificationAdded({
           title: "Login failed",
@@ -92,6 +96,11 @@ export function LoginForm() {
             Forgot password?
           </Link>
         </div>
+        {errorMessage && (
+          <p className="text-center text-xs sm:text-sm font-semibold text-destructive animate-fade-in-up">
+            {errorMessage}
+          </p>
+        )}
         <Button
           type="submit"
           variant="accent"

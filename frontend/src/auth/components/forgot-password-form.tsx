@@ -7,7 +7,7 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Form, FormInput } from "@/components/forms";
-import { dummyDelay } from "../dummy";
+import { authService } from "@/services";
 import { forgotPasswordSchema, type ForgotPasswordFormData } from "../schemas";
 import { ROUTES } from "@/constants";
 import { useAppDispatch } from "@/store/hooks";
@@ -43,6 +43,7 @@ function SentState({ email, onReset }: { email: string; onReset: () => void }) {
 export function ForgotPasswordForm() {
   const dispatch = useAppDispatch();
   const [sentEmail, setSentEmail] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const form = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -52,15 +53,28 @@ export function ForgotPasswordForm() {
   const { control, handleSubmit, formState: { isSubmitting } } = form;
 
   const onSubmit: SubmitHandler<ForgotPasswordFormData> = async (data) => {
-    await dummyDelay();
-    dispatch(
-      notificationAdded({
-        title: "Reset link sent",
-        message: `Password recovery instructions were sent to ${data.email} (demo mode).`,
-        variant: "success",
-      })
-    );
-    setSentEmail(data.email);
+    setErrorMessage(null);
+    try {
+      await authService.forgotPassword({ email: data.email });
+      dispatch(
+        notificationAdded({
+          title: "Reset link sent",
+          message: `Password recovery instructions were sent to ${data.email}.`,
+          variant: "success",
+        })
+      );
+      setSentEmail(data.email);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Failed to send reset email. Please try again.";
+      setErrorMessage(msg);
+      dispatch(
+        notificationAdded({
+          title: "Request failed",
+          message: msg,
+          variant: "error",
+        })
+      );
+    }
   };
 
   if (sentEmail) {
@@ -81,6 +95,11 @@ export function ForgotPasswordForm() {
         autoComplete="email"
         description="Enter the email address associated with your account."
       />
+      {errorMessage && (
+        <p className="text-center text-xs sm:text-sm font-semibold text-destructive animate-fade-in-up">
+          {errorMessage}
+        </p>
+      )}
       <Button
         type="submit"
         variant="accent"

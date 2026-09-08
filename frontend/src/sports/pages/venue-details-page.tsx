@@ -31,6 +31,7 @@ import {
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { selectAllGroups } from "@/store/sports/selectors";
+import { fetchGroupsThunk } from "@/store/sports/groups-slice";
 import { venuesService } from "@/services/sports/venues.service";
 import { bookingsService } from "@/services/sports/bookings.service";
 import { formatDate } from "@/utils/date";
@@ -50,10 +51,12 @@ export function VenueDetailsPage() {
   const [slots, setSlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Group slots by date
+  // Group slots by date (filter out past dates so they cannot be booked)
   const groupedSlots = useMemo(() => {
+    const today = new Date().toLocaleDateString("en-CA");
     const map = new Map<string, any[]>();
     slots.forEach(slot => {
+      if (slot.date < today) return;
       const date = slot.date;
       if (!map.has(date)) map.set(date, []);
       map.get(date)?.push(slot);
@@ -72,12 +75,14 @@ export function VenueDetailsPage() {
   const [bookingInProgress, setBookingInProgress] = useState(false);
 
   useEffect(() => {
-    if (groupedSlots.length > 0 && !selectedDate) {
+    const today = new Date().toLocaleDateString("en-CA");
+    if (groupedSlots.length > 0 && (!selectedDate || selectedDate < today)) {
       setSelectedDate(groupedSlots[0].date);
     }
   }, [groupedSlots, selectedDate]);
 
   useEffect(() => {
+    dispatch(fetchGroupsThunk());
     const fetchVenue = async () => {
       try {
         const vRes = await venuesService.getById(venueId);
@@ -136,7 +141,7 @@ export function VenueDetailsPage() {
 
   const handleConfirmBooking = async () => {
     if (!selectedSlot || !selectedGroup) return;
-    
+
     if (!isRazorpayLoaded) {
       dispatch(
         notificationAdded({
@@ -157,7 +162,7 @@ export function VenueDetailsPage() {
         amount: selectedSlot.price,
         bookingDate: selectedDate,
       });
-      
+
       const booking = bookingRes.data || bookingRes;
 
       const { data } = await apiClient.post("/api/v1/payments/create-order", {
@@ -166,7 +171,7 @@ export function VenueDetailsPage() {
         amount: selectedSlot.price,
         currency: "INR"
       });
-      
+
       const orderData = data?.data || data;
       const orderId = orderData.razorpayOrderId || orderData.razorpay_order_id || orderData.orderId;
 
@@ -175,7 +180,7 @@ export function VenueDetailsPage() {
       }
 
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_TULqDq70HBh5oH",
+        key: orderData.razorpay_key_id || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_TZXjBzMKoLJXLb",
         amount: selectedSlot.price * 100,
         currency: "INR",
         name: venue.name,
@@ -190,27 +195,27 @@ export function VenueDetailsPage() {
               payment_id: orderData.id
             });
 
-            await apiClient.put(`/api/v1/sports/bookings/${booking.id}/confirm`);
+            await apiClient.put(`/api/v1/sports/bookings/${booking.id}/confirm?status=PENDING`);
 
             dispatch(
               notificationAdded({
-                title: "Booking confirmed",
-                message: `Your booking for ${venue.name} on ${formatDate(selectedDate)} is confirmed.`,
+                title: "Booking submitted",
+                message: `Your booking for ${venue.name} on ${formatDate(selectedDate)} has been submitted for owner approval.`,
                 variant: "success",
               })
             );
             router.push(ROUTES.SPORTS_BOOKINGS);
           } catch (error: any) {
-             console.error("Payment verification failed", error);
-             dispatch(
-               notificationAdded({
-                 title: "Verification Failed",
-                 message: error.message || "Please contact support.",
-                 variant: "error",
-               })
-             );
+            console.error("Payment verification failed", error);
+            dispatch(
+              notificationAdded({
+                title: "Verification Failed",
+                message: error.message || "Please contact support.",
+                variant: "error",
+              })
+            );
           } finally {
-             setBookingInProgress(false);
+            setBookingInProgress(false);
           }
         },
         prefill: {
@@ -224,7 +229,7 @@ export function VenueDetailsPage() {
       };
 
       const rzp = new (window as any).Razorpay(options);
-      
+
       rzp.on("payment.failed", function (response: any) {
         setBookingInProgress(false);
         dispatch(
@@ -375,7 +380,7 @@ export function VenueDetailsPage() {
                   const selected = slot.id === selectedSlotId;
                   const taken = !slot.isAvailable;
                   const label = `${slot.startTime} - ${slot.endTime}`;
-                  
+
                   return (
                     <button
                       key={slot.id}
@@ -387,11 +392,11 @@ export function VenueDetailsPage() {
                         "flex flex-col items-center gap-1 rounded-xl border px-3 py-3 transition-all",
                         taken && "cursor-not-allowed border-border/50 opacity-40",
                         !taken &&
-                          selected &&
-                          "border-transparent bg-brand-gradient text-white shadow-sm",
+                        selected &&
+                        "border-transparent bg-brand-gradient text-white shadow-sm",
                         !taken &&
-                          !selected &&
-                          "border-border/70 hover:border-accent/40 hover:bg-muted/50"
+                        !selected &&
+                        "border-border/70 hover:border-accent/40 hover:bg-muted/50"
                       )}
                     >
                       <span className="text-sm font-bold">{label}</span>

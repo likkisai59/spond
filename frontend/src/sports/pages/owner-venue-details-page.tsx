@@ -26,6 +26,7 @@ export function OwnerVenueDetailsPage({ venueId }: { venueId: string }) {
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [updatingSlotId, setUpdatingSlotId] = useState<string | null>(null);
+  const today = new Date().toLocaleDateString("en-CA");
 
   const form = useForm<GenerateSlotsFormData>({
     resolver: zodResolver(generateSlotsSchema),
@@ -183,8 +184,8 @@ export function OwnerVenueDetailsPage({ venueId }: { venueId: string }) {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <FormInput control={form.control} name="startDate" label="Start Date" type="date" />
-                  <FormInput control={form.control} name="endDate" label="End Date" type="date" />
+                  <FormInput control={form.control} name="startDate" label="Start Date" type="date" min={today} />
+                  <FormInput control={form.control} name="endDate" label="End Date" type="date" min={form.watch("startDate") || today} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <FormInput control={form.control} name="startTime" label="Start Time" type="time" />

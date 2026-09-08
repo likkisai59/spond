@@ -68,16 +68,16 @@ export const authService: AuthService = {
     const { data } = await apiClient.post<{ status: string; data: any }>("/api/v1/auth/login", payload);
     return {
       user: data.data.user,
-      accessToken: data.data.access_token,
-      refreshToken: data.data.refresh_token,
+      accessToken: data.data.accessToken,
+      refreshToken: data.data.refreshToken,
     } as AuthSession;
   },
   register: async (payload) => {
     const { data } = await apiClient.post<{ status: string; data: any }>("/api/v1/auth/register", payload);
     return {
       user: data.data.user,
-      accessToken: data.data.access_token,
-      refreshToken: data.data.refresh_token,
+      accessToken: data.data.accessToken,
+      refreshToken: data.data.refreshToken,
     } as AuthSession;
   },
   requestOtp: async (payload) => {
@@ -91,8 +91,8 @@ export const authService: AuthService = {
     const { data } = await apiClient.post<{ status: string; data: any }>("/api/v1/auth/complete-signup", payload);
     return {
       user: data.data.user,
-      accessToken: data.data.access_token,
-      refreshToken: data.data.refresh_token,
+      accessToken: data.data.accessToken,
+      refreshToken: data.data.refreshToken,
     } as AuthSession;
   },
   logout: async (payload) => {
@@ -108,8 +108,8 @@ export const authService: AuthService = {
     const { data } = await apiClient.post<{ status: string; data: any }>("/api/v1/auth/refresh-token", payload);
     return {
       user: data.data.user,
-      accessToken: data.data.access_token,
-      refreshToken: data.data.refresh_token,
+      accessToken: data.data.accessToken,
+      refreshToken: data.data.refreshToken,
     } as AuthSession;
   },
   getCurrentUser: async () => {

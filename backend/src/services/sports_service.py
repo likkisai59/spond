@@ -1,3 +1,8 @@
+import json
+import uuid
+import asyncio
+import logging
+from src.database.redis import RedisClient
 from src.database.mongo import utc_now
 from src.repositories.sports import (
     GroupRepository, GroupMemberRepository, EventRepository,
@@ -5,7 +10,9 @@ from src.repositories.sports import (
     SportsVenueRepository, SportsSlotRepository, SportsBookingRepository,
     PaymentRequestRepository
 )
+from src.repositories import UserRepository
 from src.exceptions.handlers import NotFoundError, AppException
+from src.services.email_service import EmailService
 from src.schemas.sports import (
     GroupCreateRequest, GroupUpdateRequest,
     AddMemberRequest, UpdateMemberRoleRequest,
@@ -18,8 +25,11 @@ from src.schemas.sports import (
 )
 from bson import ObjectId
 
+logger = logging.getLogger("spond.sports")
+
 class SportsService:
     def __init__(self):
+        self.users = UserRepository()
         self.groups = GroupRepository()
         self.members = GroupMemberRepository()
         self.events = EventRepository()
@@ -29,6 +39,7 @@ class SportsService:
         self.slots = SportsSlotRepository()
         self.bookings = SportsBookingRepository()
         self.payment_requests = PaymentRequestRepository()
+        self.email_service = EmailService()
 
     async def create_group(self, user_id: str, data: GroupCreateRequest) -> dict:
         existing = await self.groups.find_one({"name": data.name})
@@ -45,25 +56,74 @@ class SportsService:
         created = await self.groups.insert(group_doc)
         group_id = created["id"]
         
+        # Fetch user details for the owner
+        creator = None
+        try:
+            creator = await self.users.find_by_id(user_id)
+        except Exception:
+            pass
+            
+        creator_name = creator.get("full_name", "Unknown User") if creator else "Unknown User"
+        creator_email = creator.get("email", "") if creator else ""
+
         # Add creator as Owner
         await self.members.insert({
             "group_id": group_id,
             "user_id": user_id,
-            "name": "Santhosh",
-            "email": "santhosh@gmail.com",
+            "name": creator_name,
+            "email": creator_email,
             "role": "Owner",
             "status": "Active",
             "joined_at": utc_now()
         })
+
+        # Mutate dashboard cache instantly
+        try:
+            redis = RedisClient.get_client()
+            cache_key = "analytics:sports:dashboard:overview"
+            cached = await redis.get(cache_key)
+            if cached:
+                overview = json.loads(cached)
+                overview["groups"] = overview.get("groups", 0) + 1
+                overview["members"] = overview.get("members", 0) + 1
+                await redis.set(cache_key, json.dumps(overview), ex=300)
+        except Exception:
+            pass
+
         return await self.get_group(group_id)
 
-    async def list_groups(self) -> list[dict]:
-        groups = await self.groups.find_many({})
+    async def list_groups(self, user_id: str = None) -> list[dict]:
+        query = {}
+        if user_id:
+            member_records = await self.members.find_many({"user_id": user_id})
+            group_ids = []
+            for m in member_records:
+                gid = m.get("group_id")
+                if gid:
+                    if ObjectId.is_valid(str(gid)):
+                        group_ids.append(ObjectId(str(gid)))
+                    group_ids.append(gid)
+            query = {
+                "$or": [
+                    {"created_by": user_id},
+                    {"_id": {"$in": group_ids}}
+                ]
+            }
+        groups = await self.groups.find_many(query)
         for group in groups:
             members = await self.members.find_many({"group_id": group["id"]})
             for m in members:
-                m.setdefault("name", "Santhosh")
-                m.setdefault("email", "santhosh@gmail.com")
+                try:
+                    if "user_id" in m:
+                        user = await self.users.find_by_id(m["user_id"])
+                        if user:
+                            m["name"] = user.get("full_name", m.get("name", "Unknown User"))
+                            m["email"] = user.get("email", m.get("email", ""))
+                            continue
+                except Exception:
+                    pass
+                m.setdefault("name", "Unknown User")
+                m.setdefault("email", "")
             group["members"] = members
             group["member_count"] = len(members)
         return groups
@@ -74,8 +134,17 @@ class SportsService:
             raise NotFoundError("Group not found")
         members = await self.members.find_many({"group_id": group_id})
         for m in members:
-            m.setdefault("name", "Santhosh")
-            m.setdefault("email", "santhosh@gmail.com")
+            try:
+                if "user_id" in m:
+                    user = await self.users.find_by_id(m["user_id"])
+                    if user:
+                        m["name"] = user.get("full_name", m.get("name", "Unknown User"))
+                        m["email"] = user.get("email", m.get("email", ""))
+                        continue
+            except Exception:
+                pass
+            m.setdefault("name", "Unknown User")
+            m.setdefault("email", "")
         group["members"] = members
         group["member_count"] = len(members)
         return group
@@ -98,19 +167,109 @@ class SportsService:
         await self.members.collection.delete_many({"group_id": group_id})
         await self.events.collection.delete_many({"group_id": group_id})
 
-    async def add_member(self, group_id: str, data: AddMemberRequest) -> dict:
-        existing = await self.members.find_one({"group_id": group_id, "user_id": data.user_id})
+    async def add_member(self, group_id: str, data: AddMemberRequest, current_user: dict = None) -> dict:
+        actual_user_id = data.user_id
+        
+        if data.email:
+            user = await self.users.find_one({"email": data.email})
+            if user:
+                actual_user_id = user["id"]
+        elif actual_user_id and "@" in actual_user_id:
+            user = await self.users.find_one({"email": actual_user_id})
+            if user:
+                actual_user_id = user["id"]
+            else:
+                data.email = actual_user_id
+                actual_user_id = None
+                
+        if actual_user_id:
+            existing = await self.members.find_one({"group_id": group_id, "user_id": actual_user_id})
+        elif data.email:
+            existing = await self.members.find_one({"group_id": group_id, "email": data.email})
+        else:
+            raise AppException(400, "Email or User ID is required")
+            
         if existing:
             raise AppException(400, "User is already a member")
+
+        invite_token = uuid.uuid4().hex
             
         await self.members.insert({
             "group_id": group_id,
-            "user_id": data.user_id,
+            "user_id": actual_user_id if actual_user_id else f"guest_{data.email}",
+            "name": data.name,
+            "email": data.email,
             "role": data.role,
-            "status": "Active",
+            "status": "Pending",
+            "invite_token": invite_token,
             "joined_at": utc_now()
         })
-        return await self.get_group(group_id)
+
+        group = await self.get_group(group_id)
+
+        admin_name = "Club Owner"
+        if current_user:
+            admin_name = current_user.get("full_name") or current_user.get("name") or "Club Owner"
+        group_name = group.get("name", "Sports Group")
+
+        if data.email:
+            try:
+                asyncio.create_task(
+                    self.email_service.send_group_invite_email(
+                        to_email=data.email,
+                        member_name=data.name or "Member",
+                        admin_name=admin_name,
+                        group_name=group_name,
+                        invite_token=invite_token
+                    )
+                )
+            except Exception as e:
+                logger.error(f"Failed to dispatch invitation email: {e}")
+
+        return group
+
+    async def respond_to_invitation(self, token: str, action: str) -> dict:
+        if not token:
+            raise AppException(400, "Invitation token is required")
+
+        member = await self.members.find_one({"invite_token": token})
+        if not member:
+            raise NotFoundError("Invalid or expired invitation link")
+
+        group = await self.groups.find_by_id(member["group_id"])
+        group_name = group.get("name", "Sports Group") if group else "Sports Group"
+
+        if action == "accept":
+            await self.members.collection.update_one(
+                {"invite_token": token},
+                {"$set": {
+                    "status": "Confirmed",
+                    "joined_at": utc_now()
+                }}
+            )
+            return {
+                "status": "success",
+                "action": "accepted",
+                "group_name": group_name,
+                "group_id": member["group_id"],
+                "member_name": member.get("name", "Member")
+            }
+        elif action == "reject":
+            await self.members.collection.update_one(
+                {"invite_token": token},
+                {"$set": {
+                    "status": "Rejected"
+                }}
+            )
+            return {
+                "status": "success",
+                "action": "rejected",
+                "group_name": group_name,
+                "group_id": member["group_id"],
+                "member_name": member.get("name", "Member")
+            }
+        else:
+            raise AppException(400, "Invalid action. Must be 'accept' or 'reject'")
 
     async def remove_member(self, group_id: str, member_id: str) -> None:
         deleted = await self.members.collection.delete_one({"group_id": group_id, "user_id": member_id})
@@ -159,10 +318,19 @@ class SportsService:
         event["attendance"] = {"going": going, "maybe": maybe, "not_responded": 0}
         return event
         
-    async def list_events(self, group_id: str = None) -> list[dict]:
+    async def list_events(self, group_id: str = None, user_id: str = None) -> list[dict]:
         query = {}
         if group_id:
             query["group_id"] = group_id
+        elif user_id:
+            user_groups = await self.list_groups(user_id)
+            user_group_ids = [str(g["id"]) for g in user_groups if "id" in g]
+            query = {
+                "$or": [
+                    {"created_by": user_id},
+                    {"group_id": {"$in": user_group_ids}}
+                ]
+            }
         events = await self.events.find_many(query, sort=[("date", 1), ("created_at", -1)])
         for event in events:
             going = await self.attendance.collection.count_documents({"event_id": event["id"], "attendance_status": "Going"})
@@ -260,6 +428,7 @@ class SportsService:
         
         slot_doc = data.model_dump(exclude_unset=True)
         slot_doc["venue_id"] = venue_id
+        slot_doc.setdefault("is_available", True)
         created = await self.slots.insert(slot_doc)
         return await self.get_slot(created["id"])
 
@@ -386,12 +555,23 @@ class SportsService:
             # Release lock after we have successfully persisted to DB (or failed)
             await redis_client.delete(lock_key)
 
-    async def confirm_booking(self, booking_id: str) -> dict:
+    async def confirm_booking(self, booking_id: str, status: str = "CONFIRMED") -> dict:
         booking = await self.get_booking(booking_id)
-        if booking.get("booking_status") == "CONFIRMED":
+        if booking.get("booking_status") == status:
             return booking
             
-        await self.bookings.update_by_id(booking_id, {"booking_status": "CONFIRMED"})
+        await self.bookings.update_by_id(booking_id, {"booking_status": status})
+        return await self.get_booking(booking_id)
+
+    async def update_booking_status(self, booking_id: str, status: str, owner_id: str) -> dict:
+        booking = await self.get_booking(booking_id)
+        venue = await self.get_venue(booking["venue_id"])
+        if venue.get("created_by") != owner_id:
+            raise AppException(403, "Not authorized to update this booking")
+            
+        await self.bookings.update_by_id(booking_id, {"booking_status": status.upper()})
+        if status.upper() in ["REJECTED", "CANCELLED"]:
+            await self.slots.update_by_id(booking["slot_id"], {"is_available": True})
         return await self.get_booking(booking_id)
 
     async def get_booking(self, booking_id: str) -> dict:
@@ -401,18 +581,44 @@ class SportsService:
         return booking
 
     async def list_bookings(self, query: dict = None) -> list[dict]:
-        return await self.bookings.find_many(query or {})
+        bookings = await self.bookings.find_many(query or {})
+        for b in bookings:
+            # Resolve venue name
+            if b.get("venue_id"):
+                venue = await self.venues.find_by_id(b["venue_id"])
+                b["venueName"] = venue.get("name", "Unknown Venue") if venue else "Unknown Venue"
+                
+            # Resolve slot label (time)
+            if b.get("slot_id"):
+                slot = await self.slots.find_by_id(b["slot_id"])
+                if slot:
+                    b["slotLabel"] = f'{slot.get("start_time")} - {slot.get("end_time")}'
+                else:
+                    b["slotLabel"] = "Unknown Time"
+        return bookings
 
     async def list_owner_bookings(self, user_id: str) -> list[dict]:
         # Find all venues owned by this user
         owner_venues = await self.venues.find_many({"created_by": user_id})
-        venue_ids = [str(v["_id"]) for v in owner_venues]
+        venue_ids = [str(v["id"]) for v in owner_venues]
         
         if not venue_ids:
             return []
             
         # Find bookings for these venues
-        return await self.bookings.find_many({"venue_id": {"$in": venue_ids}})
+        bookings = await self.bookings.find_many({"venue_id": {"$in": venue_ids}})
+        
+        # Resolve user names
+        for b in bookings:
+            try:
+                user = await self.users.find_by_id(b["booked_by"])
+                if user:
+                    b["booked_by"] = user.get("full_name", b["booked_by"])
+            except Exception:
+                # Keep original ID or fallback if it's an invalid ObjectId
+                pass
+        
+        return bookings
 
     async def cancel_booking(self, booking_id: str) -> dict:
         booking = await self.get_booking(booking_id)
@@ -444,10 +650,19 @@ class SportsService:
         created = await self.payment_requests.insert(doc)
         return await self.get_payment_request(created["id"])
 
-    async def list_payment_requests(self, group_id: str = None) -> list[dict]:
+    async def list_payment_requests(self, group_id: str = None, user_id: str = None) -> list[dict]:
         query = {}
         if group_id:
             query["group_id"] = group_id
+        elif user_id:
+            user_groups = await self.list_groups(user_id)
+            user_group_ids = [str(g["id"]) for g in user_groups if "id" in g]
+            query = {
+                "$or": [
+                    {"created_by": user_id},
+                    {"group_id": {"$in": user_group_ids}}
+                ]
+            }
         return await self.payment_requests.find_many(query, sort=[("created_at", -1)])
 
     async def get_payment_request(self, request_id: str) -> dict:

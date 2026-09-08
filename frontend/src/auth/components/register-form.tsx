@@ -110,11 +110,25 @@ export function RegisterForm() {
           variant: "success",
         })
       );
-    } catch (error: unknown) {
+    } catch (error: any) {
+      const msg = error?.message || (error instanceof Error ? error.message : "");
+      const isDuplicate =
+        msg.toLowerCase().includes("already exists") ||
+        msg.toLowerCase().includes("conflict") ||
+        msg.toLowerCase().includes("account with this email") ||
+        error?.status === 409;
+
+      if (isDuplicate) {
+        form.setError("email", {
+          type: "server",
+          message: "You already have an account with this email.",
+        });
+      }
+
       dispatch(
         notificationAdded({
           title: "Failed to send OTP",
-          message: error instanceof Error ? error.message : "Something went wrong. Please try again.",
+          message: isDuplicate ? "You already have an account with this email." : msg || "Something went wrong. Please try again.",
           variant: "error",
         })
       );
@@ -161,16 +175,15 @@ export function RegisterForm() {
         accessible_modules: ["sports", "band"],
       });
 
-      dispatch(credentialsReceived(session));
       setShowOtpModal(false);
       dispatch(
         notificationAdded({
           title: `Welcome aboard, ${pendingData.name}!`,
-          message: "Your account has been created successfully.",
+          message: "Your account has been created successfully. Please login to continue.",
           variant: "success",
         })
       );
-      router.push(ROUTES.SELECT_PRODUCT);
+      router.push(ROUTES.LOGIN);
     } catch (error: unknown) {
       dispatch(
         notificationAdded({
@@ -223,7 +236,7 @@ export function RegisterForm() {
           name="role"
           label="Account type"
           options={[
-            { label: "Player / Member", value: "member" },
+            { label: "Club Owner", value: "member" },
             { label: "Venue Owner", value: "venue_owner" },
           ]}
         />

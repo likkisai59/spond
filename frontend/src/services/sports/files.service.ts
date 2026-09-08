@@ -15,15 +15,15 @@ import { apiClient } from "../api-client";
 
 export const filesService: FilesService = {
   list: async (query) => {
-    return apiClient.get("/v1/files", { params: query });
+    return apiClient.get("/api/v1/files", { params: query });
   },
   upload: async (input) => {
     // Input must be FormData
-    return apiClient.post("/v1/files/upload", input, {
+    return apiClient.post("/api/v1/files/upload", input, {
       headers: { "Content-Type": "multipart/form-data" }
     });
   },
   remove: async (id) => {
-    return apiClient.delete(`/v1/files/${id}`);
+    return apiClient.delete(`/api/v1/files/${id}`);
   },
 };

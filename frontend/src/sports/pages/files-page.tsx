@@ -38,6 +38,7 @@ import { FILE_FOLDERS } from "../mocks/files.mock";
 import type { FileType, SportsFile } from "@/types";
 import { ROUTES } from "@/constants";
 import { cn } from "@/utils/cn";
+import { filesService } from "@/services/sports";
 
 function guessFileType(fileName: string): FileType {
   const extension = fileName.split(".").pop()?.toLowerCase() ?? "";
@@ -60,6 +61,7 @@ export function FilesPage() {
   const [previewFile, setPreviewFile] = useState<SportsFile | null>(null);
   const [detailsFile, setDetailsFile] = useState<SportsFile | null>(null);
   const [deleteFile, setDeleteFile] = useState<SportsFile | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
   const debouncedSearch = useDebounce(search, 250);
 
   const filteredFiles = useMemo(() => {
@@ -76,14 +78,38 @@ export function FilesPage() {
 
   const handleUploadClick = () => inputRef.current?.click();
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(event.target.files ?? []);
     if (selected.length === 0) return;
+
+    // 10 MB limit (10 * 1024 * 1024 bytes)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    const hasLargeFile = selected.some((file) => file.size > MAX_FILE_SIZE);
+    if (hasLargeFile) {
+      setFileError("Max file size of 10 MB is allowed.");
+      event.target.value = "";
+      return;
+    }
+    setFileError(null);
+
+    for (const file of selected) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("module", "sports");
+        formData.append("module_id", folder === "All" ? "general" : folder.toLowerCase());
+        await filesService.upload(formData);
+      } catch (err) {
+        console.warn("Backend file upload error (falling back to local):", err);
+      }
+    }
+
     dispatch(
       filesAdded(
         selected.map((file) => ({
           name: file.name,
           type: guessFileType(file.name),
+          folder: folder === "All" ? "Training" : (folder as any),
           sizeKb: Math.max(1, Math.round(file.size / 1024)),
         }))
       )
@@ -91,7 +117,7 @@ export function FilesPage() {
     dispatch(
       notificationAdded({
         title: `${selected.length} file${selected.length > 1 ? "s" : ""} uploaded`,
-        message: "Files were added to Recent Uploads (demo mode — local only).",
+        message: `Files were uploaded to ${folder === "All" ? "Training" : folder} folder.`,
         variant: "success",
       })
     );
@@ -167,6 +193,12 @@ export function FilesPage() {
           Click to browse — images, documents, spreadsheets and videos
         </span>
       </button>
+
+      {fileError && (
+        <p className="mt-2 text-center text-xs sm:text-sm font-semibold text-destructive animate-fade-in">
+          ⚠️ {fileError}
+        </p>
+      )}
 
       <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2">

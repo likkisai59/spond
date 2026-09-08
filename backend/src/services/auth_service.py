@@ -13,6 +13,8 @@ from src.models.otp import new_otp_document
 from src.repositories import TokenRepository, UserRepository, OtpRepository
 from src.services.audit_service import AuditService
 from src.services.email_service import EmailService
+import asyncio
+import os
 import secrets
 import string
 
@@ -242,12 +244,22 @@ class AuthService:
             expires_at=expires_at,
         )
         await self.audit.log(user_id=user["id"], action="forgot_password", module="auth")
+
+        frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+        reset_url = f"{frontend_url}/reset-password?token={token}"
+        asyncio.create_task(
+            self.email_service.send_password_reset_email(
+                to_email=user["email"],
+                reset_url=reset_url,
+                user_name=user.get("full_name") or user.get("name") or "User",
+            )
+        )
+
         response = {
             "message": "If the account exists, password reset instructions have been sent.",
             "reset_token": None,
         }
         if settings.APP_ENV != "prod":
-            # No email service in Phase 1 — return the token so the flow is testable.
             response["reset_token"] = token
         return response
 

@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       const token = storage.get<string>(STORAGE_KEYS.ACCESS_TOKEN);
-      
+
       if (!token) {
         if (mounted) setIsInitializing(false);
         return;

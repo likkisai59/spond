@@ -16,7 +16,8 @@ export const nameSchema = z
   .string()
   .trim()
   .min(2, "Must be at least 2 characters")
-  .max(64, "Must be at most 64 characters");
+  .max(64, "Must be at most 64 characters")
+  .regex(/^[a-zA-Z\s.'-]+$/, "Full name cannot contain numbers");
 
 export const requiredStringSchema = (label: string, min = 1) =>
   z.string().trim().min(min, `${label} is required`);

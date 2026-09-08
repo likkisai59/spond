@@ -63,6 +63,11 @@ const notificationSlice = createSlice({
     notificationsCleared(state) {
       state.notifications = [];
     },
+    notificationsMarkedAllAsRead(state) {
+      state.notifications.forEach((n) => {
+        n.read = true;
+      });
+    },
     notificationsSet(state, action: PayloadAction<AppNotification[]>) {
       state.notifications = action.payload;
     },
@@ -74,6 +79,7 @@ export const {
   notificationRead,
   notificationRemoved,
   notificationsCleared,
+  notificationsMarkedAllAsRead,
   notificationsSet,
 } = notificationSlice.actions;
 

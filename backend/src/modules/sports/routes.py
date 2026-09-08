@@ -1,7 +1,15 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
+from fastapi.responses import HTMLResponse, JSONResponse
 
-async def get_current_user():
-    return {"id": "dev-sports-user", "name": "Santhosh", "role": "admin", "email": "santhosh@gmail.com"}
+from src.dependencies.auth import get_current_user as _get_current_user
+from src.constants.roles import ADMIN_ROLES
+from src.exceptions.handlers import ForbiddenError
+
+async def get_current_user(user: dict = Depends(_get_current_user)) -> dict:
+    if user.get("role") not in ADMIN_ROLES and "sports" not in user.get("accessible_modules", []):
+        raise ForbiddenError("Access to sports module denied")
+    return user
+
 from src.services.sports_service import SportsService
 from src.schemas.sports import (
     GroupCreateRequest, GroupUpdateRequest,
@@ -11,7 +19,7 @@ from src.schemas.sports import (
     VenueCreateRequest, VenueUpdateRequest,
     SlotCreateRequest, SlotUpdateRequest,
     BookingCreateRequest, GenerateSlotsRequest,
-    PaymentRequestCreateRequest
+    PaymentRequestCreateRequest, UpdateBookingStatusRequest
 )
 
 router = APIRouter(prefix="/sports", tags=["Sports"])
@@ -24,8 +32,8 @@ async def create_group(data: GroupCreateRequest, user: dict = Depends(get_curren
     return {"status": "success", "data": group}
 
 @router.get("/groups")
-async def list_groups(_: dict = Depends(get_current_user)) -> dict:
-    groups = await service.list_groups()
+async def list_groups(user: dict = Depends(get_current_user)) -> dict:
+    groups = await service.list_groups(user["id"])
     return {"status": "success", "data": {"items": groups}}
 
 @router.get("/groups/{id}")
@@ -44,9 +52,74 @@ async def delete_group(id: str, _: dict = Depends(get_current_user)) -> dict:
     return {"status": "success"}
 
 # --- Members ---
+@router.get("/groups/invite/respond")
+async def respond_to_invite(token: str, action: str = "accept", format: str = None) -> Response:
+    result = await service.respond_to_invitation(token, action)
+    if format == "json":
+        return JSONResponse({"status": "success", "data": result})
+
+    group_name = result.get("group_name", "the sports group")
+    if action == "accept":
+        html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Invitation Accepted</title>
+  <style>
+    body {{ background-color: #090d16; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; }}
+    .card {{ background-color: #131b2e; border: 1px solid #1e293b; border-radius: 16px; padding: 28px 36px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-width: 460px; width: 100%; }}
+    .msg {{ font-size: 16px; font-weight: 700; color: #10b981; margin-bottom: 8px; line-height: 1.5; }}
+    .sub {{ font-size: 12px; color: #64748b; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="msg">✓ Invitation accepted! You are now a confirmed member of {group_name}.</div>
+    <div class="sub">This window will close automatically...</div>
+  </div>
+  <script>
+    setTimeout(() => {{
+      window.close();
+    }}, 1800);
+  </script>
+</body>
+</html>"""
+    else:
+        html_content = f"""<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Invitation Declined</title>
+  <style>
+    body {{ background-color: #090d16; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; }}
+    .card {{ background-color: #131b2e; border: 1px solid #1e293b; border-radius: 16px; padding: 28px 36px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-width: 460px; width: 100%; }}
+    .msg {{ font-size: 16px; font-weight: 700; color: #94a3b8; margin-bottom: 8px; }}
+    .sub {{ font-size: 12px; color: #64748b; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="msg">Invitation declined for {group_name}.</div>
+    <div class="sub">This window will close automatically...</div>
+  </div>
+  <script>
+    setTimeout(() => {{
+      window.close();
+    }}, 1800);
+  </script>
+</body>
+</html>"""
+
+    return HTMLResponse(content=html_content)
+
+@router.post("/groups/invite/respond")
+async def respond_to_invite_post(token: str, action: str = "accept") -> dict:
+    result = await service.respond_to_invitation(token, action)
+    return {"status": "success", "data": result}
+
 @router.post("/groups/{id}/members")
-async def add_member(id: str, data: AddMemberRequest, _: dict = Depends(get_current_user)) -> dict:
-    group = await service.add_member(id, data)
+async def add_member(id: str, data: AddMemberRequest, user: dict = Depends(get_current_user)) -> dict:
+    group = await service.add_member(id, data, current_user=user)
     return {"status": "success", "data": group}
 
 @router.get("/groups/{id}/members")
@@ -71,8 +144,8 @@ async def create_event(data: EventCreateRequest, user: dict = Depends(get_curren
     return {"status": "success", "data": event}
 
 @router.get("/events")
-async def list_events(group_id: str = None, _: dict = Depends(get_current_user)) -> dict:
-    events = await service.list_events(group_id)
+async def list_events(group_id: str = None, user: dict = Depends(get_current_user)) -> dict:
+    events = await service.list_events(group_id, user["id"])
     return {"status": "success", "data": {"items": events}}
 
 @router.get("/events/{id}")
@@ -191,8 +264,8 @@ async def create_booking(data: BookingCreateRequest, user: dict = Depends(get_cu
     return {"status": "success", "data": booking}
 
 @router.get("/bookings")
-async def list_bookings(_: dict = Depends(get_current_user)) -> dict:
-    bookings = await service.list_bookings()
+async def list_bookings(user: dict = Depends(get_current_user)) -> dict:
+    bookings = await service.list_bookings({"booked_by": user["id"]})
     return {"status": "success", "data": {"items": bookings}}
 
 @router.get("/bookings/owner")
@@ -216,8 +289,13 @@ async def cancel_booking(id: str, _: dict = Depends(get_current_user)) -> dict:
     return {"status": "success", "data": booking}
 
 @router.put("/bookings/{id}/confirm")
-async def confirm_booking(id: str, _: dict = Depends(get_current_user)) -> dict:
-    booking = await service.confirm_booking(id)
+async def confirm_booking(id: str, status: str = "CONFIRMED", _: dict = Depends(get_current_user)) -> dict:
+    booking = await service.confirm_booking(id, status)
+    return {"status": "success", "data": booking}
+
+@router.put("/bookings/{id}/status")
+async def update_booking_status(id: str, data: UpdateBookingStatusRequest, user: dict = Depends(get_current_user)) -> dict:
+    booking = await service.update_booking_status(id, data.status, user["id"])
     return {"status": "success", "data": booking}
 
 # --- Payment Requests ---
@@ -227,8 +305,8 @@ async def create_payment_request(data: PaymentRequestCreateRequest, user: dict =
     return {"status": "success", "data": req}
 
 @router.get("/payment-requests")
-async def list_payment_requests(group_id: str = None, _: dict = Depends(get_current_user)) -> dict:
-    requests = await service.list_payment_requests(group_id)
+async def list_payment_requests(group_id: str = None, user: dict = Depends(get_current_user)) -> dict:
+    requests = await service.list_payment_requests(group_id, user["id"])
     return {"status": "success", "data": {"items": requests}}
 
 @router.get("/payment-requests/{id}")

@@ -3,14 +3,17 @@ import {
   nanoid,
   type PayloadAction,
 } from "@reduxjs/toolkit";
-import type { ChatMessage, Conversation } from "@/types";
+import type { ChatMessage, Conversation, SportsGroup } from "@/types";
 import { MOCK_CONVERSATIONS } from "@/sports/mocks/messages.mock";
+import { fetchGroupsThunk } from "./groups-slice";
 
 export interface MessagesState {
   conversations: Conversation[];
 }
 
-const initialState: MessagesState = { conversations: MOCK_CONVERSATIONS };
+const initialState: MessagesState = {
+  conversations: MOCK_CONVERSATIONS.filter((c) => c.type !== "Group"),
+};
 
 const messagesSlice = createSlice({
   name: "sports/messages",
@@ -67,6 +70,30 @@ const messagesSlice = createSlice({
       conversation.lastMessageAt = now;
       conversation.updatedAt = now;
     },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(fetchGroupsThunk.fulfilled, (state, action) => {
+      const groups = (action.payload as SportsGroup[]) || [];
+      const directChats = state.conversations.filter((c) => c.type === "Direct");
+      const groupChats: Conversation[] = groups.map((group) => {
+        const existing = state.conversations.find((c) => c.id === group.id);
+        return (
+          existing ?? {
+            id: group.id,
+            type: "Group",
+            name: group.name,
+            lastMessage: "No messages yet. Start team discussion.",
+            lastMessageAt:
+              group.updatedAt || group.createdAt || new Date().toISOString(),
+            unreadCount: 0,
+            messages: [],
+            createdAt: group.createdAt || new Date().toISOString(),
+            updatedAt: group.updatedAt || new Date().toISOString(),
+          }
+        );
+      });
+      state.conversations = [...groupChats, ...directChats];
+    });
   },
 });
 

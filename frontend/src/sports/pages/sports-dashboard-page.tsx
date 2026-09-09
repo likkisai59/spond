@@ -55,14 +55,26 @@ export function SportsDashboardPage() {
   });
 
   useEffect(() => {
+    if (user?.role === "client") {
+      router.replace("/band/client/dashboard");
+      return;
+    }
+    if (user?.role === "artist") {
+      router.replace("/band/artist/dashboard");
+      return;
+    }
     if (user?.role === "venue_owner") {
-      router.replace(ROUTES.SPORTS_OWNER_DASHBOARD);
+      router.replace("/band/venue/dashboard");
+      return;
+    }
+    if (user?.role === "band") {
+      router.replace("/band/artist/dashboard");
       return;
     }
     const fetchStats = async () => {
       try {
         const response = await apiClient.get("/api/v1/sports/dashboard");
-        const data = response.data.overview || response.data;
+        const data = response?.data?.overview || response?.data || {};
         setRealStats({
           groups: data.groups || 0,
           events: data.events || 0,
@@ -71,11 +83,11 @@ export function SportsDashboardPage() {
           unreadMessages: data.unreadMessages || 0,
         });
       } catch (error) {
-        console.error("Failed to fetch dashboard stats", error);
+        // Silently fallback to defaults on sports dashboard
       }
     };
     fetchStats();
-  }, []);
+  }, [user, router]);
 
   const groups = useAppSelector(selectAllGroups);
   const upcomingEvents = useAppSelector(selectUpcomingEvents);

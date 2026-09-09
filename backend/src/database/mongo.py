@@ -40,9 +40,11 @@ class MongoDatabase:
     async def connect(self) -> None:
         self._client = AsyncIOMotorClient(
             settings.MONGODB_URI,
-            serverSelectionTimeoutMS=5000,
+            serverSelectionTimeoutMS=15000,
             maxPoolSize=50,
             minPoolSize=2,
+            # Python 3.13 / Windows SSL fix: bypass cert validation for dev
+            tlsInsecure=True,
         )
         self._db = self._client[settings.MONGODB_DB_NAME]
         await self.ping()

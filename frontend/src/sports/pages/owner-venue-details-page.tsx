@@ -183,8 +183,8 @@ export function OwnerVenueDetailsPage({ venueId }: { venueId: string }) {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <FormInput control={form.control} name="startDate" label="Start Date" type="date" />
-                  <FormInput control={form.control} name="endDate" label="End Date" type="date" />
+                  <FormInput control={form.control} name="startDate" label="Start Date" type="date" min={new Date().toISOString().split("T")[0]} />
+                  <FormInput control={form.control} name="endDate" label="End Date" type="date" min={new Date().toISOString().split("T")[0]} />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <FormInput control={form.control} name="startTime" label="Start Time" type="time" />

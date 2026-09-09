@@ -11,12 +11,14 @@ import {
   MessageSquare,
   Mic2,
   Music,
-  Search,
   Settings,
-  Star,
-  Trophy,
   Users,
   Vote,
+  Home,
+  User,
+  Heart,
+  Inbox,
+  IndianRupee,
 } from "lucide-react";
 import { ROUTES } from "./routes";
 import type { NavSection } from "@/types";
@@ -110,36 +112,81 @@ export const OWNER_NAV: NavSection[] = [
   },
 ];
 
-export const BAND_NAV: NavSection[] = [
+export const BAND_CLIENT_NAV: NavSection[] = [
   {
     items: [
-      { label: "Dashboard", href: ROUTES.BAND_DASHBOARD, icon: Trophy },
-      { label: "Search", href: ROUTES.BAND_SEARCH, icon: Search },
+      { label: "Home", href: "/band/client/dashboard", icon: Home },
+      { label: "Profile", href: "/band/client/profile", icon: User },
     ],
   },
   {
     title: "Marketplace",
     items: [
-      { label: "Artists", href: ROUTES.BAND_ARTISTS, icon: Mic2 },
-      { label: "Bands", href: ROUTES.BAND_BANDS, icon: Music },
-      { label: "Venues", href: ROUTES.BAND_VENUES, icon: Building2 },
+      { label: "Artists", href: "/band/marketplace/artists", icon: Mic2 },
+      { label: "Bands", href: "/band/marketplace/bands", icon: Music },
+      { label: "Venues", href: "/band/marketplace/venues", icon: Building2 },
     ],
   },
   {
     title: "Manage",
     items: [
-      {
-        label: "Bookings",
-        href: ROUTES.BAND_BOOKINGS,
-        icon: CalendarDays,
-        badge: 3,
-      },
-      { label: "Reviews", href: ROUTES.BAND_REVIEWS, icon: Star },
+      { label: "Bookings", href: "/band/client/bookings", icon: CalendarCheck },
+      { label: "Reviews", href: "/band/client/reviews", icon: MessageSquare },
+      { label: "Favorites", href: "/band/client/favorites", icon: Heart },
+      { label: "Messages", href: "/band/client/messages", icon: Inbox },
+      { label: "Payments", href: "/band/client/payments", icon: IndianRupee },
     ],
   },
   {
     items: [
-      { label: "Settings", href: ROUTES.BAND_SETTINGS, icon: Settings },
+      { label: "Settings", href: "/band/client/settings", icon: Settings },
+    ],
+  },
+];
+
+export const BAND_ARTIST_NAV: NavSection[] = [
+  {
+    items: [
+      { label: "Home", href: "/band/artist/dashboard", icon: Home },
+      { label: "Profile", href: "/band/artist/profile", icon: User },
+    ],
+  },
+  {
+    title: "Manage",
+    items: [
+      { label: "Bookings", href: "/band/artist/bookings", icon: CalendarDays },
+      { label: "Reviews", href: "/band/artist/reviews", icon: MessageSquare },
+      { label: "Messages", href: "/band/artist/messages", icon: Inbox },
+      { label: "Payments", href: "/band/artist/earnings", icon: IndianRupee },
+      { label: "Analytics", href: "/band/artist/analytics", icon: BarChart3 },
+    ],
+  },
+  {
+    items: [
+      { label: "Settings", href: "/band/artist/settings", icon: Settings },
+    ],
+  },
+];
+
+export const BAND_VENUE_NAV: NavSection[] = [
+  {
+    items: [
+      { label: "Home", href: "/band/venue/dashboard", icon: Home },
+      { label: "Profile", href: "/band/venue/profile", icon: Building2 },
+    ],
+  },
+  {
+    title: "Manage",
+    items: [
+      { label: "Bookings", href: "/band/venue/bookings", icon: CalendarDays },
+      { label: "Reviews", href: "/band/venue/reviews", icon: MessageSquare },
+      { label: "Messages", href: "/band/venue/messages", icon: Inbox },
+      { label: "Payments", href: "/band/venue/earnings", icon: IndianRupee },
+    ],
+  },
+  {
+    items: [
+      { label: "Settings", href: "/band/venue/settings", icon: Settings },
     ],
   },
 ];

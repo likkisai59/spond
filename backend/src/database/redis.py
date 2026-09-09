@@ -17,8 +17,8 @@ class RedisClient:
                 await cls._client.ping()
                 logger.info("Successfully connected to Redis")
             except Exception as e:
-                logger.error(f"Failed to connect to Redis: {e}")
-                raise
+                logger.warning(f"Failed to connect to Redis: {e} — Redis features will be disabled")
+                cls._client = None  # Non-fatal in dev
 
     @classmethod
     async def close(cls) -> None:

@@ -1,0 +1,1 @@
+export const useVenueDashboard = () => ({data: null, isLoading: false, error: null});

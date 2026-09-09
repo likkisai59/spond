@@ -4,12 +4,13 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
+  Music,
+  CheckCircle,
   CalendarCheck,
   CreditCard,
-  MessageCircle,
-  Music,
   Play,
-  Trophy,
+  Mic2,
+  Guitar
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,9 +24,9 @@ const WatchDemoModal = dynamic(
 );
 
 const heroStats = [
-  { value: 2, suffix: "", label: "Premium products" },
-  { value: 1, suffix: "", label: "Unified account" },
-  { value: 10, suffix: "+", label: "Power modules" },
+  { value: 500, suffix: "+", label: "Verified Venues" },
+  { value: 1200, suffix: "+", label: "Live Artists" },
+  { value: 100, suffix: "%", label: "Secure Payments" },
 ] as const;
 
 function HeroIllustration() {
@@ -33,7 +34,7 @@ function HeroIllustration() {
     <div className="relative hidden lg:block" aria-hidden="true">
       <div className="absolute inset-6 rounded-full bg-brand-gradient opacity-20 blur-3xl" />
 
-      <div className="relative ml-auto w-full max-w-md rotate-2 rounded-lg border border-border/70 bg-card p-5 shadow-elevated transition-transform duration-500 hover:rotate-0">
+      <div className="relative ml-auto w-full max-w-md -rotate-2 rounded-lg border border-border/70 bg-card p-5 shadow-elevated transition-transform duration-500 hover:rotate-0">
         <div className="flex items-center gap-2 border-b border-border/70 pb-4">
           <span className="h-2.5 w-2.5 rounded-full bg-accent" />
           <span className="h-2.5 w-2.5 rounded-full bg-brand-gradient" />
@@ -43,19 +44,19 @@ function HeroIllustration() {
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="space-y-2 rounded-xl bg-brand-gradient-soft p-3">
-            <Trophy className="h-5 w-5 text-accent" />
+            <Mic2 className="h-5 w-5 text-accent" />
             <div className="h-2 w-3/4 rounded-full bg-primary/20" />
             <div className="h-2 w-1/2 rounded-full bg-primary/10" />
           </div>
           <div className="space-y-2 rounded-xl bg-muted/60 p-3">
-            <CalendarCheck className="h-5 w-5 text-primary" />
+            <Guitar className="h-5 w-5 text-primary" />
             <div className="h-2 w-3/4 rounded-full bg-primary/20" />
             <div className="h-2 w-1/2 rounded-full bg-primary/10" />
           </div>
         </div>
 
         <div className="mt-3 space-y-3">
-          {[Trophy, Music, CreditCard].map((RowIcon, index) => (
+          {[Music, CreditCard].map((RowIcon, index) => (
             <div
               key={index}
               className="flex items-center gap-3 rounded-xl border border-border/60 p-3"
@@ -74,31 +75,21 @@ function HeroIllustration() {
 
       <div className="absolute -left-6 top-8 flex animate-fade-in-up items-center gap-2.5 rounded-xl border border-border/60 bg-card px-3.5 py-2.5 shadow-elevated [animation-delay:150ms]">
         <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-gradient">
-          <Trophy className="h-4 w-4 text-white" />
-        </span>
-        <div>
-          <p className="text-xs font-bold">Strikers FC</p>
-          <p className="text-[11px] text-muted-foreground">Training · Today</p>
-        </div>
-      </div>
-
-      <div className="absolute -right-2 top-1/3 flex animate-fade-in-up items-center gap-2.5 rounded-xl border border-border/60 bg-card px-3.5 py-2.5 shadow-elevated [animation-delay:300ms]">
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-gradient">
           <Music className="h-4 w-4 text-white" />
         </span>
         <div>
-          <p className="text-xs font-bold">The Echoes</p>
-          <p className="text-[11px] text-muted-foreground">Booking request</p>
+          <p className="text-xs font-bold">The Grand Arena</p>
+          <p className="text-[11px] text-muted-foreground">Live Concert · Tonight</p>
         </div>
       </div>
 
       <div className="absolute -bottom-4 left-10 flex animate-fade-in-up items-center gap-2.5 rounded-xl border border-border/60 bg-card px-3.5 py-2.5 shadow-elevated [animation-delay:450ms]">
         <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-gradient">
-          <MessageCircle className="h-4 w-4 text-white" />
+          <CheckCircle className="h-4 w-4 text-white" />
         </span>
         <div>
-          <p className="text-xs font-bold">Team chat</p>
-          <p className="text-[11px] text-muted-foreground">3 new messages</p>
+          <p className="text-xs font-bold">Booking Confirmed</p>
+          <p className="text-[11px] text-muted-foreground">Advance Paid</p>
         </div>
       </div>
     </div>
@@ -118,24 +109,20 @@ export function HeroSection() {
             variant="gradient"
             className="px-4 py-1 text-[11px] font-bold uppercase tracking-widest"
           >
-            Sports · Music · One platform
+            Premium Entertainment Marketplace
           </Badge>
 
           <h1 className="mt-6 text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl xl:text-6xl">
-            Manage sports teams and{" "}
-            <span className="text-brand-gradient">live events</span> all in one
-            platform
+            Book the Perfect <span className="text-brand-gradient">Vibe</span> for your next event
           </h1>
 
           <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted-foreground lg:mx-0 lg:text-lg">
-            Unify brings a world-class sports management suite and the
-            BandConnect marketplace together — one account, two worlds,
-            everything under control.
+            EventHub connects you with top-rated live bands, solo artists, and premium venues. Discover talent, book instantly, and pay securely with milestone protection.
           </p>
 
           <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row lg:justify-start sm:justify-center">
             <Button asChild variant="accent" size="lg" className="w-full sm:w-auto">
-              <Link href={ROUTES.REGISTER}>Get started free</Link>
+              <Link href={ROUTES.REGISTER}>Explore Marketplace</Link>
             </Button>
             <Button
               variant="outline"
@@ -144,7 +131,7 @@ export function HeroSection() {
               onClick={() => setDemoOpen(true)}
             >
               <Play />
-              Watch demo
+              Join as Artist/Venue
             </Button>
           </div>
 

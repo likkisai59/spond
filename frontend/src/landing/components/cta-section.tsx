@@ -24,7 +24,7 @@ export function CtaSection() {
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed text-white/85">
               Create your free account today and take control of your sports
-              club or music career in minutes.
+              club in minutes.
             </p>
             <div className="mt-9 flex justify-center">
               <Button

@@ -1,0 +1,14 @@
+{
+  "python.analysis.extraPaths": [
+    "./backend"
+  ],
+  "python.analysis.typeCheckingMode": "off",
+  "python.analysis.exclude": [
+    "c:/__pyrefly_virtual__/**",
+    "**/__pyrefly_virtual__/**"
+  ],
+  "python.analysis.ignore": [
+    "c:/__pyrefly_virtual__/**",
+    "**/__pyrefly_virtual__/**"
+  ]
+}

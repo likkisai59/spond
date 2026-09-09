@@ -2,6 +2,25 @@
 
 Run: uvicorn src.app.main:app --reload --port 8000
 """
+# ── SSL workaround for Python 3.13 / Windows broken cert store ──────────────
+# Python 3.13 on Windows has a broken Windows certificate store integration
+# that causes TLS handshake failures (TLSV1_ALERT_INTERNAL_ERROR) with
+# MongoDB Atlas. We patch create_default_context to bypass verification in dev.
+import ssl as _ssl
+import os as _os
+
+if _os.getenv("APP_ENV", "dev") in ("dev", "development"):
+    _orig_create_default_context = _ssl.create_default_context
+
+    def _patched_create_default_context(*args, **kwargs):
+        ctx = _orig_create_default_context(*args, **kwargs)
+        ctx.check_hostname = False
+        ctx.verify_mode = _ssl.CERT_NONE
+        return ctx
+
+    _ssl.create_default_context = _patched_create_default_context
+# ─────────────────────────────────────────────────────────────────────────────
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -59,24 +78,23 @@ async def lifespan(app: FastAPI):
         from src.repositories import (
             RoleRepository, TokenRepository, AuditRepository,
             GroupRepository, GroupMemberRepository, EventRepository, RsvpRepository, AttendanceRepository,
-            ArtistRepository, BandRepository, VenueRepository, BookingRepository,
-            SportsVenueRepository, SportsSlotRepository, SportsBookingRepository, BandVenueBookingRepository,
+            SportsVenueRepository, SportsSlotRepository, SportsBookingRepository,
             PaymentRepository, TransactionRepository, PaymentReceiptRepository,
             FileRepository, FolderRepository, NotificationRepository, NotificationLogRepository,
             MatchRepository, MatchSummaryRepository, PlayerStatsRepository,
-            BandArtistAnalyticsRepository, BandVenueAnalyticsRepository, DashboardAnalyticsRepository
+            DashboardAnalyticsRepository
         )
         from src.repositories.eventhub import EventHubEventRepository
 
         for repo in (
             RoleRepository(), TokenRepository(), AuditRepository(),
             GroupRepository(), GroupMemberRepository(), EventRepository(), RsvpRepository(), AttendanceRepository(),
-            ArtistRepository(), BandRepository(), VenueRepository(), BookingRepository(), EventHubEventRepository(),
-            SportsVenueRepository(), SportsSlotRepository(), SportsBookingRepository(), BandVenueBookingRepository(),
+            EventHubEventRepository(),
+            SportsVenueRepository(), SportsSlotRepository(), SportsBookingRepository(),
             PaymentRepository(), TransactionRepository(), PaymentReceiptRepository(),
             FileRepository(), FolderRepository(), NotificationRepository(), NotificationLogRepository(),
             MatchRepository(), MatchSummaryRepository(), PlayerStatsRepository(),
-            BandArtistAnalyticsRepository(), BandVenueAnalyticsRepository(), DashboardAnalyticsRepository()
+            DashboardAnalyticsRepository()
         ):
             await repo.ensure_indexes()
         await RoleService().seed_roles()
@@ -118,3 +136,9 @@ app.include_router(get_v1_router(), prefix="/api")
 # Spec-exposed root system endpoints (in addition to /api/v1/health, /version)
 app.add_api_route("/health", health, methods=["GET"], tags=["System"])
 app.add_api_route("/version", version, methods=["GET"], tags=["System"])
+
+# Local uploads static file mounting
+import os
+from fastapi.staticfiles import StaticFiles
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

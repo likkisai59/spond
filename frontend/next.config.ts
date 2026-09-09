@@ -11,6 +11,20 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  async rewrites() {
+    return [
+      {
+        // Proxy /api/v1/* → FastAPI backend
+        source: "/api/v1/:path*",
+        destination: `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/v1/:path*`,
+      },
+      {
+        // Also proxy /api/* (for apiClient baseURL "/api")
+        source: "/api/:path*",
+        destination: `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -12,9 +12,9 @@ export interface AuthState {
 }
 
 const initialState: AuthState = {
-  user: null,
-  accessToken: storage.get<string>(STORAGE_KEYS.ACCESS_TOKEN),
-  refreshToken: storage.get<string>(STORAGE_KEYS.REFRESH_TOKEN),
+  user: typeof window !== "undefined" ? storage.get<User>(STORAGE_KEYS.USER) : null,
+  accessToken: typeof window !== "undefined" ? storage.get<string>(STORAGE_KEYS.ACCESS_TOKEN) : null,
+  refreshToken: typeof window !== "undefined" ? storage.get<string>(STORAGE_KEYS.REFRESH_TOKEN) : null,
   status: "idle",
   error: null,
 };
@@ -31,12 +31,14 @@ const authSlice = createSlice({
       state.status = "succeeded";
       state.error = null;
       storage.set(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
+      storage.set(STORAGE_KEYS.USER, user);
       if (refreshToken) {
         storage.set(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
       }
     },
     userUpdated(state, action: PayloadAction<User>) {
       state.user = action.payload;
+      storage.set(STORAGE_KEYS.USER, action.payload);
     },
     authStatusChanged(state, action: PayloadAction<AsyncState>) {
       state.status = action.payload;
@@ -57,6 +59,7 @@ const authSlice = createSlice({
       state.error = null;
       storage.remove(STORAGE_KEYS.ACCESS_TOKEN);
       storage.remove(STORAGE_KEYS.REFRESH_TOKEN);
+      storage.remove(STORAGE_KEYS.USER);
     },
   },
 });

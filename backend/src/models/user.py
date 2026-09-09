@@ -37,6 +37,7 @@ def public_user(document: dict) -> dict:
     return {
         "id": document["id"],
         "full_name": document["full_name"],
+        "name": document.get("full_name"),
         "email": document["email"],
         "phone": document.get("phone"),
         "profile_image": document.get("profile_image"),

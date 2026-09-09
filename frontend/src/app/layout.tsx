@@ -30,7 +30,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} min-h-screen bg-background font-sans text-foreground antialiased`}>
+      <body suppressHydrationWarning className={`${inter.variable} min-h-screen bg-background font-sans text-foreground antialiased`}>
         <a
           href="#main-content"
           className="sr-only z-[100] rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4"

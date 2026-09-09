@@ -5,8 +5,12 @@ import axios, {
 } from "axios";
 import { API_BASE_URL, API_TIMEOUT_MS, STORAGE_KEYS } from "@/utils/constants";
 import { storage } from "@/utils/storage";
-import type { ApiErrorBody } from "@/types";
-
+export interface ApiErrorBody {
+  statusCode: number;
+  message: string;
+  code?: string;
+  details?: Record<string, unknown>;
+}
 export class ApiRequestError extends Error {
   readonly status: number;
   readonly code?: string;

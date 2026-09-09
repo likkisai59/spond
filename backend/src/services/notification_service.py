@@ -18,16 +18,17 @@ class NotificationService:
             "is_read": False,
             "created_at": utc_now()
         }
-        nid = await self.notifications.insert(doc)
+        notif_doc = await self.notifications.insert(doc)
+        notif_id = notif_doc["id"]
         
         # In a real app we might trigger push notifications or websockets here
         await self.logs.insert({
-            "notification_id": nid,
+            "notification_id": notif_id,
             "status": "DELIVERED",
             "sent_at": utc_now()
         })
         
-        return await self.get_notification(nid)
+        return notif_doc
 
     async def list_notifications(self, user_id: str) -> list[dict]:
         return await self.notifications.find_many({"user_id": user_id}, sort=[("created_at", -1)])
@@ -52,7 +53,8 @@ class NotificationService:
         )
 
     async def delete_notification(self, nid: str, user_id: str) -> None:
-        deleted = await self.notifications.collection.delete_one({"_id": self.notifications._object_id(nid), "user_id": user_id})
+        from bson import ObjectId
+        deleted = await self.notifications.collection.delete_one({"_id": ObjectId(nid), "user_id": user_id})
         if deleted.deleted_count == 0:
             raise NotFoundError("Notification not found")
         await self.logs.collection.delete_many({"notification_id": nid})

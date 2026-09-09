@@ -3,6 +3,7 @@ export const ROUTES = {
   LOGIN: "/login",
   REGISTER: "/register",
   FORGOT_PASSWORD: "/forgot-password",
+  RESET_PASSWORD: "/reset-password",
   VERIFY_EMAIL: "/verify-email",
   SELECT_PRODUCT: "/select-product",
   SPORTS: "/sports",
@@ -54,4 +55,23 @@ export function sportsRoute(
   return [ROUTES[path as keyof typeof ROUTES] ?? path, ...segments]
     .filter(Boolean)
     .join("/");
+}
+
+export function getDefaultRouteForRole(role: string): string {
+  switch (role) {
+    case "client":
+      return "/band/client/dashboard";
+    case "artist":
+    case "band":
+      return "/band/artist/dashboard";
+    case "venue_owner":
+      return "/band/venue/profile"; // Redirect to profile instead of dashboard for venue
+    case "admin":
+    case "super_admin":
+      return ROUTES.ADMIN;
+    case "member":
+    case "user":
+    default:
+      return ROUTES.SPORTS_DASHBOARD;
+  }
 }

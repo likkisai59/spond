@@ -35,7 +35,7 @@ async def register(payload: RegisterRequest) -> dict:
         email=payload.email,
         password=payload.password,
         phone=payload.phone,
-        accessible_modules=payload.accessible_modules,
+        accessible_modules=list(payload.accessible_modules),
         role=payload.role,
     )
     return _ok(TokenPairResponse(**session).model_dump(mode="json"), 201)
@@ -67,6 +67,19 @@ async def logout(
 @router.get("/me", summary="Current authenticated user")
 async def me(user: dict = Depends(get_current_user)) -> dict:
     return _ok(user)
+
+
+@router.patch("/me", summary="Update own profile (name, phone)")
+async def update_me(
+    payload: dict,
+    user: dict = Depends(get_current_user),
+) -> dict:
+    updated = await AuthService().update_profile(
+        user_id=user["id"],
+        full_name=payload.get("full_name"),
+        phone=payload.get("phone"),
+    )
+    return _ok(updated)
 
 
 @router.post("/change-password", summary="Change own password (revokes sessions)")

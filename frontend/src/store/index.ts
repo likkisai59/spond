@@ -3,19 +3,22 @@ import authReducer from "./slices/auth-slice";
 import uiReducer from "./slices/ui-slice";
 import notificationReducer from "./slices/notification-slice";
 import { sportsReducer } from "./sports";
-import { bandReducer } from "./band";
+import { marketplaceReducer } from "./band";
 
-export const store = configureStore({
-  reducer: {
-    auth: authReducer,
-    ui: uiReducer,
-    notifications: notificationReducer,
-    sports: sportsReducer,
-    band: bandReducer,
-  },
-  devTools: process.env.NODE_ENV !== "production",
-});
+export const makeStore = () =>
+  configureStore({
+    reducer: {
+      auth: authReducer,
+      ui: uiReducer,
+      notifications: notificationReducer,
+      sports: sportsReducer,
+      marketplace: marketplaceReducer,
+    },
+    devTools: process.env.NODE_ENV !== "production",
+  });
 
-export type AppStore = typeof store;
+export const store = makeStore();
+
+export type AppStore = ReturnType<typeof makeStore>;
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

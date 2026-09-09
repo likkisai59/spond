@@ -14,14 +14,6 @@ from src.repositories.sports import (
     SportsBookingRepository,
 )
 
-from src.repositories.band import (
-    ArtistRepository,
-    BandRepository,
-    VenueRepository,
-    BookingRepository,
-    BandVenueBookingRepository,
-)
-
 from src.repositories.system import (
     PaymentRepository,
     TransactionRepository,
@@ -39,8 +31,6 @@ from src.repositories.matches import (
 
 from src.repositories.analytics import (
     PlayerStatsRepository,
-    BandArtistAnalyticsRepository,
-    BandVenueAnalyticsRepository,
     DashboardAnalyticsRepository
 )
 

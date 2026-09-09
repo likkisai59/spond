@@ -17,10 +17,12 @@ import {
 } from "./social-auth-buttons";
 import { authService } from "@/services";
 import { loginSchema, type LoginFormData } from "../schemas";
-import { ROUTES } from "@/constants";
+import { ROUTES, getDefaultRouteForRole } from "@/constants";
 import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { credentialsReceived } from "@/store/slices/auth-slice";
+
+import toast from "react-hot-toast";
 
 export function LoginForm() {
   const router = useRouter();
@@ -28,6 +30,7 @@ export function LoginForm() {
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
+    mode: "onChange",
     defaultValues: {
       email: "",
       password: "",
@@ -45,6 +48,7 @@ export function LoginForm() {
       });
 
       dispatch(credentialsReceived(session));
+      toast.success("Welcome back!");
       dispatch(
         notificationAdded({
           title: "Welcome back!",
@@ -52,22 +56,33 @@ export function LoginForm() {
           variant: "success",
         })
       );
-      router.push(ROUTES.SELECT_PRODUCT);
+      const redirectUrl = getDefaultRouteForRole(session.user.role);
+      router.push(redirectUrl);
+      window.location.href = redirectUrl;
     } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Invalid credentials. Please try again.";
+      toast.error(msg);
       dispatch(
         notificationAdded({
           title: "Login failed",
-          message: error instanceof Error ? error.message : "Invalid credentials. Please try again.",
+          message: msg,
           variant: "error",
         })
       );
     }
   };
 
+  const onInvalid = (errors: Record<string, unknown>) => {
+    const firstError = Object.values(errors)[0] as { message?: string } | undefined;
+    if (firstError?.message) {
+      toast.error(firstError.message);
+    }
+  };
+
   return (
     <div>
       <Form {...form}>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-5" noValidate>
         <FormInput
           control={control}
           name="email"

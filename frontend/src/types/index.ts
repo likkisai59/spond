@@ -1,5 +1,5 @@
 export * from "./api";
-export * from "./band";
+
 export * from "./common";
 export * from "./navigation";
 export * from "./notification";

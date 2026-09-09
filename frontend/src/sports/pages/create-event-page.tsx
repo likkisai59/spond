@@ -159,6 +159,7 @@ export function CreateEventPage() {
                 name="date"
                 label="Date"
                 type="date"
+                min={new Date().toISOString().split("T")[0]}
               />
               <FormInput
                 control={control}

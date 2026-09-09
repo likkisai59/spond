@@ -140,6 +140,7 @@ export function CreatePaymentPage() {
                 name="dueDate"
                 label="Due date"
                 type="date"
+                min={new Date().toISOString().split("T")[0]}
               />
             </div>
 

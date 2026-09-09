@@ -5,7 +5,6 @@ import { APP_NAME, PRODUCT_CONFIGS, ROUTES } from "@/constants";
 
 const productLinks = [
   { label: "Sports Management", href: ROUTES.SPORTS },
-  { label: "BandConnect Marketplace", href: ROUTES.BAND },
   { label: "Select product", href: ROUTES.SELECT_PRODUCT },
 ] as const;
 
@@ -69,8 +68,7 @@ export function Footer() {
             </span>
           </div>
           <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-            One platform powering {PRODUCT_CONFIGS.sports.name} and{" "}
-            {PRODUCT_CONFIGS.band.name}.
+            One platform powering {PRODUCT_CONFIGS.sports.name}.
           </p>
           <a
             href="mailto:support@unify.app"

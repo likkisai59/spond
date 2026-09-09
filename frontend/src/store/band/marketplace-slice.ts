@@ -1,239 +1,135 @@
-import {
-  createSlice,
-  nanoid,
-  type PayloadAction,
-} from "@reduxjs/toolkit";
-import type {
-  BandBooking,
-  BookingEventType,
-  BookingStatus,
-  EventHubEvent,
-} from "@/types";
-import { MOCK_BOOKINGS } from "@/band/mocks/band.mock";
-
-export interface MarketplaceFilters {
-  query: string;
-  genre: string;
-  city: string;
-  minRating: number;
-  priceMax: number;
-  setting: string;
-  capacityMin: number;
-  availability: string;
-}
-
-export type MarketplaceSort = "rating" | "price-asc" | "price-desc" | "popular";
-
-export interface BookingDraft {
-  eventId: string | null;
-  performerId: string | null;
-  performerName: string | null;
-  performerKind: "Artist" | "Band" | "Venue" | null;
-  packageId: string | null;
-  venueId: string | null;
-  date: string;
-  startTime: string;
-}
-
-export interface NewBookingInput {
-  title: string;
-  bandName: string;
-  venueName: string;
-  eventDate: string;
-  startTime: string;
-  endTime: string;
-  amount: number;
-  eventType: BookingEventType;
-  guestCount: number;
-}
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { bandService } from "@/services";
+import { Artist, Band, Venue, Booking, BookingRequest, CustomerEvent, CustomerEventCreate } from "@/types/band";
 
 export interface MarketplaceState {
-  filters: MarketplaceFilters;
-  sortBy: MarketplaceSort;
-  recentSearches: string[];
-  selectedId: string | null;
-  activeEvent: EventHubEvent | null;
-  bookings: BandBooking[];
-  bookingDraft: BookingDraft;
+  artists: Artist[];
+  bands: Band[];
+  venues: Venue[];
+  myBookings: Booking[];
+  myEvents: CustomerEvent[];
+  loading: boolean;
+  error: string | null;
 }
 
 const initialState: MarketplaceState = {
-  filters: {
-    query: "",
-    genre: "all",
-    city: "all",
-    minRating: 0,
-    priceMax: 0,
-    setting: "all",
-    capacityMin: 0,
-    availability: "all",
-  },
-  sortBy: "rating",
-  recentSearches: [],
-  selectedId: null,
-  activeEvent: null,
-  bookings: MOCK_BOOKINGS,
-  bookingDraft: {
-    eventId: null,
-    performerId: null,
-    performerName: null,
-    performerKind: null,
-    packageId: null,
-    venueId: null,
-    date: "",
-    startTime: "19:00",
-  },
+  artists: [],
+  bands: [],
+  venues: [],
+  myBookings: [],
+  myEvents: [],
+  loading: false,
+  error: null,
 };
 
-const marketplaceSlice = createSlice({
-  name: "band/marketplace",
-  initialState,
-  reducers: {
-    querySet(state, action: PayloadAction<string>) {
-      state.filters.query = action.payload;
-    },
-    filterSet(
-      state,
-      action: PayloadAction<{
-        key: keyof MarketplaceFilters;
-        value: string | number;
-      }>
-    ) {
-      const { key, value } = action.payload;
-      if (key === "query") {
-        state.filters.query = String(value);
-      } else if (
-        key === "minRating" ||
-        key === "priceMax" ||
-        key === "capacityMin"
-      ) {
-        state.filters[key] = Number(value);
-      } else {
-        (state.filters[key] as string) = String(value);
-      }
-    },
-    filtersReset(state) {
-      state.filters = { ...initialState.filters };
-    },
-    sortBySet(state, action: PayloadAction<MarketplaceSort>) {
-      state.sortBy = action.payload;
-    },
-    recentSearchAdded(state, action: PayloadAction<string>) {
-      const term = action.payload.trim();
-      if (term.length === 0) return;
-      state.recentSearches = [
-        term,
-        ...state.recentSearches.filter((item) => item !== term),
-      ].slice(0, 6);
-    },
-    recentSearchesCleared(state) {
-      state.recentSearches = [];
-    },
-    selectedSet(state, action: PayloadAction<string | null>) {
-      state.selectedId = action.payload;
-    },
-    activeEventSet(state, action: PayloadAction<EventHubEvent | null>) {
-      state.activeEvent = action.payload;
-      if (action.payload) {
-        state.bookingDraft.eventId = action.payload.id;
-        state.bookingDraft.date = action.payload.date;
-        state.filters.city = action.payload.location || "all";
-      }
-    },
-    activeEventCleared(state) {
-      state.activeEvent = null;
-      state.bookingDraft.eventId = null;
-    },
-    bookingDraftStarted(
-      state,
-      action: PayloadAction<{
-        performerId: string;
-        performerName: string;
-        performerKind: "Artist" | "Band" | "Venue";
-      }>
-    ) {
-      state.bookingDraft = {
-        ...initialState.bookingDraft,
-        eventId: state.activeEvent?.id || null,
-        date: state.activeEvent?.date || "",
-        ...action.payload,
-      };
-    },
-    bookingDraftUpdated(
-      state,
-      action: PayloadAction<Partial<BookingDraft>>
-    ) {
-      state.bookingDraft = { ...state.bookingDraft, ...action.payload };
-    },
-    bookingDraftReset(state) {
-      state.bookingDraft = {
-        ...initialState.bookingDraft,
-        eventId: state.activeEvent?.id || null,
-        date: state.activeEvent?.date || "",
-      };
-    },
-    bookingAdded: {
-      reducer(state, action: PayloadAction<BandBooking>) {
-        state.bookings.unshift(action.payload);
-      },
-      prepare(input: NewBookingInput) {
-        const now = new Date().toISOString();
-        const booking: BandBooking = {
-          id: nanoid(8),
-          createdAt: now,
-          updatedAt: now,
-          status: "Requested",
-          timeline: [
-            {
-              status: "Requested",
-              timestamp: now,
-              note: `Booking request sent to ${input.bandName}.`,
-            },
-          ],
-          ...input,
-        };
-        return { payload: booking };
-      },
-    },
-    bookingStatusUpdated(
-      state,
-      action: PayloadAction<{
-        id: string;
-        status: BookingStatus;
-        note: string;
-      }>
-    ) {
-      const booking = state.bookings.find(
-        (b) => b.id === action.payload.id
-      );
-      if (!booking) return;
-      const now = new Date().toISOString();
-      booking.status = action.payload.status;
-      booking.updatedAt = now;
-      booking.timeline.push({
-        status: action.payload.status,
-        timestamp: now,
-        note: action.payload.note,
-      });
-    },
-  },
+export const fetchArtists = createAsyncThunk("marketplace/fetchArtists", async () => {
+  return await bandService.getArtists();
 });
 
-export const {
-  querySet,
-  filterSet,
-  filtersReset,
-  sortBySet,
-  recentSearchAdded,
-  recentSearchesCleared,
-  selectedSet,
-  activeEventSet,
-  activeEventCleared,
-  bookingDraftStarted,
-  bookingDraftUpdated,
-  bookingDraftReset,
-  bookingAdded,
-  bookingStatusUpdated,
-} = marketplaceSlice.actions;
+export const fetchBands = createAsyncThunk("marketplace/fetchBands", async () => {
+  return await bandService.getBands();
+});
+
+export const fetchVenues = createAsyncThunk("marketplace/fetchVenues", async () => {
+  return await bandService.getVenues();
+});
+
+export const fetchMyBookings = createAsyncThunk(
+  "marketplace/fetchMyBookings",
+  async (roleView: "customer" | "provider" = "customer") => {
+    return await bandService.getMyBookings(roleView);
+  }
+);
+
+export const createBooking = createAsyncThunk(
+  "marketplace/createBooking",
+  async (request: BookingRequest) => {
+    return await bandService.createBooking(request);
+  }
+);
+
+export const updateBookingStatus = createAsyncThunk(
+  "marketplace/updateBookingStatus",
+  async ({ id, status }: { id: string; status: string }) => {
+    return await bandService.updateBookingStatus(id, status);
+  }
+);
+
+export const simulatePayment = createAsyncThunk(
+  "marketplace/simulatePayment",
+  async ({ id, paymentStatus }: { id: string; paymentStatus: string }) => {
+    return await bandService.simulatePayment(id, paymentStatus);
+  }
+);
+
+export const createCustomerEvent = createAsyncThunk(
+  "marketplace/createCustomerEvent",
+  async (request: CustomerEventCreate) => {
+    return await bandService.createEvent(request);
+  }
+);
+
+export const fetchCustomerEvents = createAsyncThunk("marketplace/fetchCustomerEvents", async () => {
+  return await bandService.getCustomerEvents();
+});
+
+const marketplaceSlice = createSlice({
+  name: "marketplace",
+  initialState,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      // Fetch Artists
+      .addCase(fetchArtists.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchArtists.fulfilled, (state, action) => {
+        state.loading = false;
+        state.artists = action.payload;
+      })
+      .addCase(fetchArtists.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || "Failed to fetch artists";
+      })
+      // Fetch Bands
+      .addCase(fetchBands.fulfilled, (state, action) => {
+        state.bands = action.payload;
+      })
+      // Fetch Venues
+      .addCase(fetchVenues.fulfilled, (state, action) => {
+        state.venues = action.payload;
+      })
+      // Fetch My Bookings
+      .addCase(fetchMyBookings.fulfilled, (state, action) => {
+        state.myBookings = action.payload;
+      })
+      // Create Booking
+      .addCase(createBooking.fulfilled, (state, action) => {
+        state.myBookings.push(action.payload);
+      })
+      // Update Booking
+      .addCase(updateBookingStatus.fulfilled, (state, action) => {
+        const index = state.myBookings.findIndex((b) => b.id === action.payload.id);
+        if (index !== -1) {
+          state.myBookings[index] = action.payload;
+        }
+      })
+      // Simulate Payment
+      .addCase(simulatePayment.fulfilled, (state, action) => {
+        const index = state.myBookings.findIndex((b) => b.id === action.payload.id);
+        if (index !== -1) {
+          state.myBookings[index] = action.payload;
+        }
+      })
+      // Fetch Customer Events
+      .addCase(fetchCustomerEvents.fulfilled, (state, action) => {
+        state.myEvents = action.payload;
+      })
+      // Create Customer Event
+      .addCase(createCustomerEvent.fulfilled, (state, action) => {
+        state.myEvents.push(action.payload);
+      });
+  },
+});
 
 export default marketplaceSlice.reducer;

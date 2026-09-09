@@ -59,9 +59,9 @@ class AuthService:
         if await self.users.email_exists(email):
             raise ConflictError("An account with this email already exists")
             
-        # Ensure only MEMBER or VENUE_OWNER can be registered this way (prevent privilege escalation)
-        valid_roles = [MEMBER, "venue_owner"]
-        assign_role = role if role in valid_roles else MEMBER
+        # Allow public registration for standard client/provider/sports roles (prevent admin privilege escalation)
+        valid_roles = [MEMBER, "venue_owner", "client", "artist", "band", "player", "coach"]
+        assign_role: str = role if role in valid_roles else MEMBER
         
         document = new_user_document(
             full_name=full_name,
@@ -146,7 +146,7 @@ class AuthService:
             expires_at=expires_at,
         )
         await self.audit.log(user_id=user["id"], action="forgot_password", module="auth")
-        response = {
+        response: dict = {
             "message": "If the account exists, password reset instructions have been sent.",
             "reset_token": None,
         }
@@ -173,3 +173,22 @@ class AuthService:
         await self.tokens.revoke(jti)
         await self.tokens.revoke_all_for_user(user["id"])
         await self.audit.log(user_id=user["id"], action="reset_password", module="auth")
+
+    async def update_profile(self, *, user_id: str, full_name: str | None = None, phone: str | None = None) -> dict:
+        """Update the authenticated user's own profile fields."""
+        from datetime import datetime, timezone
+        user = await self.users.find_by_id(user_id)
+        if user is None or user.get("is_deleted"):
+            raise NotFoundError("User not found")
+        updates: dict = {"updated_at": datetime.now(timezone.utc)}
+        if full_name is not None:
+            updates["full_name"] = full_name.strip()
+        if phone is not None:
+            updates["phone"] = phone.strip()
+        await self.users.update_by_id(user_id, updates)
+        updated_user = await self.users.find_by_id(user_id)
+        if updated_user is None:
+            raise NotFoundError("User not found after update")
+        from src.models.user import public_user
+        return public_user(updated_user)
+

@@ -14,6 +14,9 @@ SPORTS_VENUES = "sports_venues"
 SPORTS_VENUE_SLOTS = "sports_venue_slots"
 SPORTS_BOOKINGS = "sports_bookings"
 SPORTS_PAYMENT_REQUESTS = "sports_payment_requests"
+# Messages Module Collections
+CONVERSATIONS = "conversations"
+MESSAGES = "messages"
 
 # Band Module Collections
 BAND_ARTISTS = "artists"

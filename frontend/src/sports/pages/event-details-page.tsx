@@ -56,11 +56,17 @@ export function EventDetailsPage() {
     selectGroupById(state, event?.groupId ?? "")
   );
   const files = useAppSelector(selectAllFiles);
+  const eventsStatus = useAppSelector((state) => state.sports.events.status);
+  const groupsStatus = useAppSelector((state) => state.sports.groups.status);
 
   useEffect(() => {
-    dispatch(fetchEventsThunk());
-    dispatch(fetchGroupsThunk());
-  }, [dispatch]);
+    if (eventsStatus === "idle" || eventsStatus === "failed") {
+      dispatch(fetchEventsThunk());
+    }
+    if (groupsStatus === "idle" || groupsStatus === "failed") {
+      dispatch(fetchGroupsThunk());
+    }
+  }, [dispatch, eventsStatus, groupsStatus]);
 
   const [comments, setComments] = useState<EventComment[]>(MOCK_COMMENTS);
   const [commentDraft, setCommentDraft] = useState("");

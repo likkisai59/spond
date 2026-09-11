@@ -65,7 +65,7 @@ export function GroupCard({ group, nextEvent, className }: GroupCardProps) {
       </div>
 
       <Button asChild variant="outline" className="mt-4 w-full rounded-full">
-        <Link href={`${ROUTES.SPORTS_GROUPS}/${group.id}`}>View group</Link>
+        <Link href={`${ROUTES.SPORTS_GROUPS}/${group.id}`} prefetch={true}>View group</Link>
       </Button>
     </Card>
   );

@@ -33,12 +33,17 @@ export function PaymentsPage() {
   const [status, setStatus] = useState<PaymentStatus | "all">("all");
   const debouncedSearch = useDebounce(search, 250);
 
+  const paymentsStatus = useAppSelector((state) => state.sports.payments.status);
+  const groupsStatus = useAppSelector((state) => state.sports.groups.status);
+
   useEffect(() => {
-    dispatch(fetchPaymentsThunk());
-    if (groups.length === 0) {
+    if (paymentsStatus === "idle" || paymentsStatus === "failed") {
+      dispatch(fetchPaymentsThunk());
+    }
+    if (groupsStatus === "idle" || groupsStatus === "failed") {
       dispatch(fetchGroupsThunk());
     }
-  }, [dispatch, groups.length]);
+  }, [dispatch, paymentsStatus, groupsStatus]);
 
   const groupNames = useMemo(
     () => Object.fromEntries(groups.map((g) => [g.id, g.name])),

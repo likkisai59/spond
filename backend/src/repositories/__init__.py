@@ -44,6 +44,11 @@ from src.repositories.analytics import (
     DashboardAnalyticsRepository
 )
 
+from src.repositories.messages import (
+    ConversationRepository,
+    MessageRepository
+)
+
 
 class UserRepository(BaseRepository):
     collection_name = USERS

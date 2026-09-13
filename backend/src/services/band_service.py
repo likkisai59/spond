@@ -1,12 +1,34 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
+from src.database.mongo import utc_now
 from src.schemas.band import (
     ArtistSchema, BandSchema, VenueSchema, BookingSchema,
-    BookingStatus, PaymentStatus, BookingRequest
+    BookingStatus, PaymentStatus, BookingRequest,
+    BandCreateRequest, ProviderOnboardingRequest,
+    BookingCreateRequest, BookingUpdateRequest,
+    CounterOfferRequest, BlackoutDatesRequest,
+    ArtistCreateRequest, ArtistUpdateRequest,
+    BandUpdateRequest, VenueCreateRequest, VenueUpdateRequest
 )
+from src.exceptions.handlers import AppException, NotFoundError
 from src.database.base_repository import BaseRepository
 from src.repositories import UserRepository
 from src.services.notification_service import NotificationService
+
+def _to_utc(dt: datetime | str | None) -> datetime | None:
+    """Normalize any datetime or ISO string to a timezone-aware UTC datetime."""
+    if not dt:
+        return None
+    if isinstance(dt, str):
+        try:
+            dt = datetime.fromisoformat(dt.replace("Z", "+00:00"))
+        except Exception:
+            return None
+    if isinstance(dt, datetime):
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc)
+    return None
 
 class ArtistRepository(BaseRepository):
     collection_name = "band_artists"
@@ -45,11 +67,33 @@ class BandService:
     async def get_artist_by_id(self, id: str) -> Optional[Dict]:
         return await self.artists.find_by_id(id)
 
+    async def get_artist(self, artist_id: str) -> Dict:
+        artist = await self.artists.find_by_id(artist_id)
+        if not artist:
+            raise NotFoundError("Artist not found")
+        return artist
+
+    async def delete_artist(self, artist_id: str) -> None:
+        deleted = await self.artists.delete_by_id(artist_id)
+        if not deleted:
+            raise NotFoundError("Artist not found")
+
     async def get_band_by_id(self, id: str) -> Optional[Dict]:
         return await self.bands.find_by_id(id)
 
     async def get_venue_by_id(self, id: str) -> Optional[Dict]:
         return await self.venues.find_by_id(id)
+
+    async def get_venue(self, venue_id: str) -> Dict:
+        venue = await self.venues.find_by_id(venue_id)
+        if not venue:
+            raise NotFoundError("Venue not found")
+        return venue
+
+    async def delete_venue(self, venue_id: str) -> None:
+        deleted = await self.venues.delete_by_id(venue_id)
+        if not deleted:
+            raise NotFoundError("Venue not found")
 
     # ── Owner Profile Management ───────────────────────────────────────────────
 
@@ -760,69 +804,184 @@ class BandService:
                    "is_deleted": False, "created_at": now, "updated_at": now}
             return (await self.bands.insert(doc)) or {}
 
+    async def check_provider_availability(
+        self,
+        provider_id: str,
+        event_date: str,
+        start_time: str | None = None,
+        end_time: str | None = None,
+        exclude_booking_id: str | None = None
+    ) -> bool:
+        """
+        Slot-aware double booking check:
+        - HARD LOCK: CONFIRMED, EVENT_COMPLETED, COMPLETED (always blocks overlapping slots).
+        - SOFT LOCK: ACCEPTED blocks the slot ONLY when elapsed time < 15 minutes.
+          If elapsed time >= 15 minutes, the soft lock is expired and does NOT block the slot.
+        - NON-BLOCKING: REQUESTED, REJECTED, CANCELLED.
+        - Overlap formula: existing.start_time < requested.end_time AND existing.end_time > requested.start_time
+        """
+        if not provider_id or not event_date:
+            return True
 
-    async def create_booking(self, customer_id: str, request: BookingRequest) -> Dict:
-        # Resolve Provider to calculate total and advance
-        provider = None
-        if request.provider_type == "artist":
-            provider = await self.artists.find_by_id(request.provider_id)
-        elif request.provider_type == "band":
-            provider = await self.bands.find_by_id(request.provider_id)
-        elif request.provider_type == "venue":
-            provider = await self.venues.find_by_id(request.provider_id)
-        
-        if not provider:
-            raise ValueError(f"Provider not found: {request.provider_id}")
+        # Check provider blackout dates
+        provider_doc = await self.bands.find_by_id(provider_id)
+        if not provider_doc:
+            provider_doc = await self.artists.find_by_id(provider_id)
+        if not provider_doc:
+            provider_doc = await self.venues.find_by_id(provider_id)
 
-        if request.package_id == "pkg-custom":
-            total_amount = request.proposed_price or 0.0
+        if provider_doc:
+            blackouts = provider_doc.get("blackout_dates") or []
+            if str(event_date) in [str(d) for d in blackouts]:
+                return False
+
+        query = {
+            "$or": [
+                {"provider_id": provider_id},
+                {"band_id": provider_id},
+                {"venue_id": provider_id}
+            ],
+            "event_date": str(event_date),
+            "booking_status": {"$in": ["ACCEPTED", "CONFIRMED", "EVENT_COMPLETED", "COMPLETED", "Confirmed", "Accepted", "Completed"]}
+        }
+        if exclude_booking_id:
+            from src.database.base_repository import to_object_id
+            try:
+                oid = to_object_id(str(exclude_booking_id))
+                query["_id"] = {"$nin": [oid, str(exclude_booking_id)]}
+            except Exception:
+                query["_id"] = {"$ne": str(exclude_booking_id)}
+
+        existing_bookings = await self.bookings.find_many(query)
+        if not existing_bookings:
+            return True
+
+        now_utc = utc_now()
+        fifteen_mins_ago = now_utc - timedelta(minutes=15)
+
+        # Filter out expired ACCEPTED bookings (elapsed >= 15 minutes)
+        active_blocking_bookings = []
+        for b in existing_bookings:
+            status = b.get("booking_status")
+            if status in ["ACCEPTED", "Accepted"]:
+                acc_time = _to_utc(b.get("accepted_at") or b.get("updated_at") or b.get("created_at"))
+                if acc_time and acc_time > fifteen_mins_ago:
+                    active_blocking_bookings.append(b)
+            else:
+                active_blocking_bookings.append(b)
+
+        if not active_blocking_bookings:
+            return True
+
+        if not start_time or not end_time:
+            return False
+
+        req_start = str(start_time).strip()
+        req_end = str(end_time).strip()
+
+        for b in active_blocking_bookings:
+            ex_start = str(b.get("start_time") or "").strip()
+            ex_end = str(b.get("end_time") or "").strip()
+
+            if not ex_start or not ex_end:
+                return False
+
+            if ex_start < req_end and ex_end > req_start:
+                return False
+
+        return True
+
+    async def create_booking(self, customer_id: str, request: Any) -> Dict:
+        if hasattr(request, "model_dump"):
+            doc = request.model_dump(exclude_unset=True)
+        elif isinstance(request, dict):
+            doc = dict(request)
         else:
-            package = next((p for p in provider.get("packages", []) if p["id"] == request.package_id), None)
-            if not package:
-                raise ValueError(f"Package not found: {request.package_id}")
-            total_amount = package["price"]
+            doc = getattr(request, "__dict__", {})
 
-        advance_amount = total_amount * 0.25
+        provider_id = doc.get("provider_id") or doc.get("band_id") or doc.get("venue_id")
+        provider_type = doc.get("provider_type") or ("Band" if doc.get("band_id") else "Venue" if doc.get("venue_id") else "Artist")
+        ptype_lower = str(provider_type).lower()
 
+        # Slot availability check
+        event_date = doc.get("event_date") or doc.get("booking_date")
+        start_time = doc.get("start_time")
+        end_time = doc.get("end_time")
+        if provider_id and event_date:
+            is_avail = await self.check_provider_availability(
+                provider_id=str(provider_id),
+                event_date=str(event_date),
+                start_time=str(start_time) if start_time else None,
+                end_time=str(end_time) if end_time else None
+            )
+            if not is_avail:
+                raise AppException(400, "The requested provider already has a confirmed booking during this time slot.")
+
+        provider = None
+        if ptype_lower in ("artist", "solo"):
+            provider = await self.artists.find_by_id(provider_id)
+        elif ptype_lower == "band":
+            provider = await self.bands.find_by_id(provider_id)
+        elif ptype_lower == "venue":
+            provider = await self.venues.find_by_id(provider_id)
+
+        package_id = doc.get("package_id")
+        if package_id and package_id != "pkg-custom" and provider:
+            package = next((p for p in provider.get("packages", []) if p.get("id") == package_id), None)
+            total_amount = float(package["price"]) if package else float(doc.get("amount") or doc.get("proposed_price") or 0.0)
+        else:
+            total_amount = float(doc.get("amount") or doc.get("proposed_price") or 0.0)
+
+        advance_amount = round(total_amount * 0.25)
+        final_amount = total_amount - advance_amount
         now = datetime.now(timezone.utc)
-        
+
         booking_data = {
+            **doc,
             "customer_id": customer_id,
-            "provider_id": request.provider_id,
-            "provider_type": request.provider_type,
-            "package_id": request.package_id,
-            "event_date": request.event_date,
-            "event_time": request.event_time,
-            "message": request.message,
+            "provider_id": provider_id,
+            "provider_type": provider_type,
             "status": BookingStatus.REQUESTED.value,
+            "booking_status": BookingStatus.REQUESTED.value,
             "payment_status": PaymentStatus.UNPAID.value,
             "total_amount": total_amount,
+            "amount": total_amount,
             "advance_amount": advance_amount,
+            "final_amount": final_amount,
             "created_at": now,
-            "updated_at": now
+            "updated_at": now,
+            "timeline": [{
+                "status": "REQUESTED",
+                "timestamp": now,
+                "note": "Booking requested by customer"
+            }]
         }
-        
+
         created = await self.bookings.insert(booking_data)
         if not created or "id" not in created:
-             raise ValueError("Failed to insert booking")
+            raise ValueError("Failed to insert booking")
 
         # Fetch Customer details for notification
-        customer = await self.users.find_by_id(customer_id)
-        customer_name = customer.get("full_name", "A customer") if customer else "A customer"
-        
-        provider_name = provider.get("band_name") or provider.get("artist_name") or provider.get("venue_name") or "you"
+        if provider:
+            customer = None
+            try:
+                customer = await self.users.find_by_id(customer_id)
+            except Exception:
+                pass
+            customer_name = customer.get("full_name", "A customer") if customer else "A customer"
+            provider_name = provider.get("band_name") or provider.get("artist_name") or provider.get("venue_name") or "you"
 
-        # Notify provider owner
-        owner_id = provider.get("created_by")
-        if owner_id:
-            msg = f"New Booking Request: {customer_name} requested to book {provider_name} for {request.event_date}."
-            await self.notifications.create_notification(
-                user_id=owner_id,
-                title="New Booking Request",
-                message=msg,
-                notification_type="BOOKING_REQUEST",
-                module="band"
-            )
+            owner_id = provider.get("created_by")
+            if owner_id:
+                event_date = doc.get("event_date") or doc.get("booking_date") or ""
+                msg = f"New Booking Request: {customer_name} requested to book {provider_name} for {event_date}."
+                await self.notifications.create_notification(
+                    user_id=owner_id,
+                    title="New Booking Request",
+                    message=msg,
+                    notification_type="BOOKING_REQUEST",
+                    module="band"
+                )
 
         return (await self.bookings.find_by_id(created["id"])) or {}
     
@@ -928,6 +1087,187 @@ class BandService:
             return await self.bookings.find_by_id(booking_id)
         return None
 
+    async def get_booking(self, booking_id: str) -> dict:
+        booking = await self.bookings.find_by_id(booking_id)
+        if not booking:
+            raise NotFoundError("Booking not found")
+        return booking
+
+    async def list_bookings(
+        self,
+        event_id: str | None = None,
+        customer_id: str | None = None,
+        provider_id: str | None = None,
+        booking_status: str | None = None
+    ) -> list[dict]:
+        query = {}
+        if event_id:
+            query["event_id"] = event_id
+        if customer_id:
+            query["customer_id"] = customer_id
+        if provider_id:
+            query["$or"] = [
+                {"provider_id": provider_id},
+                {"band_id": provider_id},
+                {"venue_id": provider_id}
+            ]
+        if booking_status:
+            query["booking_status"] = booking_status
+        return await self.bookings.find_many(query)
+
+    async def update_booking(self, booking_id: str, data: BookingUpdateRequest) -> dict:
+        update_data = data.model_dump(exclude_unset=True)
+        if not update_data:
+            return await self.get_booking(booking_id)
+            
+        now = utc_now()
+        update_data["updated_at"] = now
+        
+        # If status is updated, push to timeline
+        if data.booking_status:
+            update_data["status"] = data.booking_status  # keep legacy in sync
+            try:
+                from src.database.base_repository import to_object_id
+                await self.bookings.collection.update_one(
+                    {"_id": to_object_id(booking_id)},
+                    {"$push": {"timeline": {
+                        "status": data.booking_status,
+                        "timestamp": now,
+                        "note": data.note or f"Status updated to {data.booking_status}"
+                    }}}
+                )
+            except Exception:
+                pass
+            update_data.pop("note", None)
+            
+        updated = await self.bookings.update_by_id(booking_id, update_data)
+        if not updated:
+            raise NotFoundError("Booking not found")
+        return await self.get_booking(booking_id)
+
+    async def accept_booking(self, booking_id: str, user_id: str) -> dict:
+        booking = await self.get_booking(booking_id)
+        
+        # Verify slot is still free before accepting
+        provider_id = booking.get("provider_id") or booking.get("band_id") or booking.get("venue_id")
+        event_date = booking.get("event_date")
+        start_time = booking.get("start_time")
+        end_time = booking.get("end_time")
+
+        if provider_id and event_date:
+            is_avail = await self.check_provider_availability(
+                provider_id=str(provider_id),
+                event_date=str(event_date),
+                start_time=str(start_time) if start_time else None,
+                end_time=str(end_time) if end_time else None,
+                exclude_booking_id=booking_id
+            )
+            if not is_avail:
+                raise AppException(400, "Cannot accept booking: another booking already occupies this time slot.")
+
+        now = utc_now()
+        update_payload = BookingUpdateRequest(
+            booking_status="ACCEPTED",
+            payment_status="ADVANCE_PAYMENT_PENDING",
+            accepted_at=now,
+            note="Booking accepted by provider. 25% Advance payment is required within 15 minutes to confirm."
+        )
+        return await self.update_booking(booking_id, update_payload)
+
+    async def reject_booking(self, booking_id: str, user_id: str, reason: str | None = None) -> dict:
+        update_payload = BookingUpdateRequest(
+            booking_status="REJECTED",
+            payment_status="UNPAID",
+            note=reason or "Booking declined by provider"
+        )
+        return await self.update_booking(booking_id, update_payload)
+
+    async def complete_event(self, booking_id: str, user_id: str) -> dict:
+        booking = await self.get_booking(booking_id)
+        if booking.get("booking_status") not in ["CONFIRMED", "Confirmed", "ACCEPTED", "Accepted"]:
+            raise AppException(400, f"Cannot complete event from status {booking.get('booking_status')}")
+
+        update_payload = BookingUpdateRequest(
+            booking_status="EVENT_COMPLETED",
+            payment_status="FINAL_PAYMENT_PENDING",
+            note="Performance completed by provider. 75% Final payment is available for customer."
+        )
+        return await self.update_booking(booking_id, update_payload)
+
+    async def counter_offer_booking(self, booking_id: str, user_id: str, data: CounterOfferRequest) -> dict:
+        booking = await self.get_booking(booking_id)
+        if not booking:
+            raise NotFoundError("Booking not found")
+
+        current_status = str(booking.get("booking_status", "")).upper()
+        if current_status in ["CONFIRMED", "EVENT_COMPLETED", "COMPLETED", "REJECTED", "CANCELLED"]:
+            raise AppException(400, f"Cannot propose counter offer on booking with status '{current_status}'")
+
+        if data.amount <= 0:
+            raise AppException(400, "Proposed counter offer amount must be greater than 0")
+
+        advance_amount = int(data.amount * 0.25)
+        final_amount = int(data.amount * 0.75)
+
+        counter_doc = {
+            "proposed_amount": data.amount,
+            "proposed_advance": advance_amount,
+            "proposed_final": final_amount,
+            "note": data.note,
+            "proposed_by": user_id,
+            "proposed_at": utc_now().isoformat()
+        }
+
+        from src.database.base_repository import to_object_id
+        await self.bookings.collection.update_one(
+            {"_id": to_object_id(booking_id)},
+            {
+                "$set": {
+                    "amount": data.amount,
+                    "advance_amount": advance_amount,
+                    "final_amount": final_amount,
+                    "counter_offer": counter_doc,
+                    "updated_at": utc_now()
+                },
+                "$push": {
+                    "timeline": {
+                        "status": "COUNTER_OFFER",
+                        "timestamp": utc_now(),
+                        "note": data.note or f"Provider proposed revised fee of ₹{data.amount}"
+                    }
+                }
+            }
+        )
+        return await self.get_booking(booking_id)
+
+    async def update_blackout_dates(self, provider_id: str, user_id: str, dates: list[str]) -> dict:
+        import re
+        date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+        clean_dates = []
+        for d in dates:
+            d_str = str(d).strip()
+            if not date_pattern.match(d_str):
+                raise AppException(400, f"Invalid date format '{d_str}'. Expected YYYY-MM-DD.")
+            if d_str not in clean_dates:
+                clean_dates.append(d_str)
+
+        clean_dates.sort()
+
+        provider = await self.bands.find_by_id(provider_id)
+        repo = self.bands
+        if not provider:
+            provider = await self.artists.find_by_id(provider_id)
+            repo = self.artists
+        if not provider:
+            provider = await self.venues.find_by_id(provider_id)
+            repo = self.venues
+
+        if not provider:
+            raise NotFoundError("Provider not found")
+
+        await repo.update_by_id(provider_id, {"blackout_dates": clean_dates, "updated_at": utc_now()})
+        return await repo.find_by_id(provider_id)
+
     # --- Events ---
     
     async def create_event(self, customer_id: str, event_data: Dict) -> Optional[Dict]:
@@ -946,3 +1286,146 @@ class BandService:
 
     async def get_event_by_id(self, event_id: str) -> Optional[Dict]:
         return await self.events.find_by_id(event_id)
+
+    async def create_band(self, user_id: str, data: BandCreateRequest) -> dict:
+        now = datetime.now(timezone.utc)
+        doc = data.model_dump(exclude_unset=True)
+        if doc.get("name") and not doc.get("band_name"):
+            doc["band_name"] = doc["name"]
+        elif doc.get("band_name") and not doc.get("name"):
+            doc["name"] = doc["band_name"]
+
+        doc.update({
+            "created_by": user_id,
+            "created_at": now,
+            "updated_at": now,
+            "availability": "Available",
+            "verified": False,
+            "completed_gigs": 0,
+            "rating": 0.0,
+            "review_count": 0,
+            "team_members": doc.get("team_members") or [],
+            "instrument_lineup": doc.get("instrument_lineup") or {},
+            "packages": doc.get("packages") or []
+        })
+        created = await self.bands.insert(doc)
+        return await self.get_band(created["id"])
+
+    async def get_band(self, band_id: str) -> dict:
+        band = await self.bands.find_by_id(band_id)
+        if not band:
+            raise NotFoundError("Band not found")
+        return band
+
+    async def delete_band(self, band_id: str) -> None:
+        deleted = await self.bands.delete_by_id(band_id)
+        if not deleted:
+            raise NotFoundError("Band not found")
+
+    async def delete_booking(self, booking_id: str) -> None:
+        deleted = await self.bookings.delete_by_id(booking_id)
+        if not deleted:
+            raise NotFoundError("Booking not found")
+
+    async def onboard_provider(self, user_id: str, data: ProviderOnboardingRequest) -> dict:
+        now = datetime.now(timezone.utc)
+        payout_dict = {
+            "payout_upi": data.payout_upi,
+            "bank_account_masked": f"xxxx{data.bank_account[-4:]}" if data.bank_account and len(data.bank_account) >= 4 else data.bank_account,
+            "bank_ifsc": data.bank_ifsc,
+            "kyc_status": data.kyc_status or "PENDING"
+        }
+
+        if data.provider_type == "Band":
+            doc = {
+                "band_name": data.name,
+                "name": data.name,
+                "description": data.bio or f"Live band based in {data.city}",
+                "bio": data.bio,
+                "profile_image": data.profile_image,
+                "video_url": data.video_url,
+                "images": data.images or [],
+                "location": data.city,
+                "price_from": data.base_price or 25000,
+                "packages": data.packages or [{
+                    "id": "pkg_standard",
+                    "title": "Standard Live Performance",
+                    "price": data.base_price or 25000,
+                    "duration_hours": 4,
+                    "inclusions": ["Full live band setup", "Sound check", "Stage performance"]
+                }],
+                "sound_rider_specs": data.sound_rider_specs,
+                "payout_details": payout_dict,
+                "rating": 5.0,
+                "review_count": 1,
+                "verified": True,
+                "completed_gigs": 0,
+                "availability": "Available",
+                "blackout_dates": [],
+                "created_by": user_id,
+                "created_at": now,
+                "updated_at": now
+            }
+            res = await self.bands.insert(doc)
+            return await self.bands.find_by_id(res["id"] if isinstance(res, dict) else res)
+
+        elif data.provider_type == "Artist":
+            doc = {
+                "artist_name": data.name,
+                "name": data.name,
+                "bio": data.bio or f"Solo artist based in {data.city}",
+                "profile_image": data.profile_image,
+                "video_url": data.video_url,
+                "images": data.images or [],
+                "location": data.city,
+                "price_from": data.base_price or 5000,
+                "min_hours": data.min_hours or 1,
+                "travel_charges": data.travel_charges,
+                "packages": data.packages or [{
+                    "id": "pkg_artist_standard",
+                    "title": "Standard Solo Act",
+                    "price": data.base_price or 5000,
+                    "duration_hours": 2,
+                    "inclusions": ["Solo vocal / DJ set"]
+                }],
+                "payout_details": payout_dict,
+                "rating": 5.0,
+                "review_count": 1,
+                "verified": True,
+                "completed_gigs": 0,
+                "availability": "Available",
+                "blackout_dates": [],
+                "created_by": user_id,
+                "created_at": now,
+                "updated_at": now
+            }
+            res = await self.artists.insert(doc)
+            return await self.artists.find_by_id(res["id"] if isinstance(res, dict) else res)
+
+        elif data.provider_type == "Venue":
+            doc = {
+                "venue_name": data.name,
+                "name": data.name,
+                "city": data.city,
+                "location": data.city,
+                "capacity": data.capacity or 200,
+                "contact_number": data.contact_phone,
+                "price_per_hour": data.base_price or 5000,
+                "security_deposit": data.security_deposit or 0,
+                "images": data.images or [],
+                "packages": data.packages or [],
+                "payout_details": payout_dict,
+                "rating": 5.0,
+                "review_count": 1,
+                "verified": True,
+                "available": True,
+                "availability": "Available",
+                "blackout_dates": [],
+                "created_by": user_id,
+                "created_at": now,
+                "updated_at": now
+            }
+            res = await self.venues.insert(doc)
+            return await self.venues.find_by_id(res["id"] if isinstance(res, dict) else res)
+        else:
+            raise AppException(400, f"Unsupported provider_type: {data.provider_type}")

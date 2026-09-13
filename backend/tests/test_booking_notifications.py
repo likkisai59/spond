@@ -23,10 +23,11 @@ def test_booking_notifications():
             user_repo = UserRepository()
             
             # 1. Create a Customer with a specific name
-            customer_name = f"Client {uuid.uuid4().hex[:6]}"
+            unique_tag = uuid.uuid4().hex[:6]
+            customer_name = f"Client {unique_tag}"
             cust_doc = await user_repo.insert({
                 "full_name": customer_name,
-                "email": "cust@test.com",
+                "email": f"cust_{unique_tag}@test.com",
                 "role": "customer"
             })
             customer_id = cust_doc["id"]
@@ -34,7 +35,7 @@ def test_booking_notifications():
             # 2. Create an Artist/Provider
             owner_doc = await user_repo.insert({
                 "full_name": "Artist Owner",
-                "email": "owner@test.com",
+                "email": f"owner_{unique_tag}@test.com",
                 "role": "artist"
             })
             owner_id = owner_doc["id"]

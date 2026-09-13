@@ -87,3 +87,8 @@ export const bandService = {
     return data.data;
   },
 };
+
+export { artistService } from "./band/artists.service";
+export { venueService } from "./band/venues.service";
+export { bookingService } from "./band/bookings.service";
+

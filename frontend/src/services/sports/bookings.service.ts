@@ -30,5 +30,10 @@ export const bookingsService = {
   cancel: async (id: string): Promise<ApiResponse<any>> => {
     const { data } = await apiClient.put(`/api/v1/sports/bookings/${id}/cancel`);
     return data;
+  },
+
+  updateStatus: async (id: string, status: string): Promise<ApiResponse<any>> => {
+    const { data } = await apiClient.put(`/api/v1/sports/bookings/${id}/status`, { status });
+    return data;
   }
 };

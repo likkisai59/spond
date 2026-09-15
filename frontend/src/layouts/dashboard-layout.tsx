@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { BAND_NAV, PRODUCT_CONFIGS, SPORTS_NAV, OWNER_NAV } from "@/constants";
 import { useSidebar } from "@/hooks";
 import { useAppSelector } from "@/store/hooks";
@@ -26,9 +27,16 @@ export function DashboardLayout({
     useSidebar();
 
   const user = useAppSelector((state) => state.auth.user);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const sections =
-    product === "sports"
+    !mounted
+      ? []
+      : product === "sports"
       ? user?.role === "venue_owner"
         ? OWNER_NAV
         : SPORTS_NAV

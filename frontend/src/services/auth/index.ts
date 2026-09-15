@@ -19,6 +19,24 @@ export interface ForgotPasswordPayload {
   email: string;
 }
 
+export interface RequestOtpPayload {
+  email: string;
+}
+
+export interface VerifyOtpPayload {
+  email: string;
+  otp: string;
+}
+
+export interface CompleteSignupPayload {
+  signup_token: string;
+  full_name: string;
+  password: string;
+  phone?: string;
+  accessible_modules: string[];
+  role?: string;
+}
+
 export interface ResetPasswordPayload {
   token: string;
   new_password: string;
@@ -35,6 +53,9 @@ export interface LogoutPayload {
 export interface AuthService {
   login(payload: LoginPayload): Promise<AuthSession>;
   register(payload: RegisterPayload): Promise<AuthSession>;
+  requestOtp(payload: RequestOtpPayload): Promise<void>;
+  verifyOtp(payload: VerifyOtpPayload): Promise<{ signup_token: string }>;
+  completeSignup(payload: CompleteSignupPayload): Promise<AuthSession>;
   logout(payload: LogoutPayload): Promise<void>;
   forgotPassword(payload: ForgotPasswordPayload): Promise<void>;
   resetPassword(payload: ResetPasswordPayload): Promise<void>;
@@ -47,16 +68,31 @@ export const authService: AuthService = {
     const { data } = await apiClient.post<{ status: string; data: any }>("/api/v1/auth/login", payload);
     return {
       user: data.data.user,
-      accessToken: data.data.access_token,
-      refreshToken: data.data.refresh_token,
+      accessToken: data.data.accessToken,
+      refreshToken: data.data.refreshToken,
     } as AuthSession;
   },
   register: async (payload) => {
     const { data } = await apiClient.post<{ status: string; data: any }>("/api/v1/auth/register", payload);
     return {
       user: data.data.user,
-      accessToken: data.data.access_token,
-      refreshToken: data.data.refresh_token,
+      accessToken: data.data.accessToken,
+      refreshToken: data.data.refreshToken,
+    } as AuthSession;
+  },
+  requestOtp: async (payload) => {
+    await apiClient.post("/api/v1/auth/request-otp", payload);
+  },
+  verifyOtp: async (payload) => {
+    const { data } = await apiClient.post<{ status: string; data: { signupToken: string } }>("/api/v1/auth/verify-otp", payload);
+    return { signup_token: data.data.signupToken };
+  },
+  completeSignup: async (payload) => {
+    const { data } = await apiClient.post<{ status: string; data: any }>("/api/v1/auth/complete-signup", payload);
+    return {
+      user: data.data.user,
+      accessToken: data.data.accessToken,
+      refreshToken: data.data.refreshToken,
     } as AuthSession;
   },
   logout: async (payload) => {
@@ -72,8 +108,8 @@ export const authService: AuthService = {
     const { data } = await apiClient.post<{ status: string; data: any }>("/api/v1/auth/refresh-token", payload);
     return {
       user: data.data.user,
-      accessToken: data.data.access_token,
-      refreshToken: data.data.refresh_token,
+      accessToken: data.data.accessToken,
+      refreshToken: data.data.refreshToken,
     } as AuthSession;
   },
   getCurrentUser: async () => {

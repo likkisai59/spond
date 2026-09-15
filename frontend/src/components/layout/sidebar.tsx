@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronsLeft } from "lucide-react";
@@ -29,16 +30,21 @@ export function SidebarNav({
   variant = "default",
   onNavigate,
 }: Pick<SidebarProps, "sections" | "collapsed" | "variant"> & {
-    onNavigate?: () => void;
-  }) {
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
   const dark = variant === "dark";
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <nav aria-label="Sidebar" className="flex flex-col gap-6 px-3 py-4">
       {sections.map((section, sectionIndex) => (
         <div key={section.title ?? `section-${sectionIndex}`} className="space-y-1">
-          {section.title && !collapsed ? (
+          {mounted && section.title && !collapsed ? (
             <p
               className={cn(
                 "px-3 pb-1 text-xs font-bold uppercase tracking-wider",
@@ -200,10 +206,14 @@ function SidebarProfile({
   dark: boolean;
 }) {
   const { user } = useAuth();
-  const name = user
-    ? `${user.firstName} ${user.lastName}`.trim() || "Guest user"
-    : "Guest user";
-  const role = user ? user.role : null;
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const name = mounted && user?.fullName?.trim() ? user.fullName.trim() : "Guest user";
+  const role = mounted && user ? (user.role === "member" ? "Club Owner" : user.role === "venue_owner" ? "Venue Owner" : user.role) : null;
 
   const content = (
     <div
@@ -213,11 +223,12 @@ function SidebarProfile({
       )}
     >
       <Avatar className="h-9 w-9 shrink-0">
-        <AvatarFallback>{getInitials(name)}</AvatarFallback>
+        <AvatarFallback suppressHydrationWarning>{getInitials(name)}</AvatarFallback>
       </Avatar>
       {!collapsed ? (
         <div className="min-w-0 flex-1">
           <p
+            suppressHydrationWarning
             className={cn(
               "truncate text-sm font-bold",
               dark && "text-white"
@@ -226,6 +237,7 @@ function SidebarProfile({
             {name}
           </p>
           <p
+            suppressHydrationWarning
             className={cn(
               "truncate text-xs font-semibold capitalize",
               dark ? "text-white/60" : "text-muted-foreground"
@@ -251,9 +263,9 @@ function SidebarProfile({
             <div>{content}</div>
           </TooltipTrigger>
           <TooltipContent side="right">
-            <p className="font-bold">{name}</p>
+            <p suppressHydrationWarning className="font-bold">{name}</p>
             {role ? (
-              <p className="text-xs capitalize text-muted-foreground">{role}</p>
+              <p suppressHydrationWarning className="text-xs capitalize text-muted-foreground">{role}</p>
             ) : null}
           </TooltipContent>
         </Tooltip>

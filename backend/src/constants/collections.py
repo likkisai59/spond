@@ -3,6 +3,7 @@ USERS = "users"
 ROLES = "roles"
 REFRESH_TOKENS = "refresh_tokens"
 AUDIT_LOGS = "audit_logs"
+OTPS = "otps"
 
 # Sports Module Collections
 SPORTS_GROUPS = "sports_groups"

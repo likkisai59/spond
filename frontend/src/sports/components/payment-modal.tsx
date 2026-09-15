@@ -45,7 +45,7 @@ export function PaymentModal({ isOpen, onClose, payment, groupName }: PaymentMod
         amount: payment.amount,
         currency: "INR"
       });
-      
+
       const orderData = data?.data || data;
       const orderId = orderData.razorpayOrderId || orderData.razorpay_order_id || orderData.orderId;
       const amount = orderData.amount || payment.amount;
@@ -57,7 +57,7 @@ export function PaymentModal({ isOpen, onClose, payment, groupName }: PaymentMod
 
       // 2. Initialize Razorpay Checkout
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_TUFUGvhtgPCBZb",
+        key: orderData.razorpay_key_id || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_TZXjBzMKoLJXLb",
         amount: amount * 100, // paise
         currency: currency,
         name: groupName || "Spond",
@@ -113,7 +113,7 @@ export function PaymentModal({ isOpen, onClose, payment, groupName }: PaymentMod
       };
 
       const rzp = new (window as any).Razorpay(options);
-      
+
       rzp.on("payment.failed", function (response: any) {
         setIsProcessing(false);
         dispatch(
@@ -151,44 +151,44 @@ export function PaymentModal({ isOpen, onClose, payment, groupName }: PaymentMod
             {groupName && <p className="text-sm text-muted-foreground">{groupName}</p>}
           </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card className="p-4 bg-muted/50 border-none">
-            <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">
-              Amount
-            </p>
-            <p className="text-2xl font-extrabold text-primary">
-              {formatCurrency(payment.amount)}
-            </p>
-          </Card>
-          
-          <Card className="p-4 bg-muted/50 border-none">
-            <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">
-              Due Date
-            </p>
-            <p className="text-lg font-bold">
-              {formatDate(payment.dueDate)}
-            </p>
-          </Card>
-        </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Card className="p-4 bg-muted/50 border-none">
+              <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">
+                Amount
+              </p>
+              <p className="text-2xl font-extrabold text-primary">
+                {formatCurrency(payment.amount)}
+              </p>
+            </Card>
 
-        {payment.description && (
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">
-              Description
-            </p>
-            <p className="text-sm leading-relaxed">{payment.description}</p>
+            <Card className="p-4 bg-muted/50 border-none">
+              <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">
+                Due Date
+              </p>
+              <p className="text-lg font-bold">
+                {formatDate(payment.dueDate)}
+              </p>
+            </Card>
           </div>
-        )}
 
-        <div className="pt-4 flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose} disabled={isProcessing}>
-            Cancel
-          </Button>
-          <Button variant="accent" onClick={handlePayNow} disabled={isProcessing || !isRazorpayLoaded}>
-            {isProcessing ? "Processing..." : "Pay now"}
-          </Button>
+          {payment.description && (
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wider">
+                Description
+              </p>
+              <p className="text-sm leading-relaxed">{payment.description}</p>
+            </div>
+          )}
+
+          <div className="pt-4 flex justify-end gap-3">
+            <Button variant="outline" onClick={onClose} disabled={isProcessing}>
+              Cancel
+            </Button>
+            <Button variant="accent" onClick={handlePayNow} disabled={isProcessing || !isRazorpayLoaded}>
+              {isProcessing ? "Processing..." : "Pay now"}
+            </Button>
+          </div>
         </div>
-      </div>
       </ModalContent>
     </Modal>
   );

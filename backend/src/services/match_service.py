@@ -68,8 +68,8 @@ class MatchService:
     async def create_match_summary(self, data: MatchSummaryCreateRequest) -> dict:
         await self.get_match(data.match_id)
         doc = data.model_dump()
-        sid = await self.summaries.insert(doc)
-        return await self.summaries.find_by_id(sid)
+        summary_doc = await self.summaries.insert(doc)
+        return summary_doc
 
     async def get_match_summary(self, match_id: str) -> dict:
         summary = await self.summaries.find_one({"match_id": match_id})

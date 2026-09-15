@@ -18,7 +18,7 @@ export interface PollsState {
   polls: SportsPoll[];
 }
 
-const initialState: PollsState = { polls: MOCK_POLLS };
+const initialState: PollsState = { polls: [] };
 
 const pollsSlice = createSlice({
   name: "sports/polls",

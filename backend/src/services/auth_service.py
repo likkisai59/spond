@@ -8,16 +8,25 @@ from src.exceptions.handlers import (
     UnauthorizedError,
 )
 from src.models.user import new_user_document, public_user
-from src.repositories import TokenRepository, UserRepository
-from src.services.audit_service import AuditService
 from src.constants.roles import ALL_ROLES, MEMBER, effective_modules
+from src.models.otp import new_otp_document
+from src.repositories import TokenRepository, UserRepository, OtpRepository
+from src.services.audit_service import AuditService
+from src.services.email_service import EmailService
+import asyncio
+import os
+import secrets
+import string
+
 
 
 class AuthService:
     def __init__(self) -> None:
         self.users = UserRepository()
         self.tokens = TokenRepository()
+        self.otps = OtpRepository()
         self.audit = AuditService()
+        self.email_service = EmailService()
 
     # ---------- helpers ----------
     def _validate_role(self, role: str) -> None:
@@ -73,6 +82,95 @@ class AuthService:
         )
         created = await self.users.insert(document)
         await self.audit.log(user_id=created["id"], action="register", module="auth")
+        return await self._issue_tokens(created)
+
+    async def request_otp(self, *, email: str) -> None:
+        # We allow existing users to reset password or login via OTP if we want later,
+        # but for now we just verify if they exist if it's for signup.
+        # However, to prevent leaking info, we can just send it.
+        # But for B2C Signup, we might want to check if email already exists
+        # and throw an error to guide them to login.
+        if await self.users.email_exists(email):
+            raise ConflictError("An account with this email already exists")
+
+        otp = ''.join(secrets.choice(string.digits) for _ in range(6))
+        otp_hash = security.hash_password(otp)
+        
+        doc = new_otp_document(
+            email=email,
+            otp_hash=otp_hash,
+            purpose="signup"
+        )
+        await self.otps.insert(doc)
+        
+        # Send email (mock)
+        await self.email_service.send_otp_email(to_email=email, otp=otp, purpose="signup")
+
+    async def verify_otp(self, *, email: str, otp: str) -> str:
+        # Find the latest OTP for this email and purpose
+        # Since we use simple insert without updating previous, we can just find the most recent
+        cursor = self.otps.collection.find(
+            {"email": email.strip().lower(), "purpose": "signup", "verified": False}
+        ).sort("created_at", -1).limit(1)
+        
+        docs = await cursor.to_list(length=1)
+        if not docs:
+            raise UnauthorizedError("No active OTP found. Please request a new one.")
+            
+        doc = docs[0]
+        
+        from datetime import datetime, timezone
+        if doc["expires_at"].replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+            raise UnauthorizedError("OTP has expired. Please request a new one.")
+            
+        if doc.get("attempts", 0) >= 3:
+            raise UnauthorizedError("Maximum attempts reached. Please request a new OTP.")
+            
+        if not security.verify_password(otp, doc["otp_hash"]):
+            await self.otps.update_one({"_id": doc["_id"]}, {"$inc": {"attempts": 1}})
+            raise UnauthorizedError("Invalid OTP.")
+            
+        # Verify success
+        await self.otps.update_one({"_id": doc["_id"]}, {"$set": {"verified": True}})
+        
+        # Issue a signup token (short lived JWT)
+        signup_token, _, _ = security.create_reset_token(email)  # reusing reset token logic for simplicity
+        return signup_token
+
+    async def complete_signup(
+        self,
+        *,
+        signup_token: str,
+        full_name: str,
+        password: str,
+        phone: str | None,
+        accessible_modules: list[str],
+        role: str | None = None,
+    ) -> dict:
+        try:
+            payload = security.decode_token(signup_token, security.TOKEN_TYPE_RESET)
+        except Exception as exc:
+            raise UnauthorizedError("Invalid or expired signup token") from exc
+            
+        email = payload["sub"]
+        
+        self._validate_password(password)
+        if await self.users.email_exists(email):
+            raise ConflictError("An account with this email already exists")
+            
+        valid_roles = [MEMBER, "venue_owner"]
+        assign_role = role if role in valid_roles else MEMBER
+        
+        document = new_user_document(
+            full_name=full_name,
+            email=email,
+            password_hash=security.hash_password(password),
+            phone=phone,
+            role=assign_role,
+            accessible_modules=accessible_modules,
+        )
+        created = await self.users.insert(document)
+        await self.audit.log(user_id=created["id"], action="complete_signup", module="auth")
         return await self._issue_tokens(created)
 
     async def login(self, *, email: str, password: str) -> dict:
@@ -146,12 +244,22 @@ class AuthService:
             expires_at=expires_at,
         )
         await self.audit.log(user_id=user["id"], action="forgot_password", module="auth")
+
+        frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+        reset_url = f"{frontend_url}/reset-password?token={token}"
+        asyncio.create_task(
+            self.email_service.send_password_reset_email(
+                to_email=user["email"],
+                reset_url=reset_url,
+                user_name=user.get("full_name") or user.get("name") or "User",
+            )
+        )
+
         response = {
             "message": "If the account exists, password reset instructions have been sent.",
             "reset_token": None,
         }
         if settings.APP_ENV != "prod":
-            # No email service in Phase 1 — return the token so the flow is testable.
             response["reset_token"] = token
         return response
 

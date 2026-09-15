@@ -31,7 +31,14 @@ export const MEMBER_ROLES = [
 ] as const;
 export type MemberRole = (typeof MEMBER_ROLES)[number];
 
-export const MEMBER_STATUSES = ["Active", "Invited", "Inactive"] as const;
+export const MEMBER_STATUSES = [
+  "Active",
+  "Invited",
+  "Inactive",
+  "Pending",
+  "Confirmed",
+  "Rejected",
+] as const;
 export type MemberStatus = (typeof MEMBER_STATUSES)[number];
 
 export interface GroupMember {
@@ -52,6 +59,8 @@ export interface SportsGroup extends BaseEntity {
   members: GroupMember[];
   sportType?: SportType;
   visibility?: GroupVisibility;
+  logo?: string;
+  logoUrl?: string;
 }
 
 export const EVENT_TYPES = [
@@ -208,7 +217,7 @@ export interface GroupPost extends BaseEntity {
   content: string;
 }
 
-export type AttendanceResponse = "Going" | "Maybe" | "No response";
+export type AttendanceResponse = "Present" | "Absent" | "Going" | "Maybe" | "No response";
 
 export interface EventAttendanceRecord {
   eventId: string;

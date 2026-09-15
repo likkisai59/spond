@@ -11,10 +11,9 @@ import { useDebounce } from "@/hooks";
 import { VenueCard } from "../components/venue-card";
 import { venuesService } from "@/services/sports";
 import { ROUTES } from "@/constants";
-import { VENUE_SURFACES } from "@/types";
 import { cn } from "@/utils/cn";
 
-const SURFACE_FILTERS = ["All", ...VENUE_SURFACES] as const;
+const SURFACE_FILTERS = ["All", "Turf", "Grass", "Indoor"] as const;
 
 export function VenuesPage() {
   const [venues, setVenues] = useState<any[]>([]);

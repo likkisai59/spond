@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { CalendarDays, CheckCircle2, Wallet } from "lucide-react";
@@ -12,7 +12,7 @@ import { EmptyCard, StatCard } from "@/components/cards";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { bookingCancelled } from "@/store/sports/bookings-slice";
+import { bookingCancelled, bookingsFetched } from "@/store/sports/bookings-slice";
 import {
   selectAllBookings,
   selectPastBookings,
@@ -21,6 +21,7 @@ import {
 import { BookingCard } from "../components/booking-card";
 import { formatCurrency } from "@/utils/helpers";
 import { ROUTES } from "@/constants";
+import { bookingsService } from "@/services/sports";
 import type { VenueBooking } from "@/types";
 
 const ConfirmationModal = dynamic(
@@ -39,12 +40,36 @@ export function BookingsPage() {
 
   const [cancelTarget, setCancelTarget] = useState<VenueBooking | null>(null);
 
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        const res = await bookingsService.list();
+        if (res.data?.items) {
+          const mappedBookings = res.data.items.map((b: any) => ({
+            ...b,
+            eventDate: b.bookingDate || b.eventDate,
+            status: b.bookingStatus || b.status,
+            price: b.amount || b.price,
+          }));
+          dispatch(bookingsFetched(mappedBookings));
+        }
+      } catch (error) {
+        console.error("Failed to fetch bookings", error);
+      }
+    };
+    fetchBookings();
+  }, [dispatch]);
+
   const { totalSpend, completedCount } = useMemo(
     () => ({
       totalSpend: bookings
-        .filter((booking) => booking.status !== "Cancelled")
-        .reduce((total, booking) => total + booking.price, 0),
-      completedCount: past.filter((b) => b.status === "Completed").length,
+        .filter((booking) => (booking.status || "").toUpperCase() !== "CANCELLED")
+        .reduce((total, booking) => total + (booking.price || 0), 0),
+      completedCount: past.filter(
+        (b) =>
+          (b.status || "").toUpperCase() === "COMPLETED" ||
+          (b.eventDate || "") < new Date().toISOString().slice(0, 10)
+      ).length,
     }),
     [bookings, past]
   );

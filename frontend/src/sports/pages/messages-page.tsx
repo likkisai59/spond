@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
+import { fetchGroupsThunk } from "@/store/sports/groups-slice";
 import {
   conversationOpened,
   messageReceived,
@@ -82,6 +83,10 @@ export function MessagesPage() {
       dispatch(fetchConversations());
     }
   }, [dispatch, messagesStatus]);
+
+  useEffect(() => {
+    dispatch(fetchGroupsThunk());
+  }, [dispatch]);
 
   useEffect(() => {
     if (scrollRef.current) {

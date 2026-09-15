@@ -51,6 +51,7 @@ export function SportsDashboardPage() {
     setMounted(true);
   }, []);
 
+
   const [realStats, setRealStats] = useState({
     groups: 0,
     events: 0,

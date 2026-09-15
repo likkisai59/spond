@@ -32,11 +32,13 @@ export function CreatePaymentPage() {
   const groups = useAppSelector(selectAllGroups);
   const today = new Date().toLocaleDateString("en-CA");
 
+  const groupsStatus = useAppSelector((state) => state.sports.groups.status);
+
   useEffect(() => {
-    if (groups.length === 0) {
+    if (groupsStatus === "idle" || groupsStatus === "failed") {
       dispatch(fetchGroupsThunk());
     }
-  }, [dispatch, groups.length]);
+  }, [dispatch, groupsStatus]);
 
   const form = useForm<CreatePaymentFormData>({
     resolver: zodResolver(createPaymentSchema),

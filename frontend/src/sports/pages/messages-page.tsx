@@ -24,8 +24,11 @@ import {
   conversationOpened,
   messageReceived,
   messageSent,
+  fetchConversations,
+  fetchHistory,
 } from "@/store/sports/messages-slice";
 import { selectAllConversations, selectConversationById } from "@/store/sports/selectors";
+import { useChatWebSocket } from "@/hooks/use-chat-websocket";
 import { AttachmentMenuButton } from "../components/attachment-menu-button";
 import { ConversationCard } from "../components/conversation-card";
 import { EmojiPickerButton } from "../components/emoji-picker-button";
@@ -51,9 +54,10 @@ export function MessagesPage() {
   const [filter, setFilter] = useState<ConversationFilter>("all");
   const [search, setSearch] = useState("");
   const [draft, setDraft] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
   const debouncedSearch = useDebounce(search, 250);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const { sendMessage } = useChatWebSocket(activeId);
 
   const activeConversation = useAppSelector((state) =>
     selectConversationById(state, activeId ?? "")
@@ -72,6 +76,14 @@ export function MessagesPage() {
     });
   }, [conversations, filter, debouncedSearch]);
 
+  const messagesStatus = useAppSelector((state) => state.sports.messages.status);
+
+  useEffect(() => {
+    if (messagesStatus === "idle" || messagesStatus === "failed") {
+      dispatch(fetchConversations());
+    }
+  }, [dispatch, messagesStatus]);
+
   useEffect(() => {
     dispatch(fetchGroupsThunk());
   }, [dispatch]);
@@ -80,11 +92,12 @@ export function MessagesPage() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [activeConversation?.messages.length, isTyping, activeId]);
+  }, [activeConversation?.messages?.length, activeId]);
 
   const handleSelect = (conversationId: string) => {
     setActiveId(conversationId);
     dispatch(conversationOpened(conversationId));
+    dispatch(fetchHistory(conversationId));
   };
 
   const handleEmojiPick = (emoji: string) => {
@@ -117,24 +130,8 @@ export function MessagesPage() {
     const content = draft.trim();
     if (content.length === 0 || !activeId) return;
     dispatch(messageSent({ conversationId: activeId, content }));
+    sendMessage(content);
     setDraft("");
-    setIsTyping(true);
-    const replyName =
-      activeConversation?.messages.findLast((m) => !m.isMine)?.senderName ??
-      activeConversation?.name ??
-      "Team member";
-    window.setTimeout(() => {
-      const reply =
-        AUTO_REPLIES[Math.floor(Math.random() * AUTO_REPLIES.length)];
-      dispatch(
-        messageReceived({
-          conversationId: activeId,
-          senderName: replyName,
-          content: reply,
-        })
-      );
-      setIsTyping(false);
-    }, 1400);
   };
 
   return (
@@ -283,20 +280,6 @@ export function MessagesPage() {
                     </div>
                   </div>
                 ))}
-
-                {isTyping ? (
-                  <div className="flex justify-start">
-                    <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-border/60 bg-card px-4 py-3 shadow-sm">
-                      {[0, 150, 300].map((delay) => (
-                        <span
-                          key={delay}
-                          className="h-2 w-2 animate-bounce rounded-full bg-accent/70"
-                          style={{ animationDelay: `${delay}ms` }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
               </div>
 
               <div className="flex items-center gap-2 border-t border-border/70 p-3">

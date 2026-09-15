@@ -37,13 +37,17 @@ export function EventsPage() {
   const [search, setSearch] = useState("");
   const [type, setType] = useState<EventType | "all">("all");
   const debouncedSearch = useDebounce(search, 250);
+  const eventsStatus = useAppSelector((state) => state.sports.events.status);
+  const groupsStatus = useAppSelector((state) => state.sports.groups.status);
 
   useEffect(() => {
-    dispatch(fetchEventsThunk());
-    if (groups.length === 0) {
+    if (eventsStatus === "idle" || eventsStatus === "failed") {
+      dispatch(fetchEventsThunk());
+    }
+    if (groupsStatus === "idle" || groupsStatus === "failed") {
       dispatch(fetchGroupsThunk());
     }
-  }, [dispatch, groups.length]);
+  }, [dispatch, eventsStatus, groupsStatus]);
 
   const filterEvents = useMemo(
     () =>

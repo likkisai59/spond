@@ -8,6 +8,8 @@ from src.constants.roles import ALL_MODULES
 
 ModuleKey = Literal["sports", "band"]
 
+from .messages import ChatMessageResponse, ConversationResponse, MessageCreateRequest
+
 
 # ---------- auth ----------
 class RequestOtpRequest(BaseModel):
@@ -161,4 +163,7 @@ __all__ = [
     "UserListResponse",
     "RoleResponse",
     "RoleListResponse",
+    "ChatMessageResponse",
+    "ConversationResponse",
+    "MessageCreateRequest",
 ]

@@ -94,6 +94,7 @@ export function SidebarNav({
                 className={itemClasses}
                 aria-current={isActive ? "page" : undefined}
                 onClick={onNavigate}
+                prefetch={item.href.startsWith('/sports') ? true : undefined}
               >
                 {inner}
               </Link>

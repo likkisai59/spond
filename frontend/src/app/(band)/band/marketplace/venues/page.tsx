@@ -95,20 +95,24 @@ export default function VenuesMarketplacePage() {
   // Client-side filtering
   const filteredVenues = React.useMemo(() => {
     return venues.filter((venue: any) => {
+      const vName = (venue.name || venue.venue_name || venue.display_name || "").toLowerCase();
+      const vCity = (venue.city?.name || venue.city || venue.district || venue.state || venue.address || "").toLowerCase();
+      const vType = (venue.venue_type || venue.type || "").toLowerCase();
+      const vCapacity = Number(venue.capacity || venue.max_capacity || venue.min_capacity || 0);
+      const vPrice = Number(venue.base_price || venue.pricing_details?.base_price || (typeof venue.pricing === "number" ? venue.pricing : 0) || 0);
+      const vRating = Number(venue.rating || 0);
+
       if (search) {
         const q = search.toLowerCase();
-        const matchName = venue.name?.toLowerCase().includes(q);
-        const matchCity = (venue.city?.name || venue.city || venue.address || "").toLowerCase().includes(q);
+        const matchName = vName.includes(q);
+        const matchCity = vCity.includes(q);
         if (!matchName && !matchCity) return false;
       }
-      if (venueType && venue.venue_type !== venueType) return false;
-      if (city) {
-        const venueCity = (venue.city?.name || venue.city || venue.address || "").toLowerCase();
-        if (!venueCity.includes(city.toLowerCase())) return false;
-      }
-      if (minCapacity && (venue.capacity ?? 0) < Number(minCapacity)) return false;
-      if (maxPrice && (venue.base_price ?? Infinity) > Number(maxPrice)) return false;
-      if (minRating && (venue.rating ?? 0) < Number(minRating)) return false;
+      if (venueType && vType !== venueType.toLowerCase()) return false;
+      if (city && !vCity.includes(city.toLowerCase())) return false;
+      if (minCapacity && vCapacity < Number(minCapacity)) return false;
+      if (maxPrice && vPrice > Number(maxPrice)) return false;
+      if (minRating && vRating < Number(minRating)) return false;
       return true;
     });
   }, [venues, search, venueType, city, minCapacity, maxPrice, minRating]);
@@ -340,9 +344,16 @@ export default function VenuesMarketplacePage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredVenues.map((venue: any) => {
+              const venueDisplayName = venue.venue_name || venue.name || venue.display_name || "Venue";
+              const venueCapacity = venue.capacity || venue.max_capacity || venue.min_capacity || 0;
+              const venueLocation = (venue as any).city?.name || venue.city || venue.district || venue.state || venue.address?.split(",").slice(-2, -1)[0]?.trim() || "India";
+              const venuePrice = venue.base_price || venue.pricing_details?.base_price || (typeof venue.pricing === "number" ? venue.pricing : 0);
               const coverImage =
                 venue.metadata_fields?.cover_image ||
+                venue.cover_image ||
+                venue.profile_image ||
                 (typeof venue.gallery?.[0] === "string" ? venue.gallery[0] : (venue.gallery?.[0] as any)?.url) ||
+                (Array.isArray(venue.images) && venue.images[0]) ||
                 "https://images.unsplash.com/photo-1519167758481-83f550bb49b3";
               return (
                 <Link key={venue.id} href={`/band/marketplace/venues/${venue.id}`}>
@@ -351,7 +362,7 @@ export default function VenuesMarketplacePage() {
                     <div className="relative h-52 w-full overflow-hidden">
                       <img
                         src={coverImage}
-                        alt={venue.name}
+                        alt={venueDisplayName}
                         className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500 brightness-90"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-bg-card via-transparent to-transparent" />
@@ -375,20 +386,20 @@ export default function VenuesMarketplacePage() {
                     <CardContent className="p-5 flex-1 flex flex-col justify-between space-y-4">
                       <div className="space-y-2">
                         <h3 className="text-base font-extrabold text-foreground group-hover:text-primary transition-colors truncate">
-                          {venue.name}
+                          {venueDisplayName}
                         </h3>
 
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                           <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
                           <span className="truncate">
-                            {(venue as any).city?.name || venue.city || venue.address?.split(",").slice(-2, -1)[0]?.trim() || "India"}
+                            {venueLocation}
                           </span>
                         </p>
 
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Users className="h-3.5 w-3.5 text-secondary" />
-                            Up to {venue.capacity?.toLocaleString()} guests
+                            {venueCapacity > 0 ? `Up to ${venueCapacity.toLocaleString()} guests` : "Flexible capacity"}
                           </span>
                           <span className="flex items-center gap-1">
                             <Building2 className="h-3.5 w-3.5 text-secondary" />
@@ -408,10 +419,12 @@ export default function VenuesMarketplacePage() {
                           </span>
                           <span className="text-sm font-black text-foreground font-mono flex items-center gap-0.5">
                             <IndianRupee className="h-3.5 w-3.5" />
-                            {venue.base_price?.toLocaleString("en-IN")}
-                            <span className="text-[10px] font-normal text-muted-foreground ml-0.5">
-                              / day
-                            </span>
+                            {venuePrice > 0 ? Number(venuePrice).toLocaleString("en-IN") : "Contact for Pricing"}
+                            {venuePrice > 0 && (
+                              <span className="text-[10px] font-normal text-muted-foreground ml-0.5">
+                                / day
+                              </span>
+                            )}
                           </span>
                         </div>
                         <Button size="sm" className="font-bold text-xs h-8 rounded-lg cursor-pointer bg-secondary hover:bg-secondary/90 text-white">

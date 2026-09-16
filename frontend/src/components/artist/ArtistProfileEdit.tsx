@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUpload } from "@/components/shared/ImageUpload";
-import { Plus, Trash2, Save, Globe, Instagram, Facebook, Twitter } from "lucide-react";
+import { Plus, Trash2, Save } from "lucide-react";
+import toast from "react-hot-toast";
 
 interface ArtistProfileEditProps {
   profile: ArtistProfile;
@@ -23,51 +24,63 @@ const GENRES = ["Melody", "Rock", "Pop", "Classical", "Folk", "Fusion", "DJ", "O
 export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps) {
   const [newAchievement, setNewAchievement] = React.useState("");
 
+  const getFormValuesFromProfile = React.useCallback(
+    (p: ArtistProfile): ArtistProfileUpdateFormData => ({
+      name: (p as any)?.name || "",
+      display_name: p.display_name || "",
+      bio: p.bio || "",
+      years_of_experience: p.years_of_experience ?? 0,
+      profile_image: p.profile_image || "",
+      cover_image: p.cover_image || "",
+      mobile_number: p.mobile_number || "",
+      band_type: (p.band_type as any) || "Solo",
+      total_members: p.total_members ?? 1,
+      base_rate: p.base_rate ?? 0,
+      currency: p.currency || "INR",
+      travel_radius: p.travel_radius ?? 0,
+      travel_charges: p.travel_charges ?? 0,
+      min_booking_hours: p.min_booking_hours ?? 0,
+      max_booking_hours: p.max_booking_hours ?? 0,
+      equipment: {
+        own_speaker: !!p.equipment?.own_speaker,
+        mic: !!p.equipment?.mic,
+        mixer: !!p.equipment?.mixer,
+        keyboard: !!p.equipment?.keyboard,
+        guitar: !!p.equipment?.guitar,
+        drums: !!p.equipment?.drums,
+        lighting: !!p.equipment?.lighting,
+        dj_console: !!p.equipment?.dj_console,
+      },
+      languages: p.languages?.map((l: any) => (typeof l === "string" ? l : l?.name)).filter(Boolean) || [],
+      genres: p.genres?.map((g: any) => (typeof g === "string" ? g : g?.name)).filter(Boolean) || [],
+      social_links: {
+        instagram: p.social_links?.instagram || "",
+        facebook: p.social_links?.facebook || "",
+        twitter: p.social_links?.twitter || "",
+        website: p.social_links?.website || "",
+      },
+      achievements: p.achievements || [],
+    }),
+    []
+  );
+
   const {
     register,
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors, isSubmitting }
   } = useForm<ArtistProfileUpdateFormData>({
     resolver: zodResolver(artistProfileUpdateSchema),
-    defaultValues: {
-      name: (profile as any)?.name || "",
-      display_name: profile.display_name || "",
-      bio: profile.bio || "",
-      years_of_experience: profile.years_of_experience || ("" as any),
-      profile_image: profile.profile_image || "",
-      cover_image: profile.cover_image || "",
-      mobile_number: profile.mobile_number || "",
-      band_type: (profile.band_type as ArtistProfileUpdateFormData["band_type"]) || "Solo",
-      total_members: profile.total_members || ("" as any),
-      base_rate: profile.base_rate || ("" as any),
-      currency: profile.currency || "INR",
-      travel_radius: profile.travel_radius || ("" as any),
-      travel_charges: profile.travel_charges || ("" as any),
-      min_booking_hours: profile.min_booking_hours || ("" as any),
-      max_booking_hours: profile.max_booking_hours || ("" as any),
-      equipment: {
-        own_speaker: !!profile.equipment?.own_speaker,
-        mic: !!profile.equipment?.mic,
-        mixer: !!profile.equipment?.mixer,
-        keyboard: !!profile.equipment?.keyboard,
-        guitar: !!profile.equipment?.guitar,
-        drums: !!profile.equipment?.drums,
-        lighting: !!profile.equipment?.lighting,
-        dj_console: !!profile.equipment?.dj_console,
-      },
-      languages: profile.languages?.map(l => l.name) || [],
-      genres: profile.genres?.map(g => g.name) || [],
-      social_links: {
-        instagram: profile.social_links?.instagram || "",
-        facebook: profile.social_links?.facebook || "",
-        twitter: profile.social_links?.twitter || "",
-        website: profile.social_links?.website || "",
-      },
-      achievements: profile.achievements || [],
-    }
+    defaultValues: getFormValuesFromProfile(profile)
   });
+
+  React.useEffect(() => {
+    if (profile) {
+      reset(getFormValuesFromProfile(profile));
+    }
+  }, [profile, reset, getFormValuesFromProfile]);
 
   const watchedLanguages = watch("languages") || [];
   const watchedGenres = watch("genres") || [];
@@ -108,9 +121,28 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
     setValue("achievements", current);
   };
 
+  const onFormSubmit = (data: ArtistProfileUpdateFormData) => {
+    const trimmed = newAchievement.trim();
+    if (trimmed && !data.achievements?.includes(trimmed)) {
+      data.achievements = [...(data.achievements || []), trimmed];
+      setNewAchievement("");
+    }
+    onSuccess(data);
+  };
+
+  const onFormError = (formErrors: any) => {
+    console.error("[ArtistProfileEdit] Form validation error:", formErrors);
+    const errorKeys = Object.keys(formErrors);
+    if (errorKeys.length > 0) {
+      const firstError = formErrors[errorKeys[0]];
+      const message = firstError?.message || `Please check the ${errorKeys[0]} field.`;
+      toast.error(message);
+    }
+  };
+
   return (
     <form 
-      onSubmit={handleSubmit(onSuccess)}
+      onSubmit={handleSubmit(onFormSubmit, onFormError)}
       className="space-y-8 bg-card/45 backdrop-blur-md border border-border p-6 md:p-8 rounded-3xl shadow-xl"
     >
       <div className="border-b border-border pb-4">
@@ -155,6 +187,7 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
               onRemove={() => setValue("profile_image", "")}
               subfolder="artists/avatars"
             />
+            {errors.profile_image && <p className="text-xs text-error">{errors.profile_image.message}</p>}
           </div>
 
           <div className="space-y-1.5">
@@ -165,6 +198,7 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
               onRemove={() => setValue("cover_image", "")}
               subfolder="artists/covers"
             />
+            {errors.cover_image && <p className="text-xs text-error">{errors.cover_image.message}</p>}
           </div>
         </div>
       </div>
@@ -196,6 +230,7 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
               );
             })}
           </div>
+          {errors.languages && <p className="text-xs text-error mt-1">{errors.languages.message}</p>}
         </div>
 
         <div className="space-y-2">
@@ -217,6 +252,7 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
               );
             })}
           </div>
+          {errors.genres && <p className="text-xs text-error mt-1">{errors.genres.message}</p>}
         </div>
       </div>
 
@@ -233,12 +269,16 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
             >
               <option value="Solo">Solo</option>
               <option value="Band">Band</option>
+              <option value="Duo">Duo</option>
+              <option value="Trio">Trio</option>
             </select>
+            {errors.band_type && <p className="text-xs text-error mt-1">{errors.band_type.message}</p>}
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="total_members">Total Members</Label>
             <Input id="total_members" type="number" {...register("total_members", { valueAsNumber: true })} />
+            {errors.total_members && <p className="text-xs text-error mt-1">{errors.total_members.message}</p>}
           </div>
         </div>
       </div>
@@ -267,7 +307,6 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
         </div>
       </div>
 
-
       {/* Achievements builder */}
       <div className="space-y-3">
         <Label>Awards & Achievements</Label>
@@ -276,6 +315,12 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
             placeholder="E.g. Best Rock Band - Bangalore Music Awards 2025" 
             value={newAchievement}
             onChange={e => setNewAchievement(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addAchievement();
+              }
+            }}
           />
           <Button type="button" onClick={addAchievement} className="bg-primary text-primary-foreground h-10 px-4">
             <Plus className="h-4 w-4" />

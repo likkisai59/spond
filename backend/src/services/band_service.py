@@ -2,13 +2,9 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Dict, Any
 from src.database.mongo import utc_now
 from src.schemas.band import (
-    ArtistSchema, BandSchema, VenueSchema, BookingSchema,
-    BookingStatus, PaymentStatus, BookingRequest,
+    BookingStatus, PaymentStatus,
     BandCreateRequest, ProviderOnboardingRequest,
-    BookingCreateRequest, BookingUpdateRequest,
-    CounterOfferRequest, BlackoutDatesRequest,
-    ArtistCreateRequest, ArtistUpdateRequest,
-    BandUpdateRequest, VenueCreateRequest, VenueUpdateRequest
+    BookingUpdateRequest, CounterOfferRequest
 )
 from src.exceptions.handlers import AppException, NotFoundError
 from src.database.base_repository import BaseRepository
@@ -82,10 +78,20 @@ class BandService:
         return await self.bands.find_by_id(id)
 
     async def get_venue_by_id(self, id: str) -> Optional[Dict]:
-        return await self.venues.find_by_id(id)
+        venue = await self.venues.find_by_id(id)
+        if venue:
+            if not venue.get("name"):
+                venue["name"] = venue.get("venue_name") or venue.get("display_name") or "Venue"
+            if not venue.get("venue_name"):
+                venue["venue_name"] = venue.get("name") or venue.get("display_name") or "Venue"
+            if not venue.get("capacity"):
+                venue["capacity"] = venue.get("max_capacity") or venue.get("min_capacity") or 0
+            if not venue.get("city"):
+                venue["city"] = venue.get("district") or venue.get("state") or venue.get("address") or ""
+        return venue
 
     async def get_venue(self, venue_id: str) -> Dict:
-        venue = await self.venues.find_by_id(venue_id)
+        venue = await self.get_venue_by_id(venue_id)
         if not venue:
             raise NotFoundError("Venue not found")
         return venue
@@ -198,7 +204,7 @@ class BandService:
         now = datetime.now(timezone.utc)
         current_month = now.strftime("%Y-%m")
         
-        monthly_data = {}
+        monthly_data: dict[str, dict[str, Any]] = {}
         from calendar import month_abbr
         for i in range(12):
             y = now.year
@@ -364,7 +370,7 @@ class BandService:
         prev_revenue = 0
         prev_bookings = 0
         
-        monthly_data = {}
+        monthly_data: dict[str, dict[str, Any]] = {}
         from calendar import month_abbr
         for i in range(6):
             y = now.year
@@ -375,7 +381,7 @@ class BandService:
             key = f"{y}-{m:02d}"
             monthly_data[key] = {"month": month_abbr[m], "revenue": 0, "bookings": 0}
             
-        event_types = {}
+        event_types: dict[str, int] = {}
         
         for b in bookings:
             status = b.get("status", "")
@@ -399,17 +405,17 @@ class BandService:
                 e_type = b.get("event_name") or "Special Event"
                 event_types[e_type] = event_types.get(e_type, 0) + 1
 
-        rev_growth = 0
+        rev_growth: float = 0.0
         if prev_revenue > 0:
             rev_growth = ((curr_revenue - prev_revenue) / prev_revenue) * 100
         elif curr_revenue > 0:
-            rev_growth = 100
+            rev_growth = 100.0
             
-        bk_growth = 0
+        bk_growth: float = 0.0
         if prev_bookings > 0:
             bk_growth = ((curr_bookings - prev_bookings) / prev_bookings) * 100
         elif curr_bookings > 0:
-            bk_growth = 100
+            bk_growth = 100.0
             
         monthly_perf = list(monthly_data.values())
         monthly_perf.reverse()
@@ -531,7 +537,7 @@ class BandService:
         now = datetime.now(timezone.utc)
         current_month = now.strftime("%Y-%m")
         
-        monthly_data = {}
+        monthly_data: dict[str, dict[str, Any]] = {}
         from calendar import month_abbr
         for i in range(12):
             y = now.year
@@ -658,7 +664,7 @@ class BandService:
             "base_price": data.get("base_price", 0),
             "pricing_details": pricing_details
         })
-        return await self.get_venue_pricing(user_id)
+        return await self.get_venue_pricing(user_id) 
 
     async def get_venue_availability(self, user_id: str) -> Dict:
         venue = await self.get_venue_by_owner(user_id)
@@ -707,7 +713,7 @@ class BandService:
         prev_revenue = 0
         prev_bookings = 0
         
-        monthly_data = {}
+        monthly_data: dict[str, dict[str, Any]] = {}
         from calendar import month_abbr
         for i in range(6):
             y = now.year
@@ -718,7 +724,7 @@ class BandService:
             key = f"{y}-{m:02d}"
             monthly_data[key] = {"month": month_abbr[m], "revenue": 0, "bookings": 0}
             
-        event_types = {}
+        event_types: dict[str, int] = {}
         
         for b in bookings:
             status = b.get("status", "")
@@ -742,17 +748,17 @@ class BandService:
                 e_type = b.get("event_name") or "Special Event"
                 event_types[e_type] = event_types.get(e_type, 0) + 1
 
-        rev_growth = 0
+        rev_growth: float = 0.0
         if prev_revenue > 0:
             rev_growth = ((curr_revenue - prev_revenue) / prev_revenue) * 100
         elif curr_revenue > 0:
-            rev_growth = 100
+            rev_growth = 100.0
             
-        bk_growth = 0
+        bk_growth: float = 0.0
         if prev_bookings > 0:
             bk_growth = ((curr_bookings - prev_bookings) / prev_bookings) * 100
         elif curr_bookings > 0:
-            bk_growth = 100
+            bk_growth = 100.0
             
         monthly_perf = list(monthly_data.values())
         monthly_perf.reverse()
@@ -835,7 +841,7 @@ class BandService:
             if str(event_date) in [str(d) for d in blackouts]:
                 return False
 
-        query = {
+        query: dict[str, Any] = {
             "$or": [
                 {"provider_id": provider_id},
                 {"band_id": provider_id},
@@ -918,12 +924,14 @@ class BandService:
                 raise AppException(400, "The requested provider already has a confirmed booking during this time slot.")
 
         provider = None
-        if ptype_lower in ("artist", "solo"):
-            provider = await self.artists.find_by_id(provider_id)
-        elif ptype_lower == "band":
-            provider = await self.bands.find_by_id(provider_id)
-        elif ptype_lower == "venue":
-            provider = await self.venues.find_by_id(provider_id)
+        if provider_id:
+            pid_str = str(provider_id)
+            if ptype_lower in ("artist", "solo"):
+                provider = await self.artists.find_by_id(pid_str)
+            elif ptype_lower == "band":
+                provider = await self.bands.find_by_id(pid_str)
+            elif ptype_lower == "venue":
+                provider = await self.venues.find_by_id(pid_str)
 
         package_id = doc.get("package_id")
         if package_id and package_id != "pkg-custom" and provider:
@@ -986,23 +994,80 @@ class BandService:
         return (await self.bookings.find_by_id(created["id"])) or {}
     
     async def get_bookings_for_customer(self, customer_id: str) -> List[Dict]:
-        return await self.bookings.find_many({"customer_id": customer_id})
+        bookings = await self.bookings.find_many({
+            "customer_id": customer_id,
+            "is_deleted": {"$ne": True}
+        })
+        for booking in bookings:
+            provider_id = booking.get("provider_id") or booking.get("band_id") or booking.get("venue_id")
+            provider_type = (booking.get("provider_type") or "").lower()
+            provider = None
+            if provider_id:
+                pid_str = str(provider_id)
+                if provider_type == "artist":
+                    provider = await self.artists.find_by_id(pid_str)
+                elif provider_type == "venue":
+                    provider = await self.venues.find_by_id(pid_str)
+                elif provider_type == "band":
+                    provider = await self.bands.find_by_id(pid_str)
+                else:
+                    provider = await self.artists.find_by_id(pid_str)
+                    if not provider:
+                        provider = await self.bands.find_by_id(pid_str)
+                    if not provider:
+                        provider = await self.venues.find_by_id(pid_str)
+
+            if provider:
+                p_name = (
+                    provider.get("display_name")
+                    or provider.get("name")
+                    or provider.get("artist_name")
+                    or provider.get("venue_name")
+                    or provider.get("band_name")
+                    or "Performer"
+                )
+                booking["provider_name"] = p_name
+                booking["artist_name"] = p_name
+                booking["venue_name"] = p_name
+                booking["provider_image"] = provider.get("profile_image") or provider.get("cover_image") or ""
+            else:
+                booking["provider_name"] = "Performer"
+                booking["artist_name"] = "Performer"
+
+        return bookings
 
     async def get_all_profile_ids_for_user(self, user_id: str) -> List[str]:
-        owned_artists = await self.artists.find_many({"created_by": user_id})
-        owned_bands = await self.bands.find_many({"created_by": user_id})
-        owned_venues = await self.venues.find_many({"created_by": user_id})
+        owned_artists = await self.artists.find_many({
+            "$or": [{"created_by": user_id}, {"user_id": user_id}, {"owner_id": user_id}]
+        })
+        owned_bands = await self.bands.find_many({
+            "$or": [{"created_by": user_id}, {"user_id": user_id}, {"owner_id": user_id}]
+        })
+        owned_venues = await self.venues.find_many({
+            "$or": [{"created_by": user_id}, {"user_id": user_id}, {"owner_id": user_id}]
+        })
         
         profile_ids = [p["id"] for p in owned_artists + owned_bands + owned_venues if "id" in p]
         profile_ids.append(user_id)
-        return profile_ids
+        return list(set(profile_ids))
 
     async def get_bookings_for_provider(self, user_id: str) -> List[Dict]:
         profile_ids = await self.get_all_profile_ids_for_user(user_id)
+        from src.database.base_repository import to_object_id
+        search_ids: list[Any] = list(profile_ids)
+        for pid in profile_ids:
+            try:
+                search_ids.append(to_object_id(pid))
+            except Exception:
+                pass
         
         bookings = await self.bookings.find_many({
-            "provider_id": {"$in": profile_ids}, 
-            "is_deleted": False
+            "$or": [
+                {"provider_id": {"$in": search_ids}},
+                {"band_id": {"$in": search_ids}},
+                {"venue_id": {"$in": search_ids}}
+            ],
+            "is_deleted": {"$ne": True}
         })
         # Inject customer details for each booking
         for booking in bookings:
@@ -1100,7 +1165,7 @@ class BandService:
         provider_id: str | None = None,
         booking_status: str | None = None
     ) -> list[dict]:
-        query = {}
+        query: dict[str, Any] = {}
         if event_id:
             query["event_id"] = event_id
         if customer_id:
@@ -1253,20 +1318,21 @@ class BandService:
 
         clean_dates.sort()
 
-        provider = await self.bands.find_by_id(provider_id)
-        repo = self.bands
+        repo: BaseRepository = self.bands
+        provider = await repo.find_by_id(provider_id)
         if not provider:
-            provider = await self.artists.find_by_id(provider_id)
             repo = self.artists
+            provider = await repo.find_by_id(provider_id)
         if not provider:
-            provider = await self.venues.find_by_id(provider_id)
             repo = self.venues
+            provider = await repo.find_by_id(provider_id)
 
         if not provider:
             raise NotFoundError("Provider not found")
 
         await repo.update_by_id(provider_id, {"blackout_dates": clean_dates, "updated_at": utc_now()})
-        return await repo.find_by_id(provider_id)
+        res = await repo.find_by_id(provider_id)
+        return res or {}
 
     # --- Events ---
     
@@ -1367,7 +1433,8 @@ class BandService:
                 "updated_at": now
             }
             res = await self.bands.insert(doc)
-            return await self.bands.find_by_id(res["id"] if isinstance(res, dict) else res)
+            created_band = await self.bands.find_by_id(res["id"] if isinstance(res, dict) else res)
+            return created_band or {}
 
         elif data.provider_type == "Artist":
             doc = {
@@ -1400,7 +1467,8 @@ class BandService:
                 "updated_at": now
             }
             res = await self.artists.insert(doc)
-            return await self.artists.find_by_id(res["id"] if isinstance(res, dict) else res)
+            created_artist = await self.artists.find_by_id(res["id"] if isinstance(res, dict) else res)
+            return created_artist or {}
 
         elif data.provider_type == "Venue":
             doc = {
@@ -1426,6 +1494,7 @@ class BandService:
                 "updated_at": now
             }
             res = await self.venues.insert(doc)
-            return await self.venues.find_by_id(res["id"] if isinstance(res, dict) else res)
+            created_venue = await self.venues.find_by_id(res["id"] if isinstance(res, dict) else res)
+            return created_venue or {}
         else:
             raise AppException(400, f"Unsupported provider_type: {data.provider_type}")

@@ -128,12 +128,36 @@ async def get_band(band_id: str):
 @router.get("/venues", response_model=Dict[str, Any])
 async def get_venues():
     venues = await service.get_all_venues()
-    # Only expose venues that have a real venue_name or display_name set
+    # Only expose venues that have a real venue_name, name, or display_name set
     public_venues = [
         v for v in venues
-        if (v.get("venue_name") or v.get("display_name"))
+        if (v.get("venue_name") or v.get("name") or v.get("display_name"))
         and not str(v.get("id", "")).startswith("temp_")
     ]
+    # Normalize fields for client consumption
+    for v in public_venues:
+        if not v.get("name"):
+            v["name"] = v.get("venue_name") or v.get("display_name") or "Venue"
+        if not v.get("venue_name"):
+            v["venue_name"] = v.get("name") or v.get("display_name") or "Venue"
+        if not v.get("capacity"):
+            v["capacity"] = v.get("max_capacity") or v.get("min_capacity") or 0
+        if not v.get("city"):
+            v["city"] = v.get("district") or v.get("state") or v.get("address") or ""
+        if not v.get("base_price"):
+            pricing = v.get("pricing_details") or v.get("pricing") or {}
+            if isinstance(pricing, dict):
+                v["base_price"] = pricing.get("base_price") or pricing.get("price_per_day") or pricing.get("daily_rate") or 0
+            elif isinstance(pricing, (int, float)):
+                v["base_price"] = pricing
+            else:
+                v["base_price"] = 0
+
+    # Sort newest first so recently registered venues appear right at the top
+    public_venues.sort(
+        key=lambda x: str(x.get("updated_at") or x.get("created_at") or ""),
+        reverse=True
+    )
     return _ok(public_venues)
 
 @router.get("/venues/me", response_model=Dict[str, Any])

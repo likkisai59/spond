@@ -82,18 +82,18 @@ export function VenueProfilePreview({ profile }: VenueProfilePreviewProps) {
           <div className="text-center sm:text-left space-y-1.5 flex-1 pb-2">
             <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2">
               <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight font-heading">
-                {profile.name}
+                {profile.name || (profile as any).venue_name || (profile as any).display_name || "Venue"}
               </h2>
               <Badge variant="outline" className="text-[9px] py-0.5 px-2 bg-emerald-500/10 border-emerald-500/20 text-emerald-400 capitalize">
-                {profile.verification_status}
+                {profile.verification_status || "Pending"}
               </Badge>
             </div>
             <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2 text-xs text-muted-foreground">
-              <span className="font-semibold text-primary">{profile.venue_type}</span>
+              <span className="font-semibold text-primary">{profile.venue_type || "Venue"}</span>
               <span className="text-muted-foreground">•</span>
-              <span>Est. {profile.metadata_fields?.established_year || "N/A"}</span>
+              <span>Est. {profile.metadata_fields?.established_year || (profile as any).established_year || "N/A"}</span>
               <span className="text-muted-foreground">•</span>
-              <span>{profile.metadata_fields?.indoor_outdoor || "Both"} Area</span>
+              <span>{profile.metadata_fields?.indoor_outdoor || (profile as any).indoor_outdoor || "Both"} Area</span>
             </div>
           </div>
 
@@ -101,7 +101,7 @@ export function VenueProfilePreview({ profile }: VenueProfilePreviewProps) {
           <div className="bg-accent border border-border px-5 py-3 rounded-2xl text-center self-stretch sm:self-auto flex flex-col justify-center shadow-md">
             <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Max Guests</span>
             <span className="text-lg font-black text-foreground block">
-              {profile.capacity} pax
+              {profile.capacity || (profile as any).max_capacity || (profile as any).min_capacity || "Flexible"} pax
             </span>
           </div>
         </CardContent>

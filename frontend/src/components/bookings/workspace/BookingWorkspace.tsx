@@ -8,6 +8,16 @@ import { bookingService } from "@/services/bookingService";
 import { artistService } from "@/services/artistService";
 import { bandService } from "@/services/band";
 import type { Booking } from "@/types/band";
+
+/** Extended shape that the Band API may return alongside the base Booking fields */
+interface RawBooking extends Booking {
+  provider_name?: string;
+  artist_name?: string;
+  venue_name?: string;
+  band_name?: string;
+  customer_name?: string;
+  customer_email?: string;
+}
 import { BookingInboxTab } from "./BookingInboxTab";
 import { EventCalendarTab } from "./EventCalendarTab";
 import { BookingHistoryTab } from "./BookingHistoryTab";
@@ -17,7 +27,14 @@ import { RefreshCw, Inbox, CalendarDays, History, Calendar, Plus } from "lucide-
 import toast from "react-hot-toast";
 
 /** Normalize a raw Band booking into the BookingRequestDetail shape the workspace tabs expect */
-function normalizeBandBooking(b: Booking): BookingRequestDetail {
+function normalizeBandBooking(b: RawBooking): BookingRequestDetail {
+  const pName =
+    b.provider_name ||
+    b.artist_name ||
+    b.venue_name ||
+    b.band_name ||
+    "Performer";
+
   return {
     id: b.id,
     event_name: `Booking #${b.id.slice(-6).toUpperCase()}`,
@@ -29,8 +46,13 @@ function normalizeBandBooking(b: Booking): BookingRequestDetail {
     status: b.status.toLowerCase() as BookingRequestDetail["status"],
     location: "",
     notes: b.message || null,
-    client: { id: b.customer_id, name: (b as any).customer_name || "Client", email: (b as any).customer_email || "" },
-    artist: null,
+    client: {
+      id: b.customer_id,
+      name: b.customer_name || "Client",
+      email: b.customer_email || ""
+    },
+    artist: { id: b.provider_id || "", display_name: pName, bio: null, base_rate: 0, rating: 0 },
+    artist_name: pName,
     venue: null,
     timeline: [],
     booking_notes: [],
@@ -75,7 +97,7 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
           setBookingFormType(role === "artist" && intent?.venueId ? "venue" : "booking");
           setShowBookingForm(true);
           sessionStorage.removeItem("active_booking_intent");
-        } catch (_e) {
+        } catch {
           // Invalid JSON, ignore
         }
       }

@@ -2,53 +2,95 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { MediaGalleryData, GalleryItem, VideoItem } from "@/types/artist";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ImageUpload } from "@/components/shared/ImageUpload";
 import { VideoUpload } from "@/components/shared/VideoUpload";
-import { 
-  Plus, 
-  Trash2, 
-  ChevronLeft, 
-  ChevronRight, 
-  Image as ImageIcon, 
-  Video as VideoIcon, 
-  Star, 
+import {
+  Plus,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Image as ImageIcon,
+  Video as VideoIcon,
+  Star,
   Save,
-  Instagram,
-  Youtube,
-  Facebook,
-  Twitter,
-  Globe
+  Youtube
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-interface ArtistMediaGalleryProps {
-  media: MediaGalleryData;
-  onSave: (updated: MediaGalleryData) => Promise<void>;
+export interface BaseGalleryItem {
+  url: string;
+  is_cover: boolean;
+  album: string;
 }
 
-const ALBUMS = ["Live Shows", "Studio Sessions", "Promo Shoots", "General"];
-const VIDEO_CATEGORIES = ["Live Performance", "Music Video", "Promo clip", "Rehearsals"];
+export interface BaseVideoItem {
+  url: string;
+  category: string;
+  type?: string;
+  thumbnail?: string;
+}
 
-export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
-  const [gallery, setGallery] = React.useState<GalleryItem[]>(media.gallery || []);
-  const [videos, setVideos] = React.useState<VideoItem[]>(media.videos || []);
-  const [youtubeLinks, setYoutubeLinks] = React.useState<string[]>(media.youtube_links || []);
+export interface ProviderMediaGalleryProps<
+  TGallery extends BaseGalleryItem = BaseGalleryItem,
+  TVideo extends BaseVideoItem = BaseVideoItem
+> {
+  title: string;
+  subtitle: string;
+  albums: string[];
+  videoCategories: string[];
+  uploadSubfolder: string; // e.g. "artists" or "venues"
+  videoSectionTitle?: string;
+  videoSectionSubtitle?: string;
+  videoUploadHint?: string;
 
-  const [socialLinks, setSocialLinks] = React.useState({
-    instagram: media.social_links?.instagram || "",
-    facebook: media.social_links?.facebook || "",
-    twitter: media.social_links?.twitter || "",
-    website: media.social_links?.website || "",
-  });
+  initialGallery?: TGallery[];
+  initialVideos?: TVideo[];
+  initialYoutubeLinks?: string[];
+
+  // Dedicated cover image option (e.g. for venues)
+  showDedicatedCover?: boolean;
+  initialCoverImage?: string | null;
+
+  onSave: (data: {
+    gallery: TGallery[];
+    videos: TVideo[];
+    youtubeLinks: string[];
+    coverImage?: string | null;
+  }) => Promise<void>;
+
+  extraSections?: React.ReactNode;
+}
+
+export function ProviderMediaGallery<
+  TGallery extends BaseGalleryItem = BaseGalleryItem,
+  TVideo extends BaseVideoItem = BaseVideoItem
+>({
+  title,
+  subtitle,
+  albums,
+  videoCategories,
+  uploadSubfolder,
+  videoSectionTitle = "Upload Videos",
+  videoSectionSubtitle = "Upload video files to showcase your work.",
+  videoUploadHint = "Choose a video file. Max file size: 20MB. High resolution MP4 preferred.",
+  initialGallery = [],
+  initialVideos = [],
+  initialYoutubeLinks = [],
+  showDedicatedCover = false,
+  initialCoverImage = null,
+  onSave,
+  extraSections
+}: ProviderMediaGalleryProps<TGallery, TVideo>) {
+  const [coverImage, setCoverImage] = React.useState<string | null>(initialCoverImage);
+  const [gallery, setGallery] = React.useState<TGallery[]>(initialGallery);
+  const [videos, setVideos] = React.useState<TVideo[]>(initialVideos);
+  const [youtubeLinks, setYoutubeLinks] = React.useState<string[]>(initialYoutubeLinks);
 
   const [saving, setSaving] = React.useState(false);
-
-  // New item inputs
-  const [newAlbumName, setNewAlbumName] = React.useState("General");
+  const [newAlbumName, setNewAlbumName] = React.useState(albums[0] || "General");
   const [newYoutubeUrl, setNewYoutubeUrl] = React.useState("");
 
   const handleSave = async () => {
@@ -57,11 +99,9 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
       await onSave({
         gallery,
         videos,
-        youtube_links: youtubeLinks,
-        instagram_reels: media.instagram_reels || [],
-        social_links: socialLinks
+        youtubeLinks,
+        coverImage
       });
-      toast.success("Gallery and Media updates saved successfully!");
     } catch {
       toast.error("Failed to save media changes.");
     } finally {
@@ -72,12 +112,17 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
   // Gallery methods
   const addImageToGallery = (url: string) => {
     if (!url) return;
-    const newItem: GalleryItem = {
+    const shouldBeCover = gallery.length === 0 && (!showDedicatedCover || !coverImage);
+    const newItem = {
       url,
-      is_cover: gallery.length === 0, // auto make first image cover
+      is_cover: shouldBeCover,
       album: newAlbumName
-    };
+    } as TGallery;
+
     setGallery(prev => [...prev, newItem]);
+    if (showDedicatedCover && gallery.length === 0 && !coverImage) {
+      setCoverImage(url);
+    }
   };
 
   const removeImage = (idx: number) => {
@@ -85,22 +130,27 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
       const current = [...prev];
       const wasCover = current[idx]?.is_cover;
       current.splice(idx, 1);
-      
-      // If deleted cover image, make first element cover
+
       if (wasCover && current.length > 0) {
         current[0].is_cover = true;
+        if (showDedicatedCover) setCoverImage(current[0].url);
+      } else if (current.length === 0 && showDedicatedCover) {
+        setCoverImage(null);
       }
       return current;
     });
   };
 
   const setAsCover = (idx: number) => {
-    setGallery(prev => 
+    setGallery(prev =>
       prev.map((item, i) => ({
         ...item,
         is_cover: i === idx
       }))
     );
+    if (showDedicatedCover && gallery[idx]) {
+      setCoverImage(gallery[idx].url);
+    }
     toast.success("Cover image updated!");
   };
 
@@ -109,7 +159,7 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
       const current = [...prev];
       const targetIdx = direction === "left" ? idx - 1 : idx + 1;
       if (targetIdx < 0 || targetIdx >= current.length) return prev;
-      
+
       const temp = current[idx];
       current[idx] = current[targetIdx];
       current[targetIdx] = temp;
@@ -118,20 +168,20 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
   };
 
   const handleAlbumChange = (idx: number, album: string) => {
-    setGallery(prev => 
-      prev.map((item, i) => i === idx ? { ...item, album } : item)
+    setGallery(prev =>
+      prev.map((item, i) => (i === idx ? { ...item, album } : item))
     );
   };
 
   // Video File methods
   const addVideoFile = (url: string) => {
     if (!url) return;
-    const newItem: VideoItem = {
+    const newItem = {
       url,
       type: "file",
-      category: "Live Performance",
+      category: videoCategories[0] || "General",
       thumbnail: ""
-    };
+    } as unknown as TVideo;
     setVideos(prev => [...prev, newItem]);
   };
 
@@ -144,8 +194,8 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
   };
 
   const handleVideoCategoryChange = (idx: number, category: string) => {
-    setVideos(prev => 
-      prev.map((item, i) => i === idx ? { ...item, category } : item)
+    setVideos(prev =>
+      prev.map((item, i) => (i === idx ? { ...item, category } : item))
     );
   };
 
@@ -169,20 +219,17 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
     });
   };
 
-
-
   return (
     <div className="space-y-8 bg-card/45 backdrop-blur-md border border-border p-6 md:p-8 rounded-3xl shadow-xl">
-      
       {/* Title */}
       <div className="border-b border-border pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-0.5">
-          <h2 className="text-xl font-bold text-foreground">Media Showcase & Albums</h2>
-          <p className="text-xs text-muted-foreground">Upload high resolution photos and demo show reels.</p>
+          <h2 className="text-xl font-bold text-foreground">{title}</h2>
+          <p className="text-xs text-muted-foreground">{subtitle}</p>
         </div>
-        <Button 
-          onClick={handleSave} 
-          disabled={saving} 
+        <Button
+          onClick={handleSave}
+          disabled={saving}
           className="bg-primary hover:bg-primary/95 text-primary-foreground font-bold h-10 px-6 flex items-center gap-1.5 self-start sm:self-center"
         >
           <Save className="h-4 w-4" />
@@ -190,40 +237,76 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
         </Button>
       </div>
 
+      {/* OPTIONAL DEDICATED COVER BANNER SECTION */}
+      {showDedicatedCover && (
+        <div className="space-y-4">
+          <Label className="text-sm font-bold text-foreground">Cover Banner Image</Label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end p-4 border border-border bg-accent/15 rounded-2xl">
+            <div className="md:col-span-2">
+              {coverImage ? (
+                <div className="aspect-video w-full max-w-md relative rounded-xl overflow-hidden border border-border">
+                  <Image src={coverImage} alt="Cover Banner" fill className="object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setCoverImage(null)}
+                    className="absolute top-2 right-2 p-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white shadow"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="aspect-video w-full max-w-md bg-accent/40 border border-dashed border-border rounded-xl flex items-center justify-center text-muted-foreground text-xs italic">
+                  No cover banner selected. Upload gallery photos and mark one as cover or upload below.
+                </div>
+              )}
+            </div>
+            <ImageUpload
+              onChange={url => setCoverImage(url)}
+              subfolder={`${uploadSubfolder}/covers`}
+            />
+          </div>
+        </div>
+      )}
+
       {/* GALLERY PHOTOS SECTION */}
-      <div className="space-y-4">
+      <div className={`space-y-4 ${showDedicatedCover ? "pt-4 border-t border-border" : ""}`}>
         <div className="space-y-1">
           <h3 className="text-base font-bold text-foreground flex items-center gap-2">
             <ImageIcon className="h-5 w-5 text-primary" />
             Photo Gallery Albums
           </h3>
-          <p className="text-xs text-muted-foreground">Upload images of your live performances and categorise them.</p>
+          <p className="text-xs text-muted-foreground">Upload images and classify them into respective albums.</p>
         </div>
 
         {/* Upload layout widget */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end p-4 border border-border bg-accent/15 rounded-2xl">
           <div className="space-y-1.5 md:col-span-2">
             <Label>Select Album to upload into</Label>
-            <select 
-              value={newAlbumName} 
+            <select
+              value={newAlbumName}
               onChange={e => setNewAlbumName(e.target.value)}
               className="w-full h-10 px-3 rounded-lg border border-border bg-card text-foreground text-xs"
             >
-              {ALBUMS.map(al => (
-                <option key={al} value={al}>{al}</option>
+              {albums.map(al => (
+                <option key={al} value={al}>
+                  {al}
+                </option>
               ))}
             </select>
           </div>
-          <ImageUpload 
+          <ImageUpload
             onChange={addImageToGallery}
-            subfolder="artists/gallery"
+            subfolder={`${uploadSubfolder}/gallery`}
           />
         </div>
 
         {/* Gallery Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-2">
           {gallery.map((item, idx) => (
-            <div key={idx} className="border border-border rounded-2xl overflow-hidden bg-card/85 flex flex-col group relative">
+            <div
+              key={idx}
+              className="border border-border rounded-2xl overflow-hidden bg-card/85 flex flex-col group relative"
+            >
               <div className="aspect-video w-full relative bg-accent/40 flex items-center justify-center border-b border-border">
                 <Image src={item.url} alt="Gallery item" fill className="object-cover" />
                 {item.is_cover && (
@@ -231,10 +314,10 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
                     <Star className="h-3 w-3 fill-current" /> Cover Image
                   </span>
                 )}
-                
+
                 {/* Delete button top right */}
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => removeImage(idx)}
                   className="absolute top-2 right-2 p-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
                 >
@@ -251,8 +334,10 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
                     onChange={e => handleAlbumChange(idx, e.target.value)}
                     className="w-full h-8 px-2 rounded border border-border bg-accent text-foreground text-[10px]"
                   >
-                    {ALBUMS.map(al => (
-                      <option key={al} value={al}>{al}</option>
+                    {albums.map(al => (
+                      <option key={al} value={al}>
+                        {al}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -282,7 +367,7 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
                   </div>
 
                   {!item.is_cover && (
-                    <Button 
+                    <Button
                       type="button"
                       variant="outline"
                       size="sm"
@@ -304,34 +389,37 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
         </div>
       </div>
 
-      {/* DEMO VIDEOS FILES SECTION */}
+      {/* VIDEOS SECTION */}
       <div className="space-y-4 pt-4 border-t border-border">
         <div className="space-y-1">
           <h3 className="text-base font-bold text-foreground flex items-center gap-2">
             <VideoIcon className="h-5 w-5 text-primary" />
-            Upload Demo Videos
+            {videoSectionTitle}
           </h3>
-          <p className="text-xs text-muted-foreground">Upload raw video files to showcase your audio/video energy.</p>
+          <p className="text-xs text-muted-foreground">{videoSectionSubtitle}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center p-4 border border-border bg-accent/15 rounded-2xl">
           <p className="text-xs text-muted-foreground md:col-span-2 leading-relaxed">
-            Choose a video file showing your group playing live. Max file size: 20MB. High resolution MP4 preferred.
+            {videoUploadHint}
           </p>
-          <VideoUpload 
+          <VideoUpload
             onChange={addVideoFile}
-            subfolder="artists/videos"
+            subfolder={`${uploadSubfolder}/videos`}
           />
         </div>
 
         {/* Videos Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-          {videos.filter(v => v.type === "file").map((v, idx) => (
-            <div key={idx} className="border border-border rounded-2xl overflow-hidden bg-card/85 flex flex-col group relative">
+          {videos.map((v, idx) => (
+            <div
+              key={idx}
+              className="border border-border rounded-2xl overflow-hidden bg-card/85 flex flex-col group relative"
+            >
               <div className="aspect-video w-full relative bg-accent/40 border-b border-border flex items-center justify-center">
                 <video src={v.url} controls className="w-full h-full object-cover" />
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => removeVideoFile(idx)}
                   className="absolute top-2 right-2 p-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-sm opacity-0 group-hover:opacity-100 transition-opacity z-10"
                 >
@@ -345,8 +433,10 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
                   onChange={e => handleVideoCategoryChange(idx, e.target.value)}
                   className="w-full h-8 px-2 mt-1 rounded border border-border bg-accent text-foreground text-[10px]"
                 >
-                  {VIDEO_CATEGORIES.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                  {videoCategories.map(cat => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -357,8 +447,6 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
 
       {/* YOUTUBE SECTION */}
       <div className="pt-4 border-t border-border">
-        
-        {/* YouTube Links Widget */}
         <div className="space-y-4">
           <div className="space-y-1">
             <h3 className="text-base font-bold text-foreground flex items-center gap-2">
@@ -369,21 +457,32 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
           </div>
 
           <div className="flex gap-2">
-            <Input 
-              placeholder="https://www.youtube.com/watch?v=..." 
+            <Input
+              placeholder="https://www.youtube.com/watch?v=..."
               value={newYoutubeUrl}
               onChange={e => setNewYoutubeUrl(e.target.value)}
             />
-            <Button type="button" onClick={addYoutube} className="h-10 px-4 bg-primary text-primary-foreground shrink-0">
+            <Button
+              type="button"
+              onClick={addYoutube}
+              className="h-10 px-4 bg-primary text-primary-foreground shrink-0"
+            >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
 
           <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
             {youtubeLinks.map((link, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-border bg-accent/20 hover:border-primary/30 transition-colors">
+              <div
+                key={idx}
+                className="flex items-center justify-between p-3 rounded-xl border border-border bg-accent/20 hover:border-primary/30 transition-colors"
+              >
                 <span className="text-xs text-foreground truncate max-w-[280px]">{link}</span>
-                <button type="button" onClick={() => removeYoutube(idx)} className="text-error hover:text-red-400 p-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => removeYoutube(idx)}
+                  className="text-error hover:text-red-400 p-1 shrink-0"
+                >
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
@@ -393,50 +492,10 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
             )}
           </div>
         </div>
-
-
-
       </div>
 
-      {/* SOCIAL HANDLES SECTION */}
-      <div className="space-y-4 pt-4 border-t border-border">
-        <h4 className="text-sm font-bold text-foreground uppercase tracking-wider">Social Handles</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label className="flex items-center gap-1.5"><Instagram className="h-4 w-4 text-pink-400" /> Instagram URL</Label>
-            <Input 
-              placeholder="https://instagram.com/..." 
-              value={socialLinks.instagram}
-              onChange={e => setSocialLinks(prev => ({ ...prev, instagram: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="flex items-center gap-1.5"><Facebook className="h-4 w-4 text-blue-400" /> Facebook URL</Label>
-            <Input 
-              placeholder="https://facebook.com/..." 
-              value={socialLinks.facebook}
-              onChange={e => setSocialLinks(prev => ({ ...prev, facebook: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="flex items-center gap-1.5"><Twitter className="h-4 w-4 text-sky-400" /> Twitter / X URL</Label>
-            <Input 
-              placeholder="https://twitter.com/..." 
-              value={socialLinks.twitter}
-              onChange={e => setSocialLinks(prev => ({ ...prev, twitter: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="flex items-center gap-1.5"><Globe className="h-4 w-4 text-purple-400" /> Official Website URL</Label>
-            <Input 
-              placeholder="https://www..." 
-              value={socialLinks.website}
-              onChange={e => setSocialLinks(prev => ({ ...prev, website: e.target.value }))}
-            />
-          </div>
-        </div>
-      </div>
-
+      {/* EXTRA PROVIDER SPECIFIC SECTIONS */}
+      {extraSections}
     </div>
   );
 }

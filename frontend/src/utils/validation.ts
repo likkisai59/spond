@@ -16,21 +16,46 @@ const optionalPersonNameSchema = z
 
 // ── Artist Profile Update ───────────────────────────────────────────────────
 export const artistProfileUpdateSchema = z.object({
-  name: personNameSchema,
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .max(100, "Name cannot exceed 100 characters"),
   display_name: z.string().min(2, "Display name must be at least 2 characters"),
   bio: z.string().max(2000, "Bio cannot exceed 2000 characters").optional().default(""),
-  years_of_experience: z.coerce.number().min(0, "Experience cannot be negative").default(0),
+  years_of_experience: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined || isNaN(Number(val)) ? 0 : Number(val)),
+    z.number().min(0, "Experience cannot be negative")
+  ).default(0),
   profile_image: z.string().optional().default(""),
   cover_image: z.string().optional().default(""),
   mobile_number: z.string().min(10, "Mobile number must be at least 10 digits"),
-  band_type: z.enum(["Solo", "Duo", "Trio", "4 Members", "5+ Members"]).default("Solo"),
-  total_members: z.coerce.number().min(1, "Must have at least 1 member").default(1),
-  base_rate: z.coerce.number().min(0, "Rate cannot be negative").default(0),
+  band_type: z.string().min(1, "Performer type is required").default("Solo"),
+  total_members: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined || isNaN(Number(val)) ? 1 : Number(val)),
+    z.number().min(1, "Must have at least 1 member")
+  ).default(1),
+  base_rate: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined || isNaN(Number(val)) ? 0 : Number(val)),
+    z.number().min(0, "Rate cannot be negative")
+  ).default(0),
   currency: z.string().min(1, "Currency is required").default("INR"),
-  travel_radius: z.coerce.number().min(0, "Radius cannot be negative").default(0),
-  travel_charges: z.coerce.number().min(0, "Charges cannot be negative").default(0),
-  min_booking_hours: z.coerce.number().min(0, "Minimum hours cannot be negative").default(0),
-  max_booking_hours: z.coerce.number().min(0, "Maximum hours cannot be negative").default(0),
+  travel_radius: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined || isNaN(Number(val)) ? 0 : Number(val)),
+    z.number().min(0, "Radius cannot be negative")
+  ).default(0),
+  travel_charges: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined || isNaN(Number(val)) ? 0 : Number(val)),
+    z.number().min(0, "Charges cannot be negative")
+  ).default(0),
+  min_booking_hours: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined || isNaN(Number(val)) ? 0 : Number(val)),
+    z.number().min(0, "Minimum hours cannot be negative")
+  ).default(0),
+  max_booking_hours: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined || isNaN(Number(val)) ? 0 : Number(val)),
+    z.number().min(0, "Maximum hours cannot be negative")
+  ).default(0),
   equipment: z
     .object({
       own_speaker: z.boolean().default(false),

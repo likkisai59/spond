@@ -1,16 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { 
-  Calendar, 
-  TrendingUp, 
-  Star, 
-  Eye 
-} from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Calendar, TrendingUp, Star, Eye } from "lucide-react";
 import { formatCurrency } from "@/utils/format-currency";
+import { DashboardStatsCards, DashboardStatItem } from "@/components/shared/dashboard/DashboardStatsCards";
 
-interface StatsCardsProps {
+export interface StatsCardsProps {
   stats: {
     total_bookings: number;
     upcoming_events_count: number;
@@ -24,7 +19,7 @@ interface StatsCardsProps {
 }
 
 export function StatsCards({ stats }: StatsCardsProps) {
-  const cardData = [
+  const cardData: DashboardStatItem[] = [
     {
       title: "Upcoming Events",
       value: stats.upcoming_events_count,
@@ -59,31 +54,5 @@ export function StatsCards({ stats }: StatsCardsProps) {
     }
   ];
 
-  return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {cardData.map((card, idx) => {
-        const Icon = card.icon;
-        return (
-          <Card key={idx} className={`bg-card/45 backdrop-blur-md border ${card.bg} transition-all duration-300 hover:scale-[1.02] shadow-lg`}>
-            <CardContent className="p-4 flex items-center justify-between">
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-muted-foreground block">
-                  {card.title}
-                </span>
-                <span className="text-xl font-extrabold text-foreground block">
-                  {card.value}
-                </span>
-                <span className="text-[10px] text-muted-foreground block">
-                  {card.description}
-                </span>
-              </div>
-              <div className={`p-2.5 rounded-xl bg-accent border border-border ${card.color}`}>
-                <Icon className="h-5 w-5" />
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
-  );
+  return <DashboardStatsCards items={cardData} gridCols="grid-cols-2 lg:grid-cols-4" />;
 }

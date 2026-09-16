@@ -100,24 +100,32 @@ export function ArtistProfilePreview({ profile }: ArtistProfilePreviewProps) {
                 <div className="space-y-2">
                   <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Genres</span>
                   <div className="flex flex-wrap gap-1.5">
-                    {profile.genres?.map((g, i) => (
-                      <Badge key={g.id || `genre-${i}`} variant="secondary" className="text-[10px] py-1 font-semibold text-foreground">
-                        {g.name}
-                      </Badge>
-                    ))}
-                    {profile.genres?.length === 0 && <span className="text-xs text-muted-foreground italic">No genres configured</span>}
+                    {profile.genres?.map((g: any, i) => {
+                      const name = typeof g === "string" ? g : g?.name;
+                      const id = typeof g === "string" ? `genre-${i}` : (g?.id || `genre-${i}`);
+                      return (
+                        <Badge key={id} variant="secondary" className="text-[10px] py-1 font-semibold text-foreground">
+                          {name}
+                        </Badge>
+                      );
+                    })}
+                    {(!profile.genres || profile.genres.length === 0) && <span className="text-xs text-muted-foreground italic">No genres configured</span>}
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Languages</span>
                   <div className="flex flex-wrap gap-1.5">
-                    {profile.languages?.map((l, i) => (
-                      <Badge key={l.id || `lang-${i}`} variant="outline" className="text-[10px] py-1 font-semibold text-foreground">
-                        {l.name}
-                      </Badge>
-                    ))}
-                    {profile.languages?.length === 0 && <span className="text-xs text-muted-foreground italic">No languages configured</span>}
+                    {profile.languages?.map((l: any, i) => {
+                      const name = typeof l === "string" ? l : l?.name;
+                      const id = typeof l === "string" ? `lang-${i}` : (l?.id || `lang-${i}`);
+                      return (
+                        <Badge key={id} variant="outline" className="text-[10px] py-1 font-semibold text-foreground">
+                          {name}
+                        </Badge>
+                      );
+                    })}
+                    {(!profile.languages || profile.languages.length === 0) && <span className="text-xs text-muted-foreground italic">No languages configured</span>}
                   </div>
                 </div>
               </div>

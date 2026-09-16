@@ -25,7 +25,7 @@ interface BookingInboxTabProps {
   onRefresh: () => void;
 }
 
-type SubTab = "incoming" | "countered" | "pending" | "accepted" | "rejected";
+type SubTab = "all" | "incoming" | "countered" | "pending" | "accepted" | "rejected";
 
 export function BookingInboxTab({
   role,
@@ -33,7 +33,8 @@ export function BookingInboxTab({
   loading,
   onRefresh,
 }: BookingInboxTabProps) {
-  const [subTab, setSubTab] = React.useState<SubTab>("incoming");
+  // Clients default to "all" so they can always see provider responses (accepted/rejected)
+  const [subTab, setSubTab] = React.useState<SubTab>(role === "client" ? "all" : "incoming");
   const [search, setSearch] = React.useState("");
   const [selectedBookingId, setSelectedBookingId] = React.useState<string | null>(null);
 
@@ -49,8 +50,15 @@ export function BookingInboxTab({
       // Subtab filter
       const st = b.status.toLowerCase();
       let matchesTab = false;
-      if (subTab === "incoming") {
-        matchesTab = st === "requested" || st === "received" || st === "created";
+      if (subTab === "all") {
+        matchesTab = true; // show everything (client default)
+      } else if (subTab === "incoming") {
+        if (role === "client") {
+          // For client, "Sent Requests" means all statuses — they sent it and want to track any state
+          matchesTab = st === "requested" || st === "received" || st === "created";
+        } else {
+          matchesTab = st === "requested" || st === "received" || st === "created";
+        }
       } else if (subTab === "countered") {
         matchesTab = st === "countered" || st === "counter_offered";
       } else if (subTab === "pending") {
@@ -73,10 +81,11 @@ export function BookingInboxTab({
 
       return matchesTab && matchesSearch;
     });
-  }, [activeBookings, subTab, search]);
+  }, [activeBookings, subTab, search, role]);
 
   const subTabCounts = React.useMemo(() => {
     return {
+      all: activeBookings.length,
       incoming: activeBookings.filter((b) =>
         ["requested", "received", "created"].includes(b.status.toLowerCase())
       ).length,
@@ -98,6 +107,32 @@ export function BookingInboxTab({
       {/* Sub Navigation Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-900/80 p-2.5 rounded-2xl border border-zinc-800 shadow-md">
         <div className="flex flex-wrap items-center gap-1.5">
+          {/* "All" tab — shown for client role so they never miss a provider response */}
+          {role === "client" && (
+            <Button
+              variant={subTab === "all" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setSubTab("all")}
+              className={`text-xs h-8 font-bold gap-1.5 rounded-xl transition-all ${
+                subTab === "all"
+                  ? "bg-white text-black font-extrabold shadow hover:bg-zinc-100"
+                  : "text-zinc-300 hover:text-white hover:bg-zinc-800/80"
+              }`}
+            >
+              <span>All Bookings</span>
+              <Badge
+                variant="secondary"
+                className={`text-[10px] px-1.5 py-0 font-extrabold ${
+                  subTab === "all"
+                    ? "bg-black text-white"
+                    : "bg-zinc-800 text-zinc-200 border border-zinc-700"
+                }`}
+              >
+                {subTabCounts.all}
+              </Badge>
+            </Button>
+          )}
+
           <Button
             variant={subTab === "incoming" ? "default" : "ghost"}
             size="sm"
@@ -108,7 +143,7 @@ export function BookingInboxTab({
                 : "text-zinc-300 hover:text-white hover:bg-zinc-800/80"
             }`}
           >
-            <span>Incoming Requests</span>
+            <span>{role === "client" ? "Pending" : "Incoming Requests"}</span>
             <Badge
               variant="secondary"
               className={`text-[10px] px-1.5 py-0 font-extrabold ${
@@ -235,9 +270,13 @@ export function BookingInboxTab({
       ) : filteredBookings.length === 0 ? (
         <Card className="bg-zinc-900/60 border-zinc-800 p-12 text-center rounded-2xl shadow-sm">
           <Inbox className="h-10 w-10 mx-auto mb-3 text-zinc-400 opacity-70" />
-          <h3 className="text-sm font-bold text-white mb-1">No requests found</h3>
+          <h3 className="text-sm font-bold text-white mb-1">
+            {role === "client" ? "No bookings sent" : "No requests found"}
+          </h3>
           <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-            No active booking requests match the current tab filter or search query.
+            {role === "client"
+              ? "You haven't requested any active bookings yet."
+              : "No active booking requests match the current tab filter or search query."}
           </p>
         </Card>
       ) : (

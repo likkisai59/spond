@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { 
   Calendar, 
   Clock, 
@@ -13,10 +12,10 @@ import {
   Eye,
   Activity
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/utils/format-currency";
+import { DashboardStatsCards, DashboardStatItem } from "@/components/shared/dashboard/DashboardStatsCards";
 
-interface StatsCardsProps {
+export interface StatsCardsProps {
   stats: {
     total_bookings: number;
     upcoming_events_count: number;
@@ -31,7 +30,7 @@ interface StatsCardsProps {
 }
 
 export function StatsCards({ stats }: StatsCardsProps) {
-  const cardData = [
+  const cardData: DashboardStatItem[] = [
     {
       title: "Total Bookings",
       value: stats.total_bookings,
@@ -114,45 +113,5 @@ export function StatsCards({ stats }: StatsCardsProps) {
     }
   ];
 
-  return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-      {cardData.map((card, idx) => {
-        const Icon = card.icon;
-        const CardElement = (
-          <Card className={`bg-card/45 backdrop-blur-md border ${card.bg} transition-all duration-300 hover:scale-[1.02] shadow-lg h-full ${card.href ? "cursor-pointer hover:border-primary/30" : ""}`}>
-            <CardContent className="p-4 flex items-center justify-between h-full">
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-muted-foreground block">
-                  {card.title}
-                </span>
-                <span className="text-xl font-extrabold text-foreground block">
-                  {card.value}
-                </span>
-                <span className="text-[10px] text-muted-foreground block">
-                  {card.description}
-                </span>
-              </div>
-              <div className={`p-2 rounded-xl bg-accent border border-border ${card.color}`}>
-                <Icon className="h-5 w-5" />
-              </div>
-            </CardContent>
-          </Card>
-        );
-
-        if (card.href) {
-          return (
-            <Link key={idx} href={card.href} className="block h-full">
-              {CardElement}
-            </Link>
-          );
-        }
-
-        return (
-          <React.Fragment key={idx}>
-            {CardElement}
-          </React.Fragment>
-        );
-      })}
-    </div>
-  );
+  return <DashboardStatsCards items={cardData} gridCols="grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" />;
 }

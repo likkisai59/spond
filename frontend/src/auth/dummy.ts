@@ -7,7 +7,6 @@ export const DUMMY_REFRESH_TOKEN = "demo-refresh-token";
 export function createDummyUser(email: string, name?: string): User {
   const fallbackName = email.split("@")[0].replace(/[._-]+/g, " ");
   const displayName = name?.trim() || capitalize(fallbackName) || "Demo User";
-  const [firstName, ...restParts] = displayName.split(" ");
   const now = new Date().toISOString();
 
   return {
@@ -15,8 +14,7 @@ export function createDummyUser(email: string, name?: string): User {
     createdAt: now,
     updatedAt: now,
     email,
-    firstName,
-    lastName: restParts.join(" "),
+    fullName: displayName,
     role: "user",
     status: "active",
     emailVerified: true,

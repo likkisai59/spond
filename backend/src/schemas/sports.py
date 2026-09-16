@@ -60,7 +60,9 @@ class GroupUpdateRequest(CamelModel):
 
 # --- Members ---
 class AddMemberRequest(CamelModel):
-    user_id: str
+    user_id: str | None = None
+    name: str | None = None
+    email: str | None = None
     role: str = "Member"
 
 class UpdateMemberRoleRequest(CamelModel):
@@ -247,6 +249,9 @@ class BookingCreateRequest(CamelModel):
     group_id: str | None = None
     amount: float
     booking_date: datetime | str | None = None
+
+class UpdateBookingStatusRequest(CamelModel):
+    status: str
 
 # --- Payment Requests ---
 class PaymentRequestCreateRequest(CamelModel):

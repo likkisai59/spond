@@ -112,7 +112,9 @@ export function CreateGroupPage() {
 
   const onSubmit: SubmitHandler<CreateGroupFormData> = async (data) => {
     try {
-      const actionResult = await dispatch(createGroupThunk(data)).unwrap();
+      const actionResult = await dispatch(
+        createGroupThunk({ ...data, logoUrl: logoPreview || undefined } as any)
+      ).unwrap();
       dispatch(
         notificationAdded({
           title: "Group created",

@@ -43,7 +43,17 @@ export const createEventThunk = createAsyncThunk(
   "sports/events/createEvent",
   async (input: NewEventInput) => {
     const response = await eventsService.create(input);
-    return response.data as SportsEvent;
+    const data = response.data as any;
+    return data?.data || data;
+  }
+);
+
+export const markAttendanceThunk = createAsyncThunk(
+  "sports/events/markAttendance",
+  async (records: { eventId: string; userId: string; attendanceStatus: string }[]) => {
+    const promises = records.map((record) => eventsService.markAttendance(record));
+    await Promise.all(promises);
+    return records;
   }
 );
 

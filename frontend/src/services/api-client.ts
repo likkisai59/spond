@@ -91,12 +91,41 @@ apiClient.interceptors.response.use(
     }
     return response;
   },
-  (error: AxiosError<ApiErrorBody>) => {
+  async (error: AxiosError<ApiErrorBody>) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
     const apiError = toApiRequestError(error);
 
-    if (apiError.isUnauthorized) {
+    if (apiError.isUnauthorized && originalRequest && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const refreshToken = storage.get<string>(STORAGE_KEYS.REFRESH_TOKEN);
+
+      if (refreshToken) {
+        try {
+          // Step 2: Make background call for new token
+          const res = await axios.post(`${API_BASE_URL}/api/v1/auth/refresh-token`, {
+            refresh_token: refreshToken,
+          });
+
+          if (res.data?.data?.accessToken) {
+            // Step 3: Save new tokens and retry original request
+            storage.set(STORAGE_KEYS.ACCESS_TOKEN, res.data.data.accessToken);
+            if (res.data.data.refreshToken) {
+              storage.set(STORAGE_KEYS.REFRESH_TOKEN, res.data.data.refreshToken);
+            }
+            originalRequest.headers.Authorization = `Bearer ${res.data.data.accessToken}`;
+            return apiClient(originalRequest);
+          }
+        } catch (refreshError) {
+          // Fall through to logout if refresh fails
+        }
+      }
+
+      // Step 4: Final Logout
       storage.remove(STORAGE_KEYS.ACCESS_TOKEN);
       storage.remove(STORAGE_KEYS.REFRESH_TOKEN);
+      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
     }
 
     return Promise.reject(apiError);

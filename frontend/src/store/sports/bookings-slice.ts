@@ -1,8 +1,10 @@
 import {
   createSlice,
+  createAsyncThunk,
   nanoid,
   type PayloadAction,
 } from "@reduxjs/toolkit";
+import { bookingsService } from "@/services/sports";
 import type { VenueBooking, VenueBookingStatus } from "@/types";
 import { MOCK_BOOKINGS } from "@/sports/mocks/bookings.mock";
 
@@ -20,7 +22,7 @@ export interface BookingsState {
   bookings: VenueBooking[];
 }
 
-const initialState: BookingsState = { bookings: MOCK_BOOKINGS };
+const initialState: BookingsState = { bookings: [] };
 
 const bookingsSlice = createSlice({
   name: "sports/bookings",
@@ -57,9 +59,21 @@ const bookingsSlice = createSlice({
       booking.status = action.payload.status;
       booking.updatedAt = new Date().toISOString();
     },
+    bookingsFetched(state, action: PayloadAction<VenueBooking[]>) {
+      state.bookings = action.payload;
+    },
   },
 });
 
-export const { bookingCreated, bookingCancelled, bookingStatusSet } =
+export const { bookingCreated, bookingCancelled, bookingStatusSet, bookingsFetched } =
   bookingsSlice.actions;
+
+export const updateBookingStatusThunk = createAsyncThunk(
+  "sports/bookings/updateStatus",
+  async ({ id, status }: { id: string; status: string }) => {
+    const response = await bookingsService.updateStatus(id, status);
+    return response.data;
+  }
+);
+
 export default bookingsSlice.reducer;

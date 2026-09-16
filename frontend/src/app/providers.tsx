@@ -8,6 +8,8 @@ import { ThemeProvider } from "next-themes";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { store } from "@/store";
 
+import { AuthProvider } from "@/providers/auth-provider";
+
 export function createQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
@@ -41,7 +43,9 @@ export function Providers({ children }: ProvidersProps) {
       >
         <QueryClientProvider client={queryClient}>
           <TooltipProvider delayDuration={200}>
-            {children}
+            <AuthProvider>
+              {children}
+            </AuthProvider>
           </TooltipProvider>
           {process.env.NODE_ENV === "development" ? (
             <ReactQueryDevtools initialIsOpen={false} />

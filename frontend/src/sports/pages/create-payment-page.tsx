@@ -30,6 +30,7 @@ export function CreatePaymentPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const groups = useAppSelector(selectAllGroups);
+  const today = new Date().toLocaleDateString("en-CA");
 
   const groupsStatus = useAppSelector((state) => state.sports.groups.status);
 
@@ -136,12 +137,14 @@ export function CreatePaymentPage() {
                 step="1"
                 min="1"
                 placeholder="e.g. 1200"
+                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               <FormInput
                 control={control}
                 name="dueDate"
                 label="Due date"
                 type="date"
+                min={today}
               />
             </div>
 

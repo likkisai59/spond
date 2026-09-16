@@ -52,6 +52,15 @@ export const createGroupThunk = createAsyncThunk(
   }
 );
 
+export const addMemberThunk = createAsyncThunk(
+  "sports/groups/addMember",
+  async ({ groupId, input }: { groupId: string; input: unknown }) => {
+    const response = await groupsService.addMember(groupId, input);
+    const data = response.data as any;
+    return data?.data || data;
+  }
+);
+
 const groupsSlice = createSlice({
   name: "sports/groups",
   initialState,
@@ -111,6 +120,13 @@ const groupsSlice = createSlice({
       })
       .addCase(createGroupThunk.fulfilled, (state, action) => {
         state.groups.unshift(action.payload);
+      })
+      .addCase(addMemberThunk.fulfilled, (state, action) => {
+        const updatedGroup = action.payload;
+        const index = state.groups.findIndex((g) => g.id === updatedGroup.id);
+        if (index !== -1) {
+          state.groups[index] = updatedGroup;
+        }
       });
   },
 });

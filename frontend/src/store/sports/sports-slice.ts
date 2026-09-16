@@ -6,7 +6,7 @@ export interface SportsFeedState {
   activity: ActivityItem[];
 }
 
-const initialState: SportsFeedState = { activity: MOCK_ACTIVITY };
+const initialState: SportsFeedState = { activity: [] };
 
 const sportsSlice = createSlice({
   name: "sports",

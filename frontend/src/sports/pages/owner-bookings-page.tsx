@@ -7,12 +7,35 @@ import { PageHeader } from "@/components/layout/page-header";
 import { EmptyCard } from "@/components/cards";
 import { bookingsService } from "@/services/sports";
 import { ROUTES } from "@/constants";
-import { formatDate } from "@/utils/helpers";
-import { CalendarCheck, Users } from "lucide-react";
+import { formatDate } from "@/utils/date";
+import { CalendarCheck, Users, CheckCircle, XCircle, Clock } from "lucide-react";
+import { useAppDispatch } from "@/store/hooks";
+import { updateBookingStatusThunk } from "@/store/sports/bookings-slice";
+import { notificationAdded } from "@/store/slices/notification-slice";
+import { Button } from "@/components/ui/button";
 
 export function OwnerBookingsPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const dispatch = useAppDispatch();
+
+  const handleStatusChange = async (bookingId: string, status: string) => {
+    try {
+      await dispatch(updateBookingStatusThunk({ id: bookingId, status })).unwrap();
+      setBookings(current => current.map(b => b.id === bookingId ? { ...b, bookingStatus: status } : b));
+      dispatch(notificationAdded({
+        title: "Status Updated",
+        message: `Booking has been marked as ${status}.`,
+        variant: "success"
+      }));
+    } catch (error: any) {
+      dispatch(notificationAdded({
+        title: "Error",
+        message: error.message || "Failed to update booking status.",
+        variant: "error"
+      }));
+    }
+  };
 
   useEffect(() => {
     bookingsService.getOwnerBookings()
@@ -58,7 +81,7 @@ export function OwnerBookingsPage() {
                   <h3 className="font-bold">Booking #{booking.id.slice(-6).toUpperCase()}</h3>
                   <span className={`rounded-md px-2 py-1 text-xs font-bold ${
                     booking.bookingStatus === 'CONFIRMED' ? 'bg-emerald-100 text-emerald-800' : 
-                    booking.bookingStatus === 'CANCELLED' ? 'bg-red-100 text-red-800' : 
+                    booking.bookingStatus === 'CANCELLED' || booking.bookingStatus === 'REJECTED' ? 'bg-red-100 text-red-800' : 
                     'bg-amber-100 text-amber-800'
                   }`}>
                     {booking.bookingStatus}
@@ -74,6 +97,33 @@ export function OwnerBookingsPage() {
                     <span>Booked by: {booking.bookedBy}</span>
                   </div>
                 </div>
+                {booking.bookingStatus === 'PENDING' && (
+                  <div className="mt-4 flex gap-2 border-t pt-4">
+                    <Button 
+                      size="sm" 
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700" 
+                      onClick={() => handleStatusChange(booking.id, 'CONFIRMED')}
+                    >
+                      <CheckCircle className="mr-1 h-4 w-4" /> Confirm
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex-1 text-amber-600 hover:text-amber-700"
+                      onClick={() => handleStatusChange(booking.id, 'HELD')}
+                    >
+                      <Clock className="mr-1 h-4 w-4" /> Hold
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="destructive" 
+                      className="flex-1"
+                      onClick={() => handleStatusChange(booking.id, 'REJECTED')}
+                    >
+                      <XCircle className="mr-1 h-4 w-4" /> Reject
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

@@ -3,6 +3,7 @@ from src.database.redis import RedisClient
 from src.repositories.analytics import PlayerStatsRepository, BandArtistAnalyticsRepository, BandVenueAnalyticsRepository
 from src.repositories import GroupRepository, GroupMemberRepository, EventRepository, PaymentRepository, MatchRepository
 from src.exceptions.handlers import NotFoundError
+from bson import ObjectId
 
 class AnalyticsService:
     def __init__(self):
@@ -24,16 +25,47 @@ class AnalyticsService:
         redis = RedisClient.get_client()
         await redis.set(key, json.dumps(val), ex=ttl)
 
-    async def get_sports_dashboard_overview(self) -> dict:
-        cache_key = "analytics:sports:dashboard:overview"
+    async def get_sports_dashboard_overview(self, user_id: str = None) -> dict:
+        cache_key = f"analytics:sports:dashboard:overview:{user_id}" if user_id else "analytics:sports:dashboard:overview"
         cached = await self._cache_get(cache_key)
         if cached:
             return cached
 
-        groups_count = await self.groups.collection.count_documents({})
-        members_count = await self.members.collection.count_documents({})
-        events_count = await self.events.collection.count_documents({})
-        matches_played = await self.matches.collection.count_documents({"status": "COMPLETED"})
+        if user_id:
+            member_records = await self.members.find_many({"user_id": user_id})
+            joined_group_ids = []
+            for m in member_records:
+                gid = m.get("group_id")
+                if gid:
+                    if ObjectId.is_valid(str(gid)):
+                        joined_group_ids.append(ObjectId(str(gid)))
+                    joined_group_ids.append(gid)
+
+            user_groups = await self.groups.find_many({
+                "$or": [
+                    {"created_by": user_id},
+                    {"_id": {"$in": joined_group_ids}}
+                ]
+            })
+            groups_count = len(user_groups)
+            user_group_ids = [str(g["id"]) for g in user_groups if "id" in g]
+
+            members_count = await self.members.collection.count_documents({"group_id": {"$in": user_group_ids}}) if user_group_ids else 0
+            events_count = await self.events.collection.count_documents({
+                "$or": [
+                    {"created_by": user_id},
+                    {"group_id": {"$in": user_group_ids}}
+                ]
+            }) if user_group_ids else await self.events.collection.count_documents({"created_by": user_id})
+            matches_played = await self.matches.collection.count_documents({
+                "status": "COMPLETED",
+                "group_id": {"$in": user_group_ids}
+            }) if user_group_ids else 0
+        else:
+            groups_count = await self.groups.collection.count_documents({})
+            members_count = await self.members.collection.count_documents({})
+            events_count = await self.events.collection.count_documents({})
+            matches_played = await self.matches.collection.count_documents({"status": "COMPLETED"})
 
         # Aggregation for total revenue from payments
         revenue_pipeline = [{"$match": {"payment_status": "COMPLETED"}}, {"$group": {"_id": None, "total": {"$sum": "$amount"}}}]

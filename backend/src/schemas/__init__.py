@@ -12,6 +12,28 @@ from .messages import ChatMessageResponse, ConversationResponse, MessageCreateRe
 
 
 # ---------- auth ----------
+class RequestOtpRequest(BaseModel):
+    email: EmailStr
+
+
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr
+    otp: str = Field(min_length=6, max_length=6)
+
+
+class CompleteSignupRequest(BaseModel):
+    signup_token: str
+    full_name: str = Field(min_length=2, max_length=100)
+    password: str = Field(min_length=8, max_length=128)
+    phone: str | None = Field(default=None, pattern=r"^[0-9+\-\s]{8,15}$")
+    accessible_modules: list[ModuleKey] = Field(default_factory=lambda: ["sports", "band"])
+    role: str | None = None
+
+
+class VerifyOtpResponse(BaseModel):
+    signup_token: str
+
+
 class RegisterRequest(BaseModel):
     full_name: str = Field(min_length=2, max_length=100)
     email: EmailStr
@@ -121,6 +143,10 @@ class RoleListResponse(BaseModel):
 
 __all__ = [
     "RegisterRequest",
+    "RequestOtpRequest",
+    "VerifyOtpRequest",
+    "CompleteSignupRequest",
+    "VerifyOtpResponse",
     "LoginRequest",
     "RefreshTokenRequest",
     "LogoutRequest",

@@ -1,14 +1,27 @@
 import type { BaseEntity } from "./common";
 
-export const ROLES = ["user", "admin", "super-admin"] as const;
+export const ROLES = [
+  "user",
+  "admin",
+  "super-admin",
+  "super_admin",
+  "platform_admin",
+  "sports_admin",
+  "band_admin",
+  "coach",
+  "venue_owner",
+  "artist",
+  "band_manager",
+  "player",
+  "member",
+] as const;
 export type Role = (typeof ROLES)[number];
 
 export type UserStatus = "active" | "inactive" | "pending";
 
 export interface User extends BaseEntity {
   email: string;
-  firstName: string;
-  lastName: string;
+  fullName: string;
   avatarUrl?: string;
   role: Role;
   status: UserStatus;

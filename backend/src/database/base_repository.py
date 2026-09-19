@@ -40,7 +40,9 @@ class BaseRepository:
         document.setdefault("created_at", now)
         document.setdefault("updated_at", now)
         result = await self.collection.insert_one(document, session=session)
-        return serialize({**document, "_id": result.inserted_id})
+        res = serialize({**document, "_id": result.inserted_id})
+        assert res is not None
+        return res
 
     async def find_by_id(self, entity_id: str) -> dict[str, Any] | None:
         return serialize(
@@ -64,7 +66,12 @@ class BaseRepository:
             cursor = cursor.skip(skip)
         if limit:
             cursor = cursor.limit(limit)
-        return [serialize(doc) async for doc in cursor]
+        results: list[dict[str, Any]] = []
+        async for doc in cursor:
+            s = serialize(doc)
+            if s is not None:
+                results.append(s)
+        return results
 
     async def count(self, query: dict[str, Any]) -> int:
         return await self.collection.count_documents(query)

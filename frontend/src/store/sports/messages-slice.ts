@@ -4,7 +4,8 @@ import {
   nanoid,
   type PayloadAction,
 } from "@reduxjs/toolkit";
-
+import type { ChatMessage, Conversation, SportsGroup } from "@/types";
+import { messagesService } from "@/services/sports";
 import { MOCK_CONVERSATIONS } from "@/sports/mocks/messages.mock";
 import { fetchGroupsThunk } from "./groups-slice";
 
@@ -79,7 +80,7 @@ const messagesSlice = createSlice({
       if (!conversation.messages) conversation.messages = [];
       
       // Prevent duplicates
-      if (conversation.messages.find(m => m.id === action.payload.message.id)) return;
+      if (conversation.messages.find((m: ChatMessage) => m.id === action.payload.message.id)) return;
 
       conversation.messages.push(action.payload.message);
       conversation.lastMessage = action.payload.message.content;
@@ -97,7 +98,7 @@ const messagesSlice = createSlice({
         state.status = "succeeded";
         // Merge state or overwrite, fallback to mock if empty
         const fetched = action.payload.length > 0 ? action.payload : MOCK_CONVERSATIONS;
-        state.conversations = fetched.map(conv => ({
+        state.conversations = fetched.map((conv: Conversation) => ({
           ...conv,
           messages: state.conversations.find(c => c.id === conv.id)?.messages || conv.messages || []
         }));

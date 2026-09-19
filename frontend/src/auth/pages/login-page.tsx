@@ -5,7 +5,7 @@ export function LoginPage() {
   return (
     <AuthPageShell
       title="Welcome back"
-      description="Sign in to access your sports and music workspaces."
+      description="Sign in to access your sports and entertainment workspaces."
       footer={loginFooter}
     >
       <LoginForm />

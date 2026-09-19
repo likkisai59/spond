@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useForm, type SubmitHandler } from "react-hook-form";
+import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Modal, ModalContent, ModalHeader, ModalTitle, ModalDescription, ModalFooter } from "@/components/ui";
@@ -18,10 +18,14 @@ import {
 import { AuthDivider, SocialAuthButtons } from "./social-auth-buttons";
 import { authService } from "@/services";
 import { registerSchema, type RegisterFormData } from "../schemas";
-import { ROUTES } from "@/constants";
+import { ROUTES, getDefaultRouteForRole } from "@/constants";
 import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { credentialsReceived } from "@/store/slices/auth-slice";
+import { getPasswordStrength } from "@/utils/validations";
+import { PasswordStrengthBar } from "./password-strength-bar";
+
+import toast from "react-hot-toast";
 
 function TermsLabel() {
   const dispatch = useAppDispatch();
@@ -60,23 +64,28 @@ function TermsLabel() {
   );
 }
 
+// ── Register form ────────────────────────────────────────────────────────────
 export function RegisterForm() {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
+    mode: "onChange",
     defaultValues: {
       name: "",
       email: "",
       password: "",
       confirmPassword: "",
-      role: "member",
-      terms: false,
+      role: "client",
+      terms: true,
     },
   });
 
   const { control, handleSubmit, formState: { isSubmitting } } = form;
+
+  // Watch password live for the strength bar
+  const passwordValue = useWatch({ control, name: "password" });
 
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [pendingData, setPendingData] = useState<RegisterFormData | null>(null);
@@ -149,10 +158,12 @@ export function RegisterForm() {
         })
       );
     } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : "Something went wrong. Please try again.";
+      toast.error(msg);
       dispatch(
         notificationAdded({
           title: "Failed to resend OTP",
-          message: error instanceof Error ? error.message : "Something went wrong. Please try again.",
+          message: msg,
           variant: "error",
         })
       );
@@ -197,10 +208,17 @@ export function RegisterForm() {
     }
   };
 
+  const onInvalid = (errors: any) => {
+    const firstError = Object.values(errors)[0] as any;
+    if (firstError?.message) {
+      toast.error(firstError.message);
+    }
+  };
+
   return (
     <div>
       <Form {...form}>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-5" noValidate>
         <FormInput
           control={control}
           name="name"
@@ -216,14 +234,16 @@ export function RegisterForm() {
           placeholder="you@example.com"
           autoComplete="email"
         />
-        <FormPassword
-          control={control}
-          name="password"
-          label="Password"
-          placeholder="Create a password"
-          autoComplete="new-password"
-          description="At least 8 characters, with one letter and one number."
-        />
+        <div>
+          <FormPassword
+            control={control}
+            name="password"
+            label="Password"
+            placeholder="Create a password"
+            autoComplete="new-password"
+          />
+          <PasswordStrengthBar password={passwordValue ?? ""} />
+        </div>
         <FormPassword
           control={control}
           name="confirmPassword"
@@ -238,6 +258,9 @@ export function RegisterForm() {
           options={[
             { label: "Club Owner", value: "member" },
             { label: "Venue Owner", value: "venue_owner" },
+            { label: "Solo Artist", value: "artist" },
+            { label: "Band", value: "band" },
+            { label: "Client (Hire Artists & Venues)", value: "client" },
           ]}
         />
         <FormCheckbox control={control} name="terms" label={<TermsLabel />} />

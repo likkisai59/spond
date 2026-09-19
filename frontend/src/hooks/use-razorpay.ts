@@ -30,5 +30,27 @@ export function useRazorpay() {
     };
   }, []);
 
-  return isLoaded;
+  const processPayment = async (options: any): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      if (!window.Razorpay) {
+        reject(new Error("Razorpay SDK not loaded"));
+        return;
+      }
+
+      const rzp = new window.Razorpay({
+        ...options,
+        handler: function (response: any) {
+          resolve(response);
+        },
+      });
+
+      rzp.on("payment.failed", function (response: any) {
+        reject(response.error);
+      });
+
+      rzp.open();
+    });
+  };
+
+  return { isLoaded, processPayment };
 }

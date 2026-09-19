@@ -1,6 +1,6 @@
 import json
 from src.database.redis import RedisClient
-from src.repositories.analytics import PlayerStatsRepository, BandArtistAnalyticsRepository, BandVenueAnalyticsRepository
+from src.repositories.analytics import PlayerStatsRepository
 from src.repositories import GroupRepository, GroupMemberRepository, EventRepository, PaymentRepository, MatchRepository
 from src.exceptions.handlers import NotFoundError
 from bson import ObjectId
@@ -8,8 +8,6 @@ from bson import ObjectId
 class AnalyticsService:
     def __init__(self):
         self.player_stats = PlayerStatsRepository()
-        self.artist_analytics = BandArtistAnalyticsRepository()
-        self.venue_analytics = BandVenueAnalyticsRepository()
         self.groups = GroupRepository()
         self.members = GroupMemberRepository()
         self.events = EventRepository()
@@ -85,33 +83,6 @@ class AnalyticsService:
         await self._cache_set(cache_key, overview, ttl=300)
         return overview
 
-    async def get_band_dashboard_overview(self) -> dict:
-        cache_key = "analytics:band:dashboard:overview"
-        cached = await self._cache_get(cache_key)
-        if cached:
-            return cached
-
-        # Aggregate total revenue from artist analytics
-        revenue_pipeline = [{"$group": {"_id": None, "total": {"$sum": "$total_revenue"}}}]
-        revenue_res = await self.artist_analytics.collection.aggregate(revenue_pipeline).to_list(1)
-        total_revenue = revenue_res[0]["total"] if revenue_res else 0.0
-
-        # Most active artists
-        artists = await self.artist_analytics.find_many({}, sort=[("total_events", -1)], limit=3)
-        
-        # Top venues
-        venues = await self.venue_analytics.find_many({}, sort=[("total_bookings", -1)], limit=3)
-
-        overview = {
-            "total_artists": await self.artist_analytics.collection.count_documents({}),
-            "total_venues": await self.venue_analytics.collection.count_documents({}),
-            "total_bookings": sum([v.get("total_bookings", 0) for v in venues]) if venues else 0,
-            "total_revenue": total_revenue,
-            "top_artists": artists,
-            "top_venues": venues
-        }
-        await self._cache_set(cache_key, overview, ttl=300)
-        return overview
 
     async def get_top_players(self, limit: int = 10) -> list[dict]:
         return await self.player_stats.find_many({}, sort=[("performance_score", -1)], limit=limit)

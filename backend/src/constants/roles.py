@@ -11,6 +11,9 @@ BAND_MANAGER = "band_manager"
 PLAYER = "player"
 MEMBER = "member"
 
+CLIENT = "client"
+BAND = "band"
+
 ALL_ROLES = [
     SUPER_ADMIN,
     PLATFORM_ADMIN,
@@ -22,6 +25,8 @@ ALL_ROLES = [
     BAND_MANAGER,
     PLAYER,
     MEMBER,
+    CLIENT,
+    BAND,
 ]
 
 ADMIN_ROLES = [SUPER_ADMIN, PLATFORM_ADMIN]
@@ -37,11 +42,13 @@ ROLE_MODULES: dict[str, list[str]] = {
     SPORTS_ADMIN: [MODULE_SPORTS],
     BAND_ADMIN: [MODULE_BAND],
     COACH: [MODULE_SPORTS],
-    VENUE_OWNER: [MODULE_SPORTS],
+    VENUE_OWNER: [MODULE_SPORTS, MODULE_BAND],
     ARTIST: [MODULE_BAND],
     BAND_MANAGER: [MODULE_BAND],
     PLAYER: [MODULE_SPORTS],
     MEMBER: ALL_MODULES,
+    CLIENT: [MODULE_BAND],
+    BAND: [MODULE_BAND],
 }
 
 # Permission strings (Phase 1 set; module-scoped permissions land in later phases)
@@ -125,6 +132,8 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         PERM_ANALYTICS_READ,
     ],
     MEMBER: [PERM_FILES_READ, PERM_PAYMENTS_READ],
+    CLIENT: [PERM_FILES_READ, PERM_PAYMENTS_READ, PERM_PAYMENTS_WRITE],
+    BAND: [PERM_FILES_READ, PERM_FILES_WRITE, PERM_PAYMENTS_READ],
 }
 
 ROLE_DESCRIPTIONS = {
@@ -133,11 +142,13 @@ ROLE_DESCRIPTIONS = {
     SPORTS_ADMIN: "Administers the Sports product only",
     BAND_ADMIN: "Administers the Band product only",
     COACH: "Runs teams, sessions and attendance (Sports)",
-    VENUE_OWNER: "Manages venue listings and slots (Sports)",
+    VENUE_OWNER: "Manages venue listings and slots (Sports & Band)",
     ARTIST: "Performer profile and bookings (Band)",
     BAND_MANAGER: "Manages bands and bookings (Band)",
     PLAYER: "Team member participation (Sports)",
     MEMBER: "Basic access to permitted modules",
+    CLIENT: "Books artists and venues (Band)",
+    BAND: "Band group profile and gigs (Band)",
 }
 
 

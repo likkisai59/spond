@@ -1,165 +1,96 @@
-import type { BaseEntity } from "./common";
-
-export const BAND_GENRES = [
-  "Rock",
-  "Indie",
-  "Bollywood",
-  "Classical",
-  "Jazz",
-  "Electronic",
-  "Hip Hop",
-  "Fusion",
-  "Sufi",
-  "Acoustic",
-] as const;
-export type BandGenre = (typeof BAND_GENRES)[number];
-
-export const AVAILABILITY_STATUSES = [
-  "Available",
-  "Limited",
-  "Booked",
-] as const;
-export type AvailabilityStatus = (typeof AVAILABILITY_STATUSES)[number];
-
-export interface BandArtist extends BaseEntity {
+export interface Package {
+  id: string;
   name: string;
-  genres: BandGenre[];
-  location: string;
-  rating: number;
-  reviewCount: number;
-  priceFrom: number;
-  availability: AvailabilityStatus;
-  bio: string;
-  verified: boolean;
-  completedGigs: number;
+  price: number;
+  duration: number; // minutes
+  description: string;
 }
 
-export interface BandProfile extends BaseEntity {
+export interface Artist {
+  id: string;
+  user_id: string;
   name: string;
-  genres: BandGenre[];
-  location: string;
-  members: number;
-  rating: number;
-  reviewCount: number;
-  priceFrom: number;
-  availability: AvailabilityStatus;
-  nextAvailable: string;
+  display_name?: string;
+  genre: string[];
   bio: string;
-  verified: boolean;
-  completedGigs: number;
+  city?: string;
+  state?: string;
+  gallery?: Array<string | { url: string; is_cover?: boolean }>;
+  packages: Package[];
+  rating: number;
+  reviews_count: number;
 }
 
-export const VENUE_TYPES = [
-  "Arena",
-  "Club",
-  "Auditorium",
-  "Open Air",
-  "Studio",
-] as const;
-export type VenueType = (typeof VENUE_TYPES)[number];
-
-export const VENUE_SETTINGS = ["Indoor", "Outdoor"] as const;
-export type VenueSetting = (typeof VENUE_SETTINGS)[number];
-
-export interface Venue extends BaseEntity {
+export interface Band {
+  id: string;
+  user_id: string;
   name: string;
+  genre: string[];
+  members_count: number;
+  bio: string;
   city: string;
-  location: string;
-  venueType: VenueType;
+  packages: Package[];
+  rating: number;
+  reviews_count: number;
+}
+
+export interface Venue {
+  id: string;
+  user_id: string;
+  name: string;
+  type: string;
   capacity: number;
-  pricePerHour: number;
-  rating: number;
-  reviewCount: number;
+  city: string;
   amenities: string[];
-  available: boolean;
-  setting?: VenueSetting;
-}
-
-export const BOOKING_STATUSES = [
-  "Requested",
-  "Confirmed",
-  "Completed",
-  "Cancelled",
-] as const;
-export type BookingStatus = (typeof BOOKING_STATUSES)[number];
-
-export const BOOKING_EVENT_TYPES = [
-  "Wedding",
-  "Corporate",
-  "Club Night",
-  "Festival",
-  "Private Party",
-] as const;
-export type BookingEventType = (typeof BOOKING_EVENT_TYPES)[number];
-
-export interface BookingTimelineEntry {
-  status: BookingStatus;
-  timestamp: string;
-  note: string;
-}
-
-export interface BandBooking extends BaseEntity {
-  title: string;
-  bandName: string;
-  venueName: string;
-  eventDate: string;
-  startTime: string;
-  endTime: string;
-  amount: number;
-  status: BookingStatus;
-  eventType: BookingEventType;
-  guestCount: number;
-  timeline: BookingTimelineEntry[];
-}
-
-export const REVIEW_SUBJECT_TYPES = ["Band", "Artist", "Venue"] as const;
-export type ReviewSubjectType = (typeof REVIEW_SUBJECT_TYPES)[number];
-
-export interface BandReview extends BaseEntity {
-  author: string;
-  authorRole: string;
-  subjectName: string;
-  subjectType: ReviewSubjectType;
+  packages: Package[];
   rating: number;
+  reviews_count: number;
+}
+
+export interface BookingRequest {
+  provider_id: string;
+  provider_type: "artist" | "band" | "venue";
+  package_id: string;
+  event_date: string;
+  event_time: string;
+  message?: string;
+  proposed_price?: number;
+}
+
+export type BookingStatus = "REQUESTED" | "ACCEPTED" | "REJECTED" | "CONFIRMED" | "EVENT_COMPLETED" | "COMPLETED" | "CANCELLED";
+export type PaymentStatus = "UNPAID" | "ADVANCE_PENDING" | "ADVANCE_PAID" | "FINAL_PENDING" | "FULLY_PAID" | "REFUNDED";
+
+export interface Booking {
+  id: string;
+  customer_id: string;
+  provider_id: string;
+  provider_type: "artist" | "band" | "venue";
+  package_id: string;
+  event_date: string;
+  event_time: string;
+  message?: string;
+  status: BookingStatus;
+  payment_status: PaymentStatus;
+  total_amount: number;
+  advance_amount: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CustomerEventCreate {
   title: string;
-  content: string;
-  eventDate: string;
-}
-
-export interface PackageTemplate {
-  id: string;
-  name: string;
-  multiplier: number;
-  durationHours: number;
-  description: string;
-  inclusions: string[];
-  popular?: boolean;
-}
-
-export interface PerformanceVideo {
-  id: string;
-  title: string;
-  venue: string;
-  duration: string;
-  views: string;
-}
-
-export interface BandMemberProfile {
-  id: string;
-  name: string;
-  role: string;
-  since: string;
-}
-
-export interface VenueAvailabilityDay {
+  event_type: string;
   date: string;
-  status: "Available" | "Booked";
+  start_time: string;
+  end_time: string;
+  location: string;
+  guest_count: number;
+  budget: number;
 }
 
-export interface MarketplaceActivityItem {
+export interface CustomerEvent extends CustomerEventCreate {
   id: string;
-  title: string;
-  description: string;
-  actor: string;
-  timestamp: string;
+  customer_id: string;
+  created_at: string;
+  updated_at: string;
 }

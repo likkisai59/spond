@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str = ""
     RAZORPAY_KEY_ID: str = ""
     RAZORPAY_KEY_SECRET: str = ""
+    RAZORPAY_WEBHOOK_SECRET: str = ""
 
     # Bootstrap super admin (created on startup if missing; dev convenience)
     BOOTSTRAP_SUPER_ADMIN_EMAIL: str = "admin@unify.local"

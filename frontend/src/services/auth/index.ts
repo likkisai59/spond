@@ -57,8 +57,8 @@ export interface AuthService {
   verifyOtp(payload: VerifyOtpPayload): Promise<{ signup_token: string }>;
   completeSignup(payload: CompleteSignupPayload): Promise<AuthSession>;
   logout(payload: LogoutPayload): Promise<void>;
-  forgotPassword(payload: ForgotPasswordPayload): Promise<void>;
-  resetPassword(payload: ResetPasswordPayload): Promise<void>;
+  forgotPassword(payload: ForgotPasswordPayload): Promise<{ message: string; resetToken?: string | null; reset_token?: string | null }>;
+  resetPassword(payload: ResetPasswordPayload): Promise<{ message: string }>;
   refreshToken(payload: RefreshTokenPayload): Promise<AuthSession>;
   getCurrentUser(): Promise<User>;
 }
@@ -66,18 +66,36 @@ export interface AuthService {
 export const authService: AuthService = {
   login: async (payload) => {
     const { data } = await apiClient.post<{ status: string; data: any }>("/api/v1/auth/login", payload);
+    const rawUser = data.data?.user || {};
+    const fullName = rawUser.full_name || rawUser.name || "";
+    const [first, ...rest] = fullName.split(" ");
+    const user = {
+      ...rawUser,
+      name: fullName,
+      firstName: rawUser.firstName || first || "User",
+      lastName: rawUser.lastName || rest.join(" ") || "",
+    };
     return {
-      user: data.data.user,
-      accessToken: data.data.accessToken,
-      refreshToken: data.data.refreshToken,
+      user,
+      accessToken: data.data?.accessToken || data.data?.access_token,
+      refreshToken: data.data?.refreshToken || data.data?.refresh_token,
     } as AuthSession;
   },
   register: async (payload) => {
     const { data } = await apiClient.post<{ status: string; data: any }>("/api/v1/auth/register", payload);
+    const rawUser = data.data?.user || {};
+    const fullName = rawUser.full_name || rawUser.name || "";
+    const [first, ...rest] = fullName.split(" ");
+    const user = {
+      ...rawUser,
+      name: fullName,
+      firstName: rawUser.firstName || first || "User",
+      lastName: rawUser.lastName || rest.join(" ") || "",
+    };
     return {
-      user: data.data.user,
-      accessToken: data.data.accessToken,
-      refreshToken: data.data.refreshToken,
+      user,
+      accessToken: data.data?.accessToken || data.data?.access_token,
+      refreshToken: data.data?.refreshToken || data.data?.refresh_token,
     } as AuthSession;
   },
   requestOtp: async (payload) => {
@@ -89,27 +107,47 @@ export const authService: AuthService = {
   },
   completeSignup: async (payload) => {
     const { data } = await apiClient.post<{ status: string; data: any }>("/api/v1/auth/complete-signup", payload);
+    const rawUser = data.data?.user || {};
+    const fullName = rawUser.full_name || rawUser.name || "";
+    const [first, ...rest] = fullName.split(" ");
+    const user = {
+      ...rawUser,
+      name: fullName,
+      firstName: rawUser.firstName || first || "User",
+      lastName: rawUser.lastName || rest.join(" ") || "",
+    };
     return {
-      user: data.data.user,
-      accessToken: data.data.accessToken,
-      refreshToken: data.data.refreshToken,
+      user,
+      accessToken: data.data?.accessToken || data.data?.access_token,
+      refreshToken: data.data?.refreshToken || data.data?.refresh_token,
     } as AuthSession;
   },
   logout: async (payload) => {
     await apiClient.post("/api/v1/auth/logout", payload);
   },
   forgotPassword: async (payload) => {
-    await apiClient.post("/api/v1/auth/forgot-password", payload);
+    const { data } = await apiClient.post<{ status: string; data: { message: string; resetToken?: string | null; reset_token?: string | null } }>("/api/v1/auth/forgot-password", payload);
+    return data.data;
   },
   resetPassword: async (payload) => {
-    await apiClient.post("/api/v1/auth/reset-password", payload);
+    const { data } = await apiClient.post<{ status: string; data: { message: string } }>("/api/v1/auth/reset-password", payload);
+    return data.data;
   },
   refreshToken: async (payload) => {
     const { data } = await apiClient.post<{ status: string; data: any }>("/api/v1/auth/refresh-token", payload);
+    const rawUser = data.data?.user || {};
+    const fullName = rawUser.full_name || rawUser.name || "";
+    const [first, ...rest] = fullName.split(" ");
+    const user = {
+      ...rawUser,
+      name: fullName,
+      firstName: rawUser.firstName || first || "User",
+      lastName: rawUser.lastName || rest.join(" ") || "",
+    };
     return {
-      user: data.data.user,
-      accessToken: data.data.accessToken,
-      refreshToken: data.data.refreshToken,
+      user,
+      accessToken: data.data?.accessToken || data.data?.access_token,
+      refreshToken: data.data?.refreshToken || data.data?.refresh_token,
     } as AuthSession;
   },
   getCurrentUser: async () => {

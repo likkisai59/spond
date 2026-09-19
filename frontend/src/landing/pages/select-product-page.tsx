@@ -12,13 +12,12 @@ const sportsFeatures = [
   "Messaging",
   "Payments",
 ] as const;
-
 const bandFeatures = [
-  "Artists",
-  "Bands",
-  "Venues",
-  "Bookings",
-  "Reviews",
+  "Find performers",
+  "Book venues",
+  "Event management",
+  "Direct messaging",
+  "Secure payments",
 ] as const;
 
 export function SelectProductPage() {
@@ -54,10 +53,11 @@ export function SelectProductPage() {
           ctaLabel="Enter Sports"
           className="[animation-delay:200ms]"
         />
+        
         <ProductCard
           product={PRODUCT_CONFIGS.band}
           features={bandFeatures}
-          ctaLabel="Enter BandConnect"
+          ctaLabel="Enter EventHub"
           className="[animation-delay:300ms]"
         />
       </div>

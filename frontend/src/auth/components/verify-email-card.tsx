@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants";
 import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { dummyDelay } from "../dummy";
+import { sleep } from "@/utils/helpers";
 import { cn } from "@/utils/cn";
 
 const RESEND_COOLDOWN_SECONDS = 30;
@@ -55,7 +55,7 @@ export function VerifyEmailCard() {
 
   const handleVerify = async () => {
     setStatus("verifying");
-    await dummyDelay(1200);
+    await sleep(1200);
     setStatus("verified");
     dispatch(
       notificationAdded({
@@ -69,7 +69,7 @@ export function VerifyEmailCard() {
   const handleResend = async () => {
     if (cooldown > 0 || isResending) return;
     setIsResending(true);
-    await dummyDelay();
+    await sleep(900);
     setIsResending(false);
     setCooldown(RESEND_COOLDOWN_SECONDS);
     dispatch(

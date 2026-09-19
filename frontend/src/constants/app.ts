@@ -1,11 +1,11 @@
-import { Music, Trophy } from "lucide-react";
+import { Trophy, Music } from "lucide-react";
 import { ROUTES } from "./routes";
 import type { ProductConfig, ProductKey } from "@/types";
 
 export const APP_NAME = "Unify";
 export const APP_SHORT_NAME = "Unify";
 export const APP_DESCRIPTION =
-  "One platform, two products — a sports management platform and the BandConnect marketplace with a unified administration panel.";
+  "One platform, two products — a sports management platform and the EventHub marketplace with a unified administration panel.";
 export const APP_TAGLINE = "One platform. Two products. Infinite flow.";
 
 export const PRODUCT_CONFIGS: Record<ProductKey, ProductConfig> = {
@@ -20,11 +20,10 @@ export const PRODUCT_CONFIGS: Record<ProductKey, ProductConfig> = {
   },
   band: {
     key: "band",
-    name: "BandConnect Marketplace",
-    tagline: "Where bands meet opportunity",
-    description:
-      "A marketplace connecting bands, venues and clients — bookings, portfolios and payments in one place.",
-    href: ROUTES.BAND,
+    name: "EventHub Marketplace",
+    tagline: "Book your entertainment",
+    description: "Connect with venues, artists, and live bands.",
+    href: "/band",
     icon: Music,
   },
 };

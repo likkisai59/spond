@@ -153,6 +153,7 @@ export function CreatePollPage() {
                 name="expiresAt"
                 label="Expiry date"
                 type="date"
+                min={new Date().toISOString().split("T")[0]}
               />
               <div className="flex items-end pb-1">
                 <FormCheckbox

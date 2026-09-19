@@ -11,10 +11,10 @@ const productFeatures = {
     "Payments & invoicing",
   ],
   band: [
-    "Artist & band profiles",
-    "Venue directory",
-    "Bookings & availability",
-    "Reviews & ratings",
+    "Secure provider bookings",
+    "Milestone payments (25/75)",
+    "Customer & provider dashboards",
+    "Real-time schedule management",
   ],
 } as const;
 
@@ -38,10 +38,9 @@ export function ProductShowcase() {
           <ProductCard
             product={PRODUCT_CONFIGS.band}
             features={productFeatures.band}
-            ctaLabel="Enter BandConnect"
+            ctaLabel="Enter Marketplace"
             className="[animation-delay:200ms]"
-          />
-        </div>
+          />        </div>
       </PageContainer>
     </section>
   );

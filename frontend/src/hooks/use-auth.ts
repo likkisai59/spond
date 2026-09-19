@@ -23,6 +23,7 @@ import { authService } from "@/services";
 export interface UseAuthReturn {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   status: ReturnType<typeof selectAuthStatus>;
   error: ReturnType<typeof selectAuthError>;
   setCredentials: (session: AuthSession) => void;
@@ -75,6 +76,7 @@ export function useAuth(): UseAuthReturn {
   return {
     user,
     isAuthenticated,
+    isLoading: status === "loading",
     status,
     error,
     setCredentials,

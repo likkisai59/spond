@@ -12,9 +12,9 @@ export interface AuthState {
 }
 
 const initialState: AuthState = {
-  user: storage.get<User>(STORAGE_KEYS.USER_DATA),
-  accessToken: storage.get<string>(STORAGE_KEYS.ACCESS_TOKEN),
-  refreshToken: storage.get<string>(STORAGE_KEYS.REFRESH_TOKEN),
+  user: typeof window !== "undefined" ? storage.get<User>(STORAGE_KEYS.USER_DATA) : null,
+  accessToken: typeof window !== "undefined" ? storage.get<string>(STORAGE_KEYS.ACCESS_TOKEN) : null,
+  refreshToken: typeof window !== "undefined" ? storage.get<string>(STORAGE_KEYS.REFRESH_TOKEN) : null,
   status: "idle",
   error: null,
 };

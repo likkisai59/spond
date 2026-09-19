@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronsLeft } from "lucide-react";
+import { ChevronsLeft, Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -212,30 +212,47 @@ function SidebarProfile({
     setMounted(true);
   }, []);
 
-  const name = mounted && user?.fullName?.trim() ? user.fullName.trim() : "Guest user";
-  const role = mounted && user ? (user.role === "member" ? "Club Owner" : user.role === "venue_owner" ? "Venue Owner" : user.role) : null;
+  const name = mounted && user
+    ? (user.fullName?.trim() || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.name || "Guest user")
+    : "Guest user";
+  const displayRole = mounted && user
+    ? (user.role === "member" ? "Club Owner" : user.role === "venue_owner" ? "Venue Owner" : user.role)
+    : null;
+  const role = user ? user.role : null;
+
+  const profileHref =
+    role === "artist" || role === "band"
+      ? "/band/artist/profile?tab=edit"
+      : role === "venue_owner"
+      ? "/band/venue/profile?tab=edit"
+      : "/band/client/profile";
 
   const content = (
-    <div
+    <Link
+      href={profileHref}
       className={cn(
-        "flex items-center gap-3 rounded-xl px-3 py-2",
+        "group flex items-center gap-3 rounded-xl px-3 py-2 transition-all hover:bg-muted/80",
         collapsed && "justify-center px-0"
       )}
+      title="Click to edit profile details"
     >
-      <Avatar className="h-9 w-9 shrink-0">
+      <Avatar className="h-9 w-9 shrink-0 ring-1 ring-border group-hover:ring-primary/40 transition-all">
         <AvatarFallback suppressHydrationWarning>{getInitials(name)}</AvatarFallback>
       </Avatar>
       {!collapsed ? (
         <div className="min-w-0 flex-1">
-          <p
-            suppressHydrationWarning
-            className={cn(
-              "truncate text-sm font-bold",
-              dark && "text-white"
-            )}
-          >
-            {name}
-          </p>
+          <div className="flex items-center justify-between gap-1">
+            <p
+              suppressHydrationWarning
+              className={cn(
+                "truncate text-sm font-bold group-hover:text-primary transition-colors",
+                dark && "text-white"
+              )}
+            >
+              {name}
+            </p>
+            <Edit3 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+          </div>
           <p
             suppressHydrationWarning
             className={cn(
@@ -243,11 +260,11 @@ function SidebarProfile({
               dark ? "text-white/60" : "text-muted-foreground"
             )}
           >
-            {role ?? "Not signed in"}
+            {displayRole ?? "Not signed in"}
           </p>
         </div>
       ) : null}
-    </div>
+    </Link>
   );
 
   return (
@@ -264,9 +281,10 @@ function SidebarProfile({
           </TooltipTrigger>
           <TooltipContent side="right">
             <p suppressHydrationWarning className="font-bold">{name}</p>
-            {role ? (
-              <p suppressHydrationWarning className="text-xs capitalize text-muted-foreground">{role}</p>
+            {displayRole ? (
+              <p suppressHydrationWarning className="text-xs capitalize text-muted-foreground">{displayRole}</p>
             ) : null}
+            <p className="text-xs text-primary font-medium">Click to edit profile</p>
           </TooltipContent>
         </Tooltip>
       ) : (

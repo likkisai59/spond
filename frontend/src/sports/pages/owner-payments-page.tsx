@@ -24,7 +24,7 @@ export function OwnerPaymentsPage() {
         setPayments(items);
         
         const rev = items
-          .filter((b: any) => b.bookingStatus === "CONFIRMED")
+          .filter((b) => b.bookingStatus === "CONFIRMED")
           .reduce((sum: number, b: any) => sum + (b.amount || 0), 0);
         setTotalRevenue(rev);
         

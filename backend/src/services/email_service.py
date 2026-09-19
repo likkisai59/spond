@@ -13,7 +13,7 @@ class EmailService:
 
     def _send_sync_email(self, to_email: str, otp: str, purpose: str) -> None:
         from dotenv import load_dotenv
-        load_dotenv()
+        load_dotenv(override=True)
         
         smtp_email = os.environ.get("SMTP_EMAIL")
         smtp_password = os.environ.get("SMTP_PASSWORD")

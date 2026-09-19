@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeftRight, Bell, LogOut, Menu, PanelLeft, Settings, User } from "lucide-react";
+import { ArrowLeftRight, Bell, LogOut, Menu, PanelLeft, Settings, User, Edit3 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -136,6 +137,29 @@ function UserMenu() {
     router.push(ROUTES.LOGIN);
   };
 
+  const role = user?.role || "";
+  let profileLink = "/band/client/profile";
+  let editProfileLink = "/band/client/profile";
+  let settingsLink = "/band/client/settings";
+
+  if (role === "client" || role === "user") {
+    profileLink = "/band/client/profile";
+    editProfileLink = "/band/client/profile";
+    settingsLink = "/band/client/settings";
+  } else if (role === "artist" || role === "band") {
+    profileLink = "/band/artist/profile";
+    editProfileLink = "/band/artist/profile?tab=edit";
+    settingsLink = "/band/artist/settings";
+  } else if (role === "venue_owner") {
+    profileLink = "/band/venue/profile";
+    editProfileLink = "/band/venue/profile?tab=edit";
+    settingsLink = "/band/venue/settings";
+  } else if (role === "owner" || role === "admin" || role === "super-admin") {
+    profileLink = "/sports/settings";
+    editProfileLink = "/sports/settings";
+    settingsLink = "/sports/settings";
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -157,16 +181,24 @@ function UserMenu() {
           </p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem disabled>
-          <User />
-          Profile
+        
+        <DropdownMenuItem onClick={() => router.push(editProfileLink)}>
+          <Edit3 className="h-4 w-4" />
+          Edit Profile
         </DropdownMenuItem>
-        <DropdownMenuItem disabled>
-          <Settings />
+
+        <DropdownMenuItem onClick={() => router.push(profileLink)}>
+          <User className="h-4 w-4" />
+          View Profile
+        </DropdownMenuItem>
+        
+        <DropdownMenuItem onClick={() => router.push(settingsLink)}>
+          <Settings className="h-4 w-4" />
           Settings
         </DropdownMenuItem>
+        
         <DropdownMenuItem onClick={() => router.push(ROUTES.SELECT_PRODUCT)}>
-          <ArrowLeftRight />
+          <ArrowLeftRight className="h-4 w-4" />
           Switch workspace
         </DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -219,9 +251,32 @@ export function Topbar({
 
       <div className="ml-auto flex items-center gap-1.5">
         <ThemeToggle />
-        <NotificationsMenu />
-        <UserMenu />
+        <AuthButtons />
       </div>
     </header>
+  );
+}
+
+function AuthButtons() {
+  const { user } = useAuth();
+
+  if (user) {
+    return (
+      <>
+        <NotificationsMenu />
+        <UserMenu />
+      </>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button asChild variant="ghost" className="font-semibold hidden sm:flex">
+        <Link href={ROUTES.LOGIN}>Log in</Link>
+      </Button>
+      <Button asChild variant="accent" className="font-semibold">
+        <Link href={ROUTES.REGISTER}>Sign up</Link>
+      </Button>
+    </div>
   );
 }

@@ -10,6 +10,7 @@ export interface UploadedFileInput {
   name: string;
   type?: FileType;
   sizeKb?: number;
+  folder?: string;
 }
 
 export interface FilesState {
@@ -35,7 +36,7 @@ const filesSlice = createSlice({
           name: input.name,
           type: input.type ?? "Document",
           sizeKb: input.sizeKb ?? 64,
-          folder: "Recent Uploads",
+          folder: input.folder ?? "Training",
           uploadedBy: "You",
         }));
         return { payload: files };

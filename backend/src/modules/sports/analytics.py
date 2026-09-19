@@ -12,14 +12,14 @@ async def get_dashboard_overview(
     user: dict = Depends(require_auth),
     service: AnalyticsService = Depends()
 ) -> Dict[str, Any]:
-    return await service.get_sports_dashboard_overview()
+    return await service.get_sports_dashboard_overview(user["id"])
 
 @router.get("/dashboard")
 async def get_dashboard_full(
     user: dict = Depends(require_auth),
     service: AnalyticsService = Depends()
 ) -> Dict[str, Any]:
-    overview = await service.get_sports_dashboard_overview()
+    overview = await service.get_sports_dashboard_overview(user["id"])
     top_players = await service.get_top_players(limit=3)
     return {
         "overview": overview,

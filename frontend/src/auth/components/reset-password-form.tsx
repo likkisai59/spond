@@ -2,160 +2,131 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, CheckCircle2, AlertTriangle, KeyRound } from "lucide-react";
-import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
+import { useSearchParams } from "next/navigation";
+import { ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react";
+import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Form, FormPassword } from "@/components/forms";
-import { PasswordStrengthBar } from "./password-strength-bar";
+import { authService } from "@/services";
 import { resetPasswordSchema, type ResetPasswordFormData } from "../schemas";
 import { ROUTES } from "@/constants";
-import { authService } from "@/services";
 import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import toast from "react-hot-toast";
 
 function SuccessState() {
   return (
     <div className="animate-fade-in-up space-y-6 text-center">
-      <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 border border-emerald-500/20">
-        <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+      <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+        <CheckCircle2 className="h-8 w-8" />
       </span>
       <div className="space-y-2">
-        <h2 className="text-xl font-extrabold tracking-tight">Password Reset Complete</h2>
+        <h2 className="text-xl font-extrabold tracking-tight">Password reset complete!</h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Your password has been changed successfully. You can now log in using your new credentials.
+          Your password has been successfully reset. You can now log in with your new password.
         </p>
       </div>
       <Button asChild variant="accent" size="lg" className="w-full">
-        <Link href={ROUTES.LOGIN}>Proceed to Log in</Link>
+        <Link href={ROUTES.LOGIN}>Proceed to Sign In</Link>
+      </Button>
+    </div>
+  );
+}
+
+function MissingTokenState() {
+  return (
+    <div className="animate-fade-in-up space-y-6 text-center">
+      <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+        <AlertCircle className="h-8 w-8" />
+      </span>
+      <div className="space-y-2">
+        <h2 className="text-xl font-extrabold tracking-tight">Invalid or Missing Link</h2>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          This password reset link is invalid, expired, or missing the verification token. Please request a new link.
+        </p>
+      </div>
+      <Button asChild variant="accent" size="lg" className="w-full">
+        <Link href={ROUTES.FORGOT_PASSWORD}>Request New Reset Link</Link>
       </Button>
     </div>
   );
 }
 
 export function ResetPasswordForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token") || "";
+  const token = searchParams.get("token");
   const dispatch = useAppDispatch();
   const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const form = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
-    mode: "onChange",
-    defaultValues: {
-      password: "",
-      confirmPassword: "",
-    },
+    defaultValues: { password: "", confirmPassword: "" },
   });
 
-  const {
-    control,
-    handleSubmit,
-    formState: { isSubmitting },
-  } = form;
+  const { control, handleSubmit, formState: { isSubmitting } } = form;
 
-  const watchedPassword = useWatch({ control, name: "password" });
+  if (!token) {
+    return <MissingTokenState />;
+  }
+
+  if (isSuccess) {
+    return <SuccessState />;
+  }
 
   const onSubmit: SubmitHandler<ResetPasswordFormData> = async (data) => {
-    if (!token) {
-      toast.error("Missing reset token. Please request a new password reset link.");
-      return;
-    }
-
+    setErrorMessage(null);
     try {
       await authService.resetPassword({
         token,
         new_password: data.password,
       });
-
-      setIsSuccess(true);
-      toast.success("Password reset successfully!");
       dispatch(
         notificationAdded({
-          title: "Password changed",
-          message: "Your password has been reset. Please log in with your new password.",
+          title: "Password reset",
+          message: "Your password has been updated successfully.",
           variant: "success",
         })
       );
+      setIsSuccess(true);
     } catch (error: unknown) {
-      const message =
+      const msg =
         error instanceof Error
           ? error.message
-          : "Invalid or expired reset token. Please request a new link.";
-      toast.error(message);
+          : "Failed to reset password. The link may have expired.";
+      setErrorMessage(msg);
       dispatch(
         notificationAdded({
-          title: "Password reset failed",
-          message,
+          title: "Reset failed",
+          message: msg,
           variant: "error",
         })
       );
     }
   };
 
-  const onInvalid = (errors: Record<string, unknown>) => {
-    const firstError = Object.values(errors)[0] as { message?: string } | undefined;
-    if (firstError?.message) {
-      toast.error(firstError.message);
-    }
-  };
-
-  if (isSuccess) {
-    return <SuccessState />;
-  }
-
-  if (!token) {
-    return (
-      <div className="space-y-6 text-center">
-        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10 border border-amber-500/20">
-          <AlertTriangle className="h-8 w-8 text-amber-500" />
-        </span>
-        <div className="space-y-2">
-          <h2 className="text-xl font-extrabold tracking-tight">Invalid Reset Link</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            No valid reset token was found in the link. It may have expired or been improperly formatted.
-          </p>
-        </div>
-        <div className="space-y-2">
-          <Button asChild variant="accent" size="lg" className="w-full">
-            <Link href={ROUTES.FORGOT_PASSWORD}>Request New Reset Link</Link>
-          </Button>
-          <Button asChild variant="ghost" className="w-full">
-            <Link href={ROUTES.LOGIN}>
-              <ArrowLeft className="h-4 w-4 mr-1.5" />
-              Back to log in
-            </Link>
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-5" noValidate>
-        <div>
-          <FormPassword
-            control={control}
-            name="password"
-            label="New Password"
-            placeholder="Create a strong password"
-            autoComplete="new-password"
-          />
-          <PasswordStrengthBar password={watchedPassword || ""} />
-        </div>
-
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+        <FormPassword
+          control={control}
+          name="password"
+          label="New Password"
+          placeholder="Enter new password"
+          autoComplete="new-password"
+        />
         <FormPassword
           control={control}
           name="confirmPassword"
-          label="Confirm New Password"
-          placeholder="Repeat your new password"
+          label="Confirm Password"
+          placeholder="Re-enter new password"
           autoComplete="new-password"
         />
-
+        {errorMessage && (
+          <p className="text-center text-xs sm:text-sm font-semibold text-destructive animate-fade-in-up">
+            {errorMessage}
+          </p>
+        )}
         <Button
           type="submit"
           variant="accent"
@@ -163,12 +134,11 @@ export function ResetPasswordForm() {
           className="w-full"
           loading={isSubmitting}
         >
-          {isSubmitting ? "Resetting password…" : "Reset password"}
+          {isSubmitting ? "Resetting…" : "Reset Password"}
         </Button>
-
         <Button asChild variant="ghost" className="w-full">
           <Link href={ROUTES.LOGIN}>
-            <ArrowLeft className="h-4 w-4 mr-1.5" />
+            <ArrowLeft />
             Back to log in
           </Link>
         </Button>

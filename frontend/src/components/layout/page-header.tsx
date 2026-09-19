@@ -22,7 +22,7 @@ export function PageHeader({
       {...props}
     >
       <div className="space-y-1.5">
-        <h1 className="text-2xl font-bold tracking-tight lg:text-3xl">{title}</h1>
+        <h1 suppressHydrationWarning className="text-2xl font-bold tracking-tight lg:text-3xl">{title}</h1>
         {description ? (
           <p className="max-w-2xl text-sm text-muted-foreground lg:text-base">
             {description}

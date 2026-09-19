@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeftRight, Bell, LogOut, Menu, PanelLeft, Settings, User, Edit3 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +20,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { useAuth, useSidebar } from "@/hooks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { notificationsCleared } from "@/store/slices/notification-slice";
+import { notificationsCleared, notificationsMarkedAllAsRead } from "@/store/slices/notification-slice";
 import {
   selectNotifications,
   selectUnreadNotificationsCount,
@@ -41,7 +42,7 @@ function NotificationsMenu() {
   const unreadCount = useAppSelector(selectUnreadNotificationsCount);
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={(open) => { if (open) dispatch(notificationsMarkedAllAsRead()); }}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -118,8 +119,17 @@ function NotificationsMenu() {
 function UserMenu() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const [mounted, setMounted] = React.useState(false);
 
-  const displayName = user ? `${user.firstName} ${user.lastName}` : "Guest user";
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <Skeleton className="h-9 w-9 rounded-full" />;
+  }
+
+  const displayName = user?.fullName || "Guest user";
   const initials = getInitials(displayName);
 
   const handleLogout = () => {
@@ -159,14 +169,14 @@ function UserMenu() {
           aria-label="Open account menu"
         >
           <Avatar className="h-9 w-9">
-            <AvatarFallback>{initials}</AvatarFallback>
+            <AvatarFallback suppressHydrationWarning>{initials}</AvatarFallback>
           </Avatar>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>
-          <p className="truncate text-sm font-bold">{displayName}</p>
-          <p className="truncate text-xs font-normal text-muted-foreground">
+          <p suppressHydrationWarning className="truncate text-sm font-bold">{displayName}</p>
+          <p suppressHydrationWarning className="truncate text-xs font-normal text-muted-foreground">
             {user?.email ?? "Not signed in"}
           </p>
         </DropdownMenuLabel>

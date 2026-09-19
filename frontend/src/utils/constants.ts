@@ -1,7 +1,8 @@
 export const STORAGE_KEYS = {
   ACCESS_TOKEN: "platform.accessToken",
   REFRESH_TOKEN: "platform.refreshToken",
-  USER: "platform.user",
+  USER: "platform.userData",
+  USER_DATA: "platform.userData",
   SIDEBAR_COLLAPSED: "platform.sidebarCollapsed",
 } as const;
 

@@ -7,7 +7,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { EmptyCard } from "@/components/cards";
 import { bookingsService } from "@/services/sports";
 import { ROUTES } from "@/constants";
-import { formatCurrency, formatDate } from "@/utils/helpers";
+import { formatCurrency } from "@/utils/helpers";
+import { formatDate } from "@/utils/date";
 import { CreditCard, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

@@ -31,11 +31,25 @@ export const selectEventById = (
 ): SportsEvent | undefined =>
   state.sports.events.events.find((e) => e.id === eventId);
 
+const isEventPast = (date?: string, endTime?: string, status?: string) => {
+  if (status === "Completed" || status === "Cancelled") return true;
+  if (!date) return false;
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  if (date < today) return true;
+  if (date > today) return false;
+  if (endTime && /^\d{1,2}:\d{2}$/.test(endTime.trim())) {
+    const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    return endTime.trim() <= currentTime;
+  }
+  return false;
+};
+
 export const selectUpcomingEvents = createSelector(
   [selectAllEvents],
   (events) =>
     events
-      .filter((e) => e.status === "Upcoming" || e.status === "Ongoing" || !e.status)
+      .filter((e) => !isEventPast(e.date, e.endTime, e.status))
       .sort((a, b) => (a.date || "").localeCompare(b.date || ""))
 );
 
@@ -43,7 +57,13 @@ export const selectPastEvents = createSelector(
   [selectAllEvents],
   (events) =>
     events
-      .filter((e) => e.status === "Completed" || e.status === "Cancelled")
+      .filter((e) => isEventPast(e.date, e.endTime, e.status))
+      .map((e) => {
+        if (e.status !== "Cancelled") {
+          return { ...e, status: "Completed" as const };
+        }
+        return e;
+      })
       .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
 );
 
@@ -58,12 +78,22 @@ export const selectPollById = (
 
 export const selectActivePolls = createSelector(
   [selectAllPolls],
-  (polls) => polls.filter((p) => p.status === "Active")
+  (polls) => {
+    const now = new Date();
+    return polls.filter(
+      (p) => p.status === "Active" && (!p.expiresAt || new Date(p.expiresAt) > now)
+    );
+  }
 );
 
 export const selectClosedPolls = createSelector(
   [selectAllPolls],
-  (polls) => polls.filter((p) => p.status === "Closed")
+  (polls) => {
+    const now = new Date();
+    return polls.filter(
+      (p) => p.status === "Closed" || (p.expiresAt && new Date(p.expiresAt) <= now)
+    );
+  }
 );
 
 export const selectAllPayments = (state: RootState): PaymentRequest[] =>
@@ -142,12 +172,11 @@ export const selectUpcomingBookings = createSelector(
   (bookings) => {
     const today = new Date().toISOString().slice(0, 10);
     return bookings
-      .filter(
-        (b) =>
-          (b.status === "Confirmed" || b.status === "Pending") &&
-          b.eventDate >= today
-      )
-      .sort((a, b) => a.eventDate.localeCompare(b.eventDate));
+      .filter((b) => {
+        const status = (b.status || "").toUpperCase();
+        return (status === "CONFIRMED" || status === "PENDING" || status === "HELD") && (b.eventDate || "") >= today;
+      })
+      .sort((a, b) => (a.eventDate || "").localeCompare(b.eventDate || ""));
   }
 );
 
@@ -156,14 +185,16 @@ export const selectPastBookings = createSelector(
   (bookings) => {
     const today = new Date().toISOString().slice(0, 10);
     return bookings
-      .filter(
-        (b) =>
-          !(
-            (b.status === "Confirmed" || b.status === "Pending") &&
-            b.eventDate >= today
-          )
-      )
-      .sort((a, b) => b.eventDate.localeCompare(a.eventDate));
+      .filter((b) => {
+        const status = (b.status || "").toUpperCase();
+        return (
+          status === "COMPLETED" ||
+          status === "CANCELLED" ||
+          status === "REJECTED" ||
+          (b.eventDate || "") < today
+        );
+      })
+      .sort((a, b) => (b.eventDate || "").localeCompare(a.eventDate || ""));
   }
 );
 

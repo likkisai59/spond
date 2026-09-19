@@ -23,7 +23,6 @@ export function ProductShowcase() {
     <section id="products" className="scroll-mt-24 border-t border-border/70 bg-card/60">
       <PageContainer className="py-16 lg:py-24">
         <SectionHeading
-          eyebrow="Two products"
           title="One platform, two worlds"
           description="Pick the workspace that matches your passion — both are powered by the same secure, unified account."
           className="animate-fade-in-up"

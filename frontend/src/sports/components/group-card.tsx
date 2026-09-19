@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CalendarDays, MapPin, Users } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/shared/card";
@@ -23,6 +23,7 @@ export function GroupCard({ group, nextEvent, className }: GroupCardProps) {
     >
       <div className="flex items-start gap-4">
         <Avatar className="h-14 w-14 rounded-2xl">
+          <AvatarImage src={group.logoUrl || (group as any).logo} alt={group.name} />
           <AvatarFallback className="rounded-2xl text-sm">
             {getInitials(group.name)}
           </AvatarFallback>
@@ -65,7 +66,7 @@ export function GroupCard({ group, nextEvent, className }: GroupCardProps) {
       </div>
 
       <Button asChild variant="outline" className="mt-4 w-full rounded-full">
-        <Link href={`${ROUTES.SPORTS_GROUPS}/${group.id}`}>View group</Link>
+        <Link href={`${ROUTES.SPORTS_GROUPS}/${group.id}`} prefetch={true}>View group</Link>
       </Button>
     </Card>
   );

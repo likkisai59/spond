@@ -82,7 +82,8 @@ async def lifespan(app: FastAPI):
             PaymentRepository, TransactionRepository, PaymentReceiptRepository,
             FileRepository, FolderRepository, NotificationRepository, NotificationLogRepository,
             MatchRepository, MatchSummaryRepository, PlayerStatsRepository,
-            DashboardAnalyticsRepository
+            DashboardAnalyticsRepository,
+            ConversationRepository, MessageRepository
         )
         from src.repositories.eventhub import EventHubEventRepository
 
@@ -94,7 +95,8 @@ async def lifespan(app: FastAPI):
             PaymentRepository(), TransactionRepository(), PaymentReceiptRepository(),
             FileRepository(), FolderRepository(), NotificationRepository(), NotificationLogRepository(),
             MatchRepository(), MatchSummaryRepository(), PlayerStatsRepository(),
-            DashboardAnalyticsRepository()
+            DashboardAnalyticsRepository(),
+            ConversationRepository(), MessageRepository()
         ):
             await repo.ensure_indexes()
         await RoleService().seed_roles()

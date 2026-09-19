@@ -45,7 +45,13 @@ import { formatCurrency } from "@/utils/helpers";
 export function SportsDashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
-  
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+
   const [realStats, setRealStats] = useState({
     groups: 0,
     events: 0,
@@ -100,6 +106,10 @@ export function SportsDashboardPage() {
   const dashboardPolls = activePolls.slice(0, 2);
   const dueAmount = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
 
+  if (user?.role === "venue_owner") {
+    return null;
+  }
+
   return (
     <PageContainer as="main">
       <Breadcrumb
@@ -112,7 +122,7 @@ export function SportsDashboardPage() {
       />
 
       <PageHeader
-        title={`Welcome back, ${user?.firstName ?? "Coach"}`}
+        title={`Welcome back, ${mounted && user?.fullName ? user.fullName.split(" ")[0] : "Coach"}`}
         description="Here's what's happening across your groups today."
         actions={
           <>

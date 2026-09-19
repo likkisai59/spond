@@ -17,12 +17,12 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         <Logo inverted />
 
         <div className="relative z-10 max-w-md space-y-4">
-          <h2 className="text-4xl font-extrabold leading-tight tracking-tight text-white">
+          <h2 className="text-4xl font-extrabold leading-tight tracking-tight text-pink-300">
             One platform.
             <br />
             <span className="text-brand-gradient">Two products.</span>
           </h2>
-          <p className="text-base leading-relaxed text-white/70">
+          <p className="text-base leading-relaxed text-black">
             Manage your sports organization and grow your band career — all from
             a single, unified account.
           </p>

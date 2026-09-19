@@ -23,6 +23,10 @@ const STATUS_VARIANTS: Record<
   Available: "success",
   Limited: "warning",
   Booked: "secondary",
+  PENDING: "warning",
+  CONFIRMED: "success",
+  REJECTED: "destructive",
+  HELD: "warning",
 };
 
 export interface StatusBadgeProps {

@@ -1,13 +1,14 @@
 "use client";
 
-import { UserX } from "lucide-react";
+import { useState } from "react";
+import { UserX, Send } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/shared/card";
 import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { memberRemoved } from "@/store/sports/groups-slice";
+import { memberRemoved, addMemberThunk } from "@/store/sports/groups-slice";
 import { StatusBadge } from "./status-badge";
 import { getInitials } from "@/utils/helpers";
 import type { GroupMember } from "@/types";
@@ -27,15 +28,56 @@ export function MemberCard({
   className,
 }: MemberCardProps) {
   const dispatch = useAppDispatch();
+  const [isResending, setIsResending] = useState(false);
 
-  const handleInvite = () => {
-    dispatch(
-      notificationAdded({
-        title: "Invite triggered",
-        message: `Invitation flow for ${member.name} will be wired to the messaging service.`,
-        variant: "info",
-      })
-    );
+  const isOwner = member.role?.toLowerCase() === "owner";
+  const isPendingOrInvited =
+    member.status?.toLowerCase() === "pending" ||
+    member.status?.toLowerCase() === "invited";
+
+  const handleResendInvite = async () => {
+    if (!member.email) {
+      dispatch(
+        notificationAdded({
+          title: "Cannot resend",
+          message: "No email address found for this member.",
+          variant: "error",
+        })
+      );
+      return;
+    }
+
+    try {
+      setIsResending(true);
+      await dispatch(
+        addMemberThunk({
+          groupId,
+          input: {
+            name: member.name,
+            email: member.email,
+            role: member.role,
+          },
+        })
+      ).unwrap();
+
+      dispatch(
+        notificationAdded({
+          title: "Invitation resent",
+          message: `A fresh invitation email has been sent to ${member.email}.`,
+          variant: "success",
+        })
+      );
+    } catch (error: any) {
+      dispatch(
+        notificationAdded({
+          title: "Failed to resend",
+          message: error?.message || "Could not resend invitation email.",
+          variant: "error",
+        })
+      );
+    } finally {
+      setIsResending(false);
+    }
   };
 
   const handleRemove = () => {
@@ -43,7 +85,7 @@ export function MemberCard({
     dispatch(
       notificationAdded({
         title: "Member removed",
-        message: `${member.name} was removed from the group (demo mode).`,
+        message: `${member.name} was removed from the group.`,
         variant: "warning",
       })
     );
@@ -69,25 +111,31 @@ export function MemberCard({
         <StatusBadge status={member.status} />
       </div>
 
-      {canManage ? (
+      {canManage && !isOwner ? (
         <div className="mt-auto flex gap-2 pt-4">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 rounded-full"
-            onClick={handleInvite}
-            disabled={member.status === "Active"}
-          >
-            Invite
-          </Button>
+          {isPendingOrInvited ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 rounded-full text-xs font-semibold"
+              onClick={handleResendInvite}
+              disabled={isResending}
+            >
+              <Send className="mr-1.5 h-3.5 w-3.5" />
+              {isResending ? "Sending…" : "Resend"}
+            </Button>
+          ) : null}
           <Button
             variant="ghost"
             size="sm"
-            className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+            className={cn(
+              "rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive",
+              !isPendingOrInvited && "w-full justify-center"
+            )}
             onClick={handleRemove}
             aria-label={`Remove ${member.name}`}
           >
-            <UserX />
+            <UserX className="h-4 w-4" />
             Remove
           </Button>
         </div>

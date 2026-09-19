@@ -63,6 +63,7 @@ class PaymentService:
         
         payment = await self.get_payment(created["id"])
         payment["razorpay_order_id"] = order_id
+        payment["razorpay_key_id"] = self.key_id
         return payment
 
     async def verify_signature(self, data: VerifyPaymentRequest) -> dict:

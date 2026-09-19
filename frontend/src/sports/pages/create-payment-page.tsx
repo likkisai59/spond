@@ -30,12 +30,15 @@ export function CreatePaymentPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const groups = useAppSelector(selectAllGroups);
+  const today = new Date().toLocaleDateString("en-CA");
+
+  const groupsStatus = useAppSelector((state) => state.sports.groups.status);
 
   useEffect(() => {
-    if (groups.length === 0) {
+    if (groupsStatus === "idle" || groupsStatus === "failed") {
       dispatch(fetchGroupsThunk());
     }
-  }, [dispatch, groups.length]);
+  }, [dispatch, groupsStatus]);
 
   const form = useForm<CreatePaymentFormData>({
     resolver: zodResolver(createPaymentSchema),
@@ -134,13 +137,14 @@ export function CreatePaymentPage() {
                 step="1"
                 min="1"
                 placeholder="e.g. 1200"
+                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               <FormInput
                 control={control}
                 name="dueDate"
                 label="Due date"
                 type="date"
-                min={new Date().toISOString().split("T")[0]}
+                min={today}
               />
             </div>
 

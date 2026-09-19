@@ -8,12 +8,12 @@ export function ResetPasswordPage() {
   return (
     <AuthPageShell
       title="Reset your password"
-      description="Choose a strong new password for your account."
+      description="Enter your new password below to update your account."
     >
       <Suspense
         fallback={
-          <div className="py-8 text-center text-sm text-muted-foreground animate-pulse">
-            Loading reset form…
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            Loading…
           </div>
         }
       >

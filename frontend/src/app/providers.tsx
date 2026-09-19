@@ -14,6 +14,8 @@ import { STORAGE_KEYS } from "@/utils/constants";
 import { storage } from "@/utils/storage";
 import type { User } from "@/types";
 
+import { AuthProvider } from "@/providers/auth-provider";
+
 export function createQueryClient(): QueryClient {
   return new QueryClient({
     defaultOptions: {
@@ -75,8 +77,10 @@ export function Providers({ children }: ProvidersProps) {
       >
         <QueryClientProvider client={queryClient}>
           <TooltipProvider delayDuration={200}>
-            {children}
-            <Toaster position="top-right" />
+            <AuthProvider>
+              {children}
+              <Toaster position="top-right" />
+            </AuthProvider>
           </TooltipProvider>
           {process.env.NODE_ENV === "development" ? (
             <ReactQueryDevtools initialIsOpen={false} />

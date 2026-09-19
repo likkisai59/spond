@@ -30,3 +30,7 @@ yarn-error.log*
 next-env.d.ts
 test-results/
 .last-run.json
+
+# Test coverage
+coverage/
+*.lcov

@@ -11,6 +11,10 @@ from src.schemas import (
     MessageResponse,
     RefreshTokenRequest,
     RegisterRequest,
+    RequestOtpRequest,
+    VerifyOtpRequest,
+    VerifyOtpResponse,
+    CompleteSignupRequest,
     ResetPasswordRequest,
     TokenPairResponse,
 )
@@ -36,6 +40,40 @@ async def register(payload: RegisterRequest) -> dict:
         password=payload.password,
         phone=payload.phone,
         accessible_modules=list(payload.accessible_modules),
+        role=payload.role,
+    )
+    return _ok(TokenPairResponse(**session).model_dump(mode="json"), 201)
+
+
+@router.post(
+    "/request-otp",
+    summary="Request OTP for signup",
+)
+async def request_otp(payload: RequestOtpRequest) -> dict:
+    await AuthService().request_otp(email=payload.email)
+    return _ok(MessageResponse(message="If the email is valid, an OTP will be sent").model_dump())
+
+
+@router.post(
+    "/verify-otp",
+    summary="Verify OTP and get signup token",
+)
+async def verify_otp(payload: VerifyOtpRequest) -> dict:
+    token = await AuthService().verify_otp(email=payload.email, otp=payload.otp)
+    return _ok(VerifyOtpResponse(signup_token=token).model_dump())
+
+
+@router.post(
+    "/complete-signup",
+    summary="Complete signup with token and profile info",
+)
+async def complete_signup(payload: CompleteSignupRequest) -> dict:
+    session = await AuthService().complete_signup(
+        signup_token=payload.signup_token,
+        full_name=payload.full_name,
+        password=payload.password,
+        phone=payload.phone,
+        accessible_modules=payload.accessible_modules,
         role=payload.role,
     )
     return _ok(TokenPairResponse(**session).model_dump(mode="json"), 201)

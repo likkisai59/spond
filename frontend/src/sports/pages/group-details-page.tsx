@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageContainer } from "@/components/layout/page-container";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyCard } from "@/components/cards";
@@ -87,12 +87,16 @@ export function GroupDetailsPage() {
     () => files.filter((file) => file.groupId === groupId),
     [files, groupId]
   );
+  const [customPosts, setCustomPosts] = useState<any[]>([]);
+  const [newPostContent, setNewPostContent] = useState("");
+  const [showNewPostInput, setShowNewPostInput] = useState(false);
+
   const groupPosts = useMemo(
     () =>
-      MOCK_POSTS.filter((post) => post.groupId === groupId).sort((a, b) =>
+      [...customPosts, ...MOCK_POSTS.filter((post) => post.groupId === groupId)].sort((a, b) =>
         b.createdAt.localeCompare(a.createdAt)
       ),
-    [groupId]
+    [groupId, customPosts]
   );
 
   const filteredMembers = useMemo(() => {
@@ -167,6 +171,7 @@ export function GroupDetailsPage() {
         </div>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
           <Avatar className="h-20 w-20 rounded-3xl">
+            <AvatarImage src={group.logoUrl || (group as any).logo} alt={group.name} />
             <AvatarFallback className="rounded-3xl text-xl">
               {getInitials(group.name)}
             </AvatarFallback>
@@ -434,7 +439,72 @@ export function GroupDetailsPage() {
           />
         </TabsContent>
 
-        <TabsContent value="posts" className="space-y-3">
+        <TabsContent value="posts" className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-base font-bold">Recent announcements & posts</h3>
+            <Button
+              variant="accent"
+              size="sm"
+              onClick={() => setShowNewPostInput((prev) => !prev)}
+            >
+              <Plus className="mr-1.5 h-4 w-4" /> Create post
+            </Button>
+          </div>
+
+          {showNewPostInput ? (
+            <Card className="p-4 space-y-3 animate-fade-in-up border-accent/40">
+              <textarea
+                value={newPostContent}
+                onChange={(e) => setNewPostContent(e.target.value)}
+                placeholder="Write an announcement or message for the group..."
+                rows={3}
+                className="w-full rounded-lg border border-border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowNewPostInput(false);
+                    setNewPostContent("");
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="accent"
+                  size="sm"
+                  disabled={!newPostContent.trim()}
+                  onClick={() => {
+                    if (!newPostContent.trim()) return;
+                    setCustomPosts((prev) => [
+                      {
+                        id: `post-${Date.now()}`,
+                        groupId,
+                        author: "You",
+                        content: newPostContent.trim(),
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                      },
+                      ...prev,
+                    ]);
+                    setNewPostContent("");
+                    setShowNewPostInput(false);
+                    dispatch(
+                      notificationAdded({
+                        title: "Post created",
+                        message: "Your post was shared with the group.",
+                        variant: "success",
+                      })
+                    );
+                  }}
+                >
+                  Publish post
+                </Button>
+              </div>
+            </Card>
+          ) : null}
+
           {groupPosts.length > 0 ? (
             groupPosts.map((post) => (
               <Card key={post.id} className="p-5">

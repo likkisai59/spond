@@ -13,6 +13,8 @@ export interface EventsService {
   update(id: string, input: unknown): Promise<ApiResponse<SportsEvent>>;
   delete(id: string): Promise<ApiResponse<void>>;
   setAttendance(id: string, response: unknown): Promise<ApiResponse<SportsEvent>>;
+  markAttendance(data: unknown): Promise<ApiResponse<any>>;
+  getAttendance(eventId: string): Promise<ApiResponse<{ items: any[] }>>;
 }
 
 export const eventsService: EventsService = {
@@ -38,6 +40,14 @@ export const eventsService: EventsService = {
   },
   setAttendance: async (id, response) => {
     const { data } = await apiClient.post(`/api/v1/sports/events/${id}/rsvp`, response);
+    return data;
+  },
+  markAttendance: async (payload) => {
+    const { data } = await apiClient.post("/api/v1/sports/attendance", payload);
+    return data;
+  },
+  getAttendance: async (eventId: string) => {
+    const { data } = await apiClient.get("/api/v1/sports/attendance", { params: { eventId } });
     return data;
   },
 };

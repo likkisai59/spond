@@ -3,6 +3,7 @@ USERS = "users"
 ROLES = "roles"
 REFRESH_TOKENS = "refresh_tokens"
 AUDIT_LOGS = "audit_logs"
+OTPS = "otps"
 
 # Sports Module Collections
 SPORTS_GROUPS = "sports_groups"
@@ -14,6 +15,9 @@ SPORTS_VENUES = "sports_venues"
 SPORTS_VENUE_SLOTS = "sports_venue_slots"
 SPORTS_BOOKINGS = "sports_bookings"
 SPORTS_PAYMENT_REQUESTS = "sports_payment_requests"
+# Messages Module Collections
+CONVERSATIONS = "conversations"
+MESSAGES = "messages"
 
 # Band & EventHub Module Collections
 BAND_ARTISTS = "artists"

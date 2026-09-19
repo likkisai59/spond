@@ -7,9 +7,9 @@ import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Form, FormInput } from "@/components/forms";
+import { authService } from "@/services";
 import { forgotPasswordSchema, type ForgotPasswordFormData } from "../schemas";
 import { ROUTES } from "@/constants";
-import { authService } from "@/services";
 import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import toast from "react-hot-toast";
@@ -72,6 +72,7 @@ export function ForgotPasswordForm() {
   const dispatch = useAppDispatch();
   const [sentEmail, setSentEmail] = useState<string | null>(null);
   const [resetToken, setResetToken] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const form = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -86,6 +87,7 @@ export function ForgotPasswordForm() {
   } = form;
 
   const onSubmit: SubmitHandler<ForgotPasswordFormData> = async (data) => {
+    setErrorMessage(null);
     try {
       const res = await authService.forgotPassword({ email: data.email });
       const token = res?.resetToken || res?.reset_token || null;
@@ -101,13 +103,13 @@ export function ForgotPasswordForm() {
         })
       );
     } catch (error: unknown) {
-      const message =
-        error instanceof Error ? error.message : "Failed to send reset link. Please try again.";
-      toast.error(message);
+      const msg = error instanceof Error ? error.message : "Failed to send reset link. Please try again.";
+      setErrorMessage(msg);
+      toast.error(msg);
       dispatch(
         notificationAdded({
           title: "Request failed",
-          message,
+          message: msg,
           variant: "error",
         })
       );
@@ -146,6 +148,11 @@ export function ForgotPasswordForm() {
           autoComplete="email"
           description="Enter the email address associated with your account."
         />
+        {errorMessage && (
+          <p className="text-center text-xs sm:text-sm font-semibold text-destructive animate-fade-in-up">
+            {errorMessage}
+          </p>
+        )}
         <Button
           type="submit"
           variant="accent"

@@ -35,11 +35,13 @@ export function DashboardLayout({
     setMounted(true);
   }, []);
 
-  const effectiveRole = user?.role || (pathname.includes("/band/artist") || pathname.includes("/band/bands") ? "artist" : pathname.includes("/band/venue") ? "venue_owner" : "client");
+  const effectiveRole = user?.role || (pathname?.includes("/band/artist") || pathname?.includes("/band/bands") ? "artist" : pathname?.includes("/band/venue") ? "venue_owner" : "client");
 
   const sections =
-    product === "sports"
-      ? effectiveRole === "venue_owner"
+    !mounted
+      ? []
+      : product === "sports"
+      ? user?.role === "venue_owner"
         ? OWNER_NAV
         : SPORTS_NAV
       : effectiveRole === "artist" || effectiveRole === "band"

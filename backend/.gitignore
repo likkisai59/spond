@@ -5,3 +5,8 @@ __pycache__/
 .env
 .pytest_cache/
 .ruff_cache/
+
+# Coverage
+.coverage
+htmlcov/
+.coverage.*

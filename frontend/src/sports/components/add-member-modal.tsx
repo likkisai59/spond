@@ -15,7 +15,7 @@ import {
 import { Form, FormInput, FormSelect } from "@/components/forms";
 import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { memberAdded } from "@/store/sports/groups-slice";
+import { addMemberThunk } from "@/store/sports/groups-slice";
 import { addMemberSchema, type AddMemberFormData } from "../schemas";
 import { MEMBER_ROLES } from "@/types";
 
@@ -47,28 +47,36 @@ export function AddMemberModal({
   };
 
   const onSubmit = async (data: AddMemberFormData) => {
-    dispatch(
-      memberAdded({
-        groupId,
-        member: {
-          id: `mem-${Date.now()}`,
-          name: data.name.trim(),
-          email: data.email.trim(),
-          role: data.role,
-          status: "Invited",
-          joinedAt: new Date().toISOString().slice(0, 10),
-        },
-      })
-    );
-    dispatch(
-      notificationAdded({
-        title: "Member invited",
-        message: `${data.name.trim()} was invited to ${groupName} as ${data.role} (demo mode).`,
-        variant: "success",
-      })
-    );
-    reset();
-    onOpenChange(false);
+    try {
+      await dispatch(
+        addMemberThunk({
+          groupId,
+          input: {
+            name: data.name.trim(),
+            email: data.email.trim(),
+            role: data.role,
+          },
+        })
+      ).unwrap();
+
+      dispatch(
+        notificationAdded({
+          title: "Invitation sent",
+          message: `An invitation email has been sent to ${data.email.trim()}. Status will show as Pending until accepted.`,
+          variant: "success",
+        })
+      );
+      reset();
+      onOpenChange(false);
+    } catch (error: any) {
+      dispatch(
+        notificationAdded({
+          title: "Error adding member",
+          message: error.message || "Something went wrong",
+          variant: "error",
+        })
+      );
+    }
   };
 
   return (
@@ -77,8 +85,7 @@ export function AddMemberModal({
         <ModalHeader>
           <ModalTitle>Add member</ModalTitle>
           <ModalDescription>
-            Invite a new member to {groupName}. They appear with status
-            “Invited” until they join (demo mode).
+            Invite a new member to {groupName}. An invitation email with Accept and Reject buttons will be sent to their email address.
           </ModalDescription>
         </ModalHeader>
 

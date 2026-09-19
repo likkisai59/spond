@@ -9,6 +9,7 @@ from src.modules.sports.routes import router as sports_router
 
 from src.modules.payments.routes import router as payments_router
 from src.modules.files.routes import router as files_router
+from src.modules.messages.routes import router as messages_router
 from src.modules.notifications.routes import router as notifications_router
 from src.modules.sports.matches import router as matches_router
 from src.modules.sports.analytics import router as sports_analytics_router
@@ -29,6 +30,7 @@ def get_v1_router() -> APIRouter:
     router.include_router(eventhub_router)
     router.include_router(band_router)
     router.include_router(payments_router)
+    router.include_router(messages_router)
     router.include_router(files_router)
     router.include_router(notifications_router)
     return router

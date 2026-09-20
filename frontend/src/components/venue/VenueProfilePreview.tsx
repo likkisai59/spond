@@ -309,7 +309,7 @@ export function VenueProfilePreview({ profile }: VenueProfilePreviewProps) {
               <div className="space-y-3 text-xs text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                  <span className="font-bold text-foreground">{profile.user.name}</span>
+                  <span className="font-bold text-foreground">{profile.user?.name || "Unknown Representative"}</span>
                 </div>
                 {profile.business_name && <p className="pl-6">Business Name: {profile.business_name}</p>}
                 {profile.metadata_fields?.contact_person && (
@@ -317,7 +317,7 @@ export function VenueProfilePreview({ profile }: VenueProfilePreviewProps) {
                 )}
                 <div className="flex items-center gap-2 pl-6 pt-1">
                   <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>{profile.user.email}</span>
+                  <span>{profile.user?.email || "No email provided"}</span>
                 </div>
               </div>
             </CardContent>

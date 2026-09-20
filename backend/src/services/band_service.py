@@ -88,6 +88,14 @@ class BandService:
                 venue["capacity"] = venue.get("max_capacity") or venue.get("min_capacity") or 0
             if not venue.get("city"):
                 venue["city"] = venue.get("district") or venue.get("state") or venue.get("address") or ""
+            
+            # Attach user profile for public display
+            if venue.get("created_by"):
+                user = await self.users.find_by_id(venue["created_by"])
+                user_name = user.get("full_name", "") if user else ""
+                user_email = user.get("email", "") if user else ""
+                venue["user"] = {"id": venue["created_by"], "name": user_name, "email": user_email, "role": "venue"}
+                
         return venue
 
     async def get_venue(self, venue_id: str) -> Dict:

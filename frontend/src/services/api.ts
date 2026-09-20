@@ -109,9 +109,9 @@ api.interceptors.response.use(
           storage.remove(STORAGE_KEYS.ACCESS_TOKEN);
           storage.remove(STORAGE_KEYS.REFRESH_TOKEN);
           storage.remove(STORAGE_KEYS.USER);
-          if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-            window.location.href = "/login";
-          }
+          // if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+          //   window.location.href = "/login";
+          // }
           return Promise.reject(refreshErr);
         } finally {
           isRefreshing = false;
@@ -119,9 +119,9 @@ api.interceptors.response.use(
       } else {
         storage.remove(STORAGE_KEYS.ACCESS_TOKEN);
         storage.remove(STORAGE_KEYS.USER);
-        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-          window.location.href = "/login";
-        }
+        // if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+        //   window.location.href = "/login";
+        // }
       }
     }
     return Promise.reject(error);

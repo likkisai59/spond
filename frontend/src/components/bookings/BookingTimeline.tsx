@@ -26,7 +26,8 @@ export function BookingTimeline({ events }: BookingTimelineProps) {
     }
   };
 
-  const sortedEvents = [...events].sort(
+  const safeEvents = Array.isArray(events) ? events : [];
+  const sortedEvents = [...safeEvents].sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
   );
 

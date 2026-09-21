@@ -23,6 +23,11 @@ const nextConfig: NextConfig = {
         source: "/api/:path*",
         destination: `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/:path*`,
       },
+      {
+        // Proxy /uploads/* to FastAPI backend to resolve image 404 errors
+        source: "/uploads/:path*",
+        destination: `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/uploads/:path*`,
+      },
     ];
   },
 };

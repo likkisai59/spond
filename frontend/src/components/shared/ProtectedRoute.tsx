@@ -5,7 +5,7 @@
  */
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader as Spinner } from "@/components/ui/loader";
 
@@ -20,6 +20,8 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -41,8 +43,14 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     }
 
     // Unauthenticated fallback
-    router.replace("/login");
-  }, [user, isPending, allowedRoles, router]);
+    let loginUrl = "/login";
+    if (pathname && pathname !== "/") {
+      const search = searchParams?.toString();
+      const currentUrl = search ? `${pathname}?${search}` : pathname;
+      loginUrl = `/login?callbackUrl=${encodeURIComponent(currentUrl)}`;
+    }
+    router.replace(loginUrl);
+  }, [user, isPending, allowedRoles, router, pathname, searchParams]);
 
   const isAuthorized = React.useMemo(() => {
     if (isPending) return false;

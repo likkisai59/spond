@@ -113,6 +113,7 @@ export function CreateGroupPage() {
   const onSubmit: SubmitHandler<CreateGroupFormData> = async (data) => {
     try {
       const actionResult = await dispatch(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         createGroupThunk({ ...data, logoUrl: logoPreview || undefined } as any)
       ).unwrap();
       dispatch(
@@ -123,6 +124,7 @@ export function CreateGroupPage() {
         })
       );
       router.push(`${ROUTES.SPORTS_GROUPS}/${actionResult.id}`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const msg: string = error?.message || "Failed to create group";
 

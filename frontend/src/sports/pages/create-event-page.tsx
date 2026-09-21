@@ -89,6 +89,7 @@ export function CreateEventPage() {
         })
       );
       router.push(`${ROUTES.SPORTS_EVENTS}/${actionResult.id}`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       dispatch(
         notificationAdded({

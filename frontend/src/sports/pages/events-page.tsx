@@ -33,7 +33,7 @@ export function EventsPage() {
   const dispatch = useAppDispatch();
   const upcoming = useAppSelector(selectUpcomingEvents);
   const past = useAppSelector(selectPastEvents);
-  const groups = useAppSelector(selectAllGroups);
+  const _groups = useAppSelector(selectAllGroups);
   const [search, setSearch] = useState("");
   const [type, setType] = useState<EventType | "all">("all");
   const debouncedSearch = useDebounce(search, 250);

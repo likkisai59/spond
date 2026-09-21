@@ -1,4 +1,4 @@
-// @ts-nocheck
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import * as React from "react";
@@ -200,8 +200,9 @@ export function BookingDetailsDialog({
       setCancelConfirmOpen(false);
       setCancelReason("");
       if (onRefresh) onRefresh();
-    } catch (err: any) {
-      const msg = err.response?.data?.message || "Failed to cancel booking.";
+    } catch (err) {
+      const error = err as { response?: { data?: { message?: string } } };
+      const msg = error.response?.data?.message || "Failed to cancel booking.";
       toast.error(msg);
     } finally {
       setActioning(false);
@@ -495,7 +496,7 @@ export function BookingDetailsDialog({
                           negotiation chat.
                         </p>
                       ) : (
-                        booking.booking_notes.map((note: any) => (
+                        (Array.isArray(booking?.booking_notes) ? booking.booking_notes : []).map((note: any) => (
                           <div
                             key={note.id}
                             className={`p-3 rounded-xl border flex flex-col gap-1 ${
@@ -543,7 +544,7 @@ export function BookingDetailsDialog({
                   <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
                     Request Timeline Flow
                   </h4>
-                  <BookingTimeline events={booking.timeline_events} />
+                  <BookingTimeline events={Array.isArray(booking.timeline_events) ? booking.timeline_events : []} />
                 </div>
               </div>
             </div>

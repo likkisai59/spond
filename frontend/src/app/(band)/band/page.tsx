@@ -3,50 +3,25 @@
 import Link from "next/link";
 import { Sparkles, Music, Star, ShieldCheck, Zap, Globe, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ParticleBackground } from "@/components/shared/ParticleBackground";
 import { HeroSection } from "@/components/shared/HeroSection";
 import { AnimatedCard } from "@/components/shared/AnimatedCard";
 import { AnimatedSection } from "@/components/shared/AnimatedSection";
 import { GradientBlob } from "@/components/shared/GradientBlob";
-import { FloatingOrb } from "@/components/shared/FloatingOrb";
 import { motion } from "framer-motion";
 
 export default function LandingPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-bg-primary via-bg-primary to-bg-elevated">
-      {/* Particle Background */}
-      <ParticleBackground />
-
-      {/* Animated gradient blobs */}
+    <div className="relative min-h-screen overflow-hidden bg-background">
+      {/* Subtle background glow */}
       <GradientBlob
-        className="top-0 left-0 w-96 h-96"
-        colors={["#7c3aed", "#06b6d4"]}
-        intensity="high"
+        className="top-0 left-0 w-[800px] h-[800px] opacity-20 mix-blend-screen"
+        colors={["#ff5e8a", "transparent"]}
+        intensity="low"
       />
       <GradientBlob
-        className="bottom-0 right-0 w-80 h-80"
-        colors={["#06b6d4", "#7c3aed"]}
-        intensity="medium"
-      />
-
-      {/* Floating orbs */}
-      <FloatingOrb
-        size="lg"
-        color="#7c3aed"
-        duration={20}
-        x={100}
-        y={200}
-        delay={0}
-        className="top-20 right-20 opacity-30"
-      />
-      <FloatingOrb
-        size="md"
-        color="#06b6d4"
-        duration={15}
-        x={-100}
-        y={-200}
-        delay={2}
-        className="bottom-40 left-10 opacity-20"
+        className="bottom-0 right-0 w-[600px] h-[600px] opacity-20 mix-blend-screen"
+        colors={["#ffc3a0", "transparent"]}
+        intensity="low"
       />
 
       {/* Hero Section with Animated Content */}
@@ -64,7 +39,7 @@ export default function LandingPage() {
             <Link href="/band/marketplace/artists" className="w-full sm:w-auto block">
               <Button
                 size="lg"
-                className="w-full text-base font-bold h-12 px-6 bg-gradient-to-r from-primary to-cyan-500 hover:from-primary hover:to-cyan-600 shadow-lg hover:shadow-xl transition-all"
+                className="w-full text-base font-bold h-12 px-6 bg-gradient-to-r from-brand-gradient-start to-brand-gradient-end text-white hover:opacity-90 shadow-lg transition-all"
               >
                 <Music className="mr-2 h-5 w-5" />
                 Explore Bands
@@ -80,7 +55,7 @@ export default function LandingPage() {
             <Link href="/band/marketplace/venues" className="w-full sm:w-auto block">
               <Button
                 size="lg"
-                className="w-full text-base font-bold h-12 px-6 bg-gradient-to-r from-cyan-500 to-primary hover:from-cyan-600 hover:to-primary shadow-lg hover:shadow-xl transition-all"
+                className="w-full text-base font-bold h-12 px-6 bg-secondary/50 border border-secondary hover:bg-secondary text-foreground shadow-sm transition-all"
               >
                 <Globe className="mr-2 h-5 w-5" />
                 Find Venues
@@ -115,10 +90,8 @@ export default function LandingPage() {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-black mb-4 gradient-text">
-            Why Choose BandConnect?
-          </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-black mb-4">Why Choose EventHub?</h2>
+          <p className="text-xl text-muted-foreground">
             Everything you need to book the perfect live band experience
           </p>
         </motion.div>
@@ -132,7 +105,7 @@ export default function LandingPage() {
             >
               <motion.div
                 whileHover={{ scale: 1.2, rotate: 360 }}
-                className="p-4 bg-gradient-to-r from-primary/20 to-cyan-500/20 rounded-2xl w-16 h-16 flex items-center justify-center border border-primary/30 mb-6"
+                className="p-4 bg-gradient-to-r from-primary/20 to-brand-gradient-end/20 rounded-2xl w-16 h-16 flex items-center justify-center border border-primary/30 mb-6"
               >
                 <Music className="h-7 w-7 text-primary" />
               </motion.div>
@@ -153,11 +126,11 @@ export default function LandingPage() {
             >
               <motion.div
                 whileHover={{ scale: 1.2, rotate: 360 }}
-                className="p-4 bg-gradient-to-r from-cyan-500/20 to-primary/20 rounded-2xl w-16 h-16 flex items-center justify-center border border-cyan-500/30 mb-6"
+                className="p-4 bg-gradient-to-r from-brand-gradient-end/20 to-primary/20 rounded-2xl w-16 h-16 flex items-center justify-center border border-brand-gradient-end/30 mb-6"
               >
-                <ShieldCheck className="h-7 w-7 text-cyan-400" />
+                <ShieldCheck className="h-7 w-7 text-brand-gradient-end" />
               </motion.div>
-              <h3 className="text-2xl font-bold mb-3 group-hover:text-cyan-400 transition-colors">
+              <h3 className="text-2xl font-bold mb-3 group-hover:text-brand-gradient-end transition-colors">
                 Secure Escrow Payouts
               </h3>
               <p className="text-muted-foreground leading-relaxed">
@@ -174,11 +147,11 @@ export default function LandingPage() {
             >
               <motion.div
                 whileHover={{ scale: 1.2, rotate: 360 }}
-                className="p-4 bg-gradient-to-r from-primary/20 to-cyan-500/20 rounded-2xl w-16 h-16 flex items-center justify-center border border-primary/30 mb-6"
+                className="p-4 bg-gradient-to-r from-primary/20 to-brand-gradient-start/20 rounded-2xl w-16 h-16 flex items-center justify-center border border-primary/30 mb-6"
               >
-                <Star className="h-7 w-7 text-yellow-400" />
+                <Star className="h-7 w-7 text-brand-gradient-start" />
               </motion.div>
-              <h3 className="text-2xl font-bold mb-3 group-hover:text-yellow-400 transition-colors">
+              <h3 className="text-2xl font-bold mb-3 group-hover:text-brand-gradient-start transition-colors">
                 Verified Ratings
               </h3>
               <p className="text-muted-foreground leading-relaxed">
@@ -212,12 +185,12 @@ export default function LandingPage() {
 
           <motion.div
             whileHover={{ scale: 1.05, y: -5 }}
-            className="bg-card/50 backdrop-blur-md p-8 rounded-2xl text-center border border-cyan-500/20 hover:border-cyan-500/50"
+            className="bg-card/50 backdrop-blur-md p-8 rounded-2xl text-center border border-brand-gradient-end/20 hover:border-brand-gradient-end/50"
           >
             <motion.div
               animate={{ rotate: -360 }}
               transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="text-5xl font-black mb-3 text-cyan-400"
+              className="text-5xl font-black mb-3 text-brand-gradient-end"
             >
               1000+
             </motion.div>
@@ -252,7 +225,7 @@ export default function LandingPage() {
           <motion.h2
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
-            className="text-4xl md:text-5xl font-black mb-6 bg-gradient-to-r from-primary via-cyan-400 to-primary bg-clip-text text-transparent"
+            className="text-4xl md:text-5xl font-black mb-6 bg-gradient-to-r from-brand-gradient-start to-brand-gradient-end bg-clip-text text-transparent"
           >
             Ready to Find Your Perfect Band?
           </motion.h2>
@@ -275,7 +248,7 @@ export default function LandingPage() {
             <Link href="/band/marketplace/artists">
               <Button
                 size="lg"
-                className="text-lg font-bold px-8 py-6 h-auto bg-gradient-to-r from-primary to-cyan-500 hover:from-primary hover:to-cyan-600 shadow-xl hover:shadow-2xl transition-all"
+                className="text-lg font-bold px-8 py-6 h-auto bg-gradient-to-r from-brand-gradient-start to-brand-gradient-end text-white hover:opacity-90 shadow-xl hover:shadow-2xl transition-all"
               >
                 <Zap className="mr-2 h-6 w-6" />
                 Start Exploring Now

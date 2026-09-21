@@ -24,7 +24,6 @@ import {
   selectActivePolls,
   selectPendingPayments,
   selectRecentActivity,
-  selectSportsStats,
   selectUpcomingEvents,
   selectAllGroups,
 } from "@/store/sports/selectors";
@@ -61,22 +60,7 @@ export function SportsDashboardPage() {
   });
 
   useEffect(() => {
-    if (user?.role === "client") {
-      router.replace("/band/client/dashboard");
-      return;
-    }
-    if (user?.role === "artist") {
-      router.replace("/band/artist/dashboard");
-      return;
-    }
-    if (user?.role === "venue_owner") {
-      router.replace("/band/venue/dashboard");
-      return;
-    }
-    if (user?.role === "band") {
-      router.replace("/band/artist/dashboard");
-      return;
-    }
+
     const fetchStats = async () => {
       try {
         const response = await apiClient.get("/api/v1/sports/dashboard");
@@ -88,7 +72,7 @@ export function SportsDashboardPage() {
           paymentsDue: data.paymentsDue || 0,
           unreadMessages: data.unreadMessages || 0,
         });
-      } catch (error) {
+      } catch (_error) {
         // Silently fallback to defaults on sports dashboard
       }
     };

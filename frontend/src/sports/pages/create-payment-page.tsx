@@ -71,6 +71,7 @@ export function CreatePaymentPage() {
         })
       );
       router.push(ROUTES.SPORTS_PAYMENTS);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       dispatch(
         notificationAdded({

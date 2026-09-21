@@ -846,7 +846,7 @@ class BandService:
 
         if provider_doc:
             blackouts = provider_doc.get("blackout_dates") or []
-            if str(event_date) in [str(d) for d in blackouts]:
+            if event_date in [str(d) for d in blackouts]:
                 return False
 
         query: dict[str, Any] = {
@@ -855,16 +855,16 @@ class BandService:
                 {"band_id": provider_id},
                 {"venue_id": provider_id}
             ],
-            "event_date": str(event_date),
+            "event_date": event_date,
             "booking_status": {"$in": ["ACCEPTED", "CONFIRMED", "EVENT_COMPLETED", "COMPLETED", "Confirmed", "Accepted", "Completed"]}
         }
         if exclude_booking_id:
             from src.database.base_repository import to_object_id
             try:
-                oid = to_object_id(str(exclude_booking_id))
-                query["_id"] = {"$nin": [oid, str(exclude_booking_id)]}
+                oid = to_object_id(exclude_booking_id)
+                query["_id"] = {"$nin": [oid, exclude_booking_id]}
             except Exception:
-                query["_id"] = {"$ne": str(exclude_booking_id)}
+                query["_id"] = {"$ne": exclude_booking_id}
 
         existing_bookings = await self.bookings.find_many(query)
         if not existing_bookings:
@@ -890,8 +890,8 @@ class BandService:
         if not start_time or not end_time:
             return False
 
-        req_start = str(start_time).strip()
-        req_end = str(end_time).strip()
+        req_start = start_time.strip()
+        req_end = end_time.strip()
 
         for b in active_blocking_bookings:
             ex_start = str(b.get("start_time") or "").strip()
@@ -1318,7 +1318,7 @@ class BandService:
         date_pattern = re.compile(r"^\d{4}-\d{2}-\d{2}$")
         clean_dates = []
         for d in dates:
-            d_str = str(d).strip()
+            d_str = d.strip()
             if not date_pattern.match(d_str):
                 raise AppException(400, f"Invalid date format '{d_str}'. Expected YYYY-MM-DD.")
             if d_str not in clean_dates:

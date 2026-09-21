@@ -26,9 +26,11 @@ export function OwnerDashboardPage() {
     bookingsService.getOwnerBookings().then((res) => {
       const items = res.data?.items || [];
       const pending = items.filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (b: any) => (b.bookingStatus || b.booking_status) === "PENDING"
       ).length;
       const confirmed = items.filter(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (b: any) => (b.bookingStatus || b.booking_status) === "CONFIRMED"
       ).length;
       setBookingStats({

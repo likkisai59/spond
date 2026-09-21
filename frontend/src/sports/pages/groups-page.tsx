@@ -57,7 +57,7 @@ export function GroupsPage() {
     if (status === 'idle' || status === 'failed') {
       dispatch(fetchGroupsThunk());
     }
-  }, [dispatch]);
+  }, [dispatch, status]);
 
   return (
     <PageContainer as="main">

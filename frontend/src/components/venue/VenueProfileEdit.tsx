@@ -53,12 +53,7 @@ interface LocationItem {
 }
 
 const MOCK_COUNTRIES = [{ id: "c1", name: "India" }];
-const MOCK_STATES = [{ id: "s1", name: "Maharashtra" }, { id: "s2", name: "Karnataka" }, { id: "s3", name: "Delhi" }];
-const MOCK_CITIES = [
-  { id: "123e4567-e89b-12d3-a456-426614174000", name: "Mumbai" },
-  { id: "123e4567-e89b-12d3-a456-426614174001", name: "Bangalore" },
-  { id: "123e4567-e89b-12d3-a456-426614174002", name: "New Delhi" }
-];
+import { INDIA_STATES_DATA } from "@/utils/indiaStates";
 
 export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) {
   // Location list states
@@ -150,9 +145,13 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
     // Backend location API doesn't exist yet, using mock data directly
     setCountries(MOCK_COUNTRIES);
     if (profile.country === "India") {
-      setStates(MOCK_STATES);
+      const stateOptions = INDIA_STATES_DATA.states.map((s, i) => ({ id: `s${i}`, name: s.state }));
+      setStates(stateOptions);
       if (profile.state) {
-        setCities(MOCK_CITIES);
+        const stateObj = INDIA_STATES_DATA.states.find((s) => s.state === profile.state);
+        if (stateObj) {
+          setCities(stateObj.districts.map((d, i) => ({ id: `d${i}`, name: d })));
+        }
       }
     }
   }, [profile]);
@@ -160,22 +159,26 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
   const handleCountryChange = async (countryName: string) => {
     setValue("country", countryName);
     setValue("state", "");
-    setValue("city_id", "");
+    setValue("district", "");
     setStates([]);
     setCities([]);
 
     if (countryName === "India") {
-      setStates(MOCK_STATES);
+      const stateOptions = INDIA_STATES_DATA.states.map((s, i) => ({ id: `s${i}`, name: s.state }));
+      setStates(stateOptions);
     }
   };
 
   const handleStateChange = async (stateName: string) => {
     setValue("state", stateName);
-    setValue("city_id", "");
+    setValue("district", "");
     setCities([]);
 
     if (stateName) {
-      setCities(MOCK_CITIES);
+      const stateObj = INDIA_STATES_DATA.states.find((s) => s.state === stateName);
+      if (stateObj) {
+        setCities(stateObj.districts.map((d, i) => ({ id: `d${i}`, name: d })));
+      }
     }
   };
 
@@ -345,22 +348,16 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
           </div>
 
           <div className="space-y-1.5">
-            <Label>City</Label>
+            <Label htmlFor="district">District</Label>
             <select 
               className="w-full h-10 px-3 rounded-lg border border-border bg-card text-foreground text-xs"
-              value={watch("city_id")}
-              onChange={e => setValue("city_id", e.target.value)}
+              value={watch("district")}
+              onChange={e => setValue("district", e.target.value)}
               disabled={!watch("state") || loadingLocations}
             >
-              <option value="">Select City</option>
-              {cities.map(c => <option key={c.id} value={c.id.toString()}>{c.name}</option>)}
+              <option value="">Select District</option>
+              {cities.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
             </select>
-            {errors.city_id && <p className="text-xs text-error">{errors.city_id.message}</p>}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="district">District</Label>
-            <Input id="district" {...register("district")} />
           </div>
 
           <div className="space-y-1.5">

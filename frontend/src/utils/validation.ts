@@ -126,7 +126,7 @@ export const venueProfileUpdateSchema = z
     area: z.string().optional().default(""),
     address: z.string().min(5, "Address must be at least 5 characters"),
     landmark: z.string().optional().default(""),
-    pincode: z.string().min(6, "Pincode must be at least 6 digits"),
+    pincode: z.string().regex(/^\d{6}$/, "Pincode must be exactly 6 digits"),
     latitude: z.coerce.number().optional().nullable(),
     longitude: z.coerce.number().optional().nullable(),
     google_map_location: z.string().optional().default(""),

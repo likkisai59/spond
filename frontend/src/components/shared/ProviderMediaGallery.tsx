@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
+
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -241,27 +241,11 @@ export function ProviderMediaGallery<
       {showDedicatedCover && (
         <div className="space-y-4">
           <Label className="text-sm font-bold text-foreground">Cover Banner Image</Label>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end p-4 border border-border bg-accent/15 rounded-2xl">
-            <div className="md:col-span-2">
-              {coverImage ? (
-                <div className="aspect-video w-full max-w-md relative rounded-xl overflow-hidden border border-border">
-                  <Image src={coverImage} alt="Cover Banner" fill className="object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => setCoverImage(null)}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white shadow"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ) : (
-                <div className="aspect-video w-full max-w-md bg-accent/40 border border-dashed border-border rounded-xl flex items-center justify-center text-muted-foreground text-xs italic">
-                  No cover banner selected. Upload gallery photos and mark one as cover or upload below.
-                </div>
-              )}
-            </div>
+          <div className="max-w-md">
             <ImageUpload
+              value={coverImage || undefined}
               onChange={url => setCoverImage(url)}
+              onRemove={() => setCoverImage(null)}
               subfolder={`${uploadSubfolder}/covers`}
             />
           </div>
@@ -308,7 +292,7 @@ export function ProviderMediaGallery<
               className="border border-border rounded-2xl overflow-hidden bg-card/85 flex flex-col group relative"
             >
               <div className="aspect-video w-full relative bg-accent/40 flex items-center justify-center border-b border-border">
-                <Image src={item.url} alt="Gallery item" fill className="object-cover" />
+                <img src={item.url} alt="Gallery item" className="absolute inset-0 w-full h-full object-cover" />
                 {item.is_cover && (
                   <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-primary text-primary-foreground flex items-center gap-1 shadow-sm border border-primary-light">
                     <Star className="h-3 w-3 fill-current" /> Cover Image

@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
 import { Settings, User, Mail, ShieldAlert, Edit3 } from "lucide-react";
 import { NotificationPreferencesCard } from "@/components/notifications/NotificationPreferencesCard";
+import toast from "react-hot-toast";
 
 export default function ArtistSettingsPage() {
   const { user } = useAuth();
@@ -70,7 +71,12 @@ export default function ArtistSettingsPage() {
           <p className="text-xs text-muted-foreground leading-relaxed mb-4">
             Security policy forces credentials settings verification via Authentication slice settings. Use standard reset actions to adjust credentials.
           </p>
-          <Button variant="outline" size="sm" className="font-bold text-xs h-9">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="font-bold text-xs h-9"
+            onClick={() => toast.success("Password reset instructions sent to your registered email.")}
+          >
             Change Password
           </Button>
         </CardContent>

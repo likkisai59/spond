@@ -16,6 +16,17 @@ export interface ArtistMediaGalleryProps {
 const ALBUMS = ["Live Shows", "Studio Sessions", "Promo Shoots", "General"];
 const VIDEO_CATEGORIES = ["Live Performance", "Music Video", "Promo clip", "Rehearsals"];
 
+const isValidUrl = (urlString: string, domainKeyword?: string): boolean => {
+  if (!urlString || !urlString.trim()) return true;
+  const trimmed = urlString.trim();
+  const urlRegex = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{2,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/i;
+  if (!urlRegex.test(trimmed)) return false;
+  if (domainKeyword && !trimmed.toLowerCase().includes(domainKeyword)) {
+    return false;
+  }
+  return true;
+};
+
 export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
   const [socialLinks, setSocialLinks] = React.useState({
     instagram: media.social_links?.instagram || "",
@@ -23,6 +34,29 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
     twitter: media.social_links?.twitter || "",
     website: media.social_links?.website || "",
   });
+
+  const [errors, setErrors] = React.useState({
+    instagram: "",
+    facebook: "",
+    twitter: "",
+    website: "",
+  });
+
+  const validateSocials = (): boolean => {
+    const newErrors = {
+      instagram: !isValidUrl(socialLinks.instagram, "instagram") ? "Enter proper links" : "",
+      facebook: !isValidUrl(socialLinks.facebook, "facebook") ? "Enter proper links" : "",
+      twitter: !isValidUrl(socialLinks.twitter, "twitter") && !isValidUrl(socialLinks.twitter, "x.com") ? "Enter proper links" : "",
+      website: !isValidUrl(socialLinks.website) ? "Enter proper links" : "",
+    };
+    setErrors(newErrors);
+    const hasError = Object.values(newErrors).some(Boolean);
+    if (hasError) {
+      toast.error("Enter proper links");
+      return false;
+    }
+    return true;
+  };
 
   return (
     <ProviderMediaGallery
@@ -38,6 +72,9 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
       initialVideos={media.videos || []}
       initialYoutubeLinks={media.youtube_links || []}
       onSave={async ({ gallery, videos, youtubeLinks }) => {
+        if (!validateSocials()) {
+          throw new Error("Enter proper links");
+        }
         await onSave({
           gallery,
           videos,
@@ -58,8 +95,20 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
               <Input
                 placeholder="https://instagram.com/..."
                 value={socialLinks.instagram}
-                onChange={e => setSocialLinks(prev => ({ ...prev, instagram: e.target.value }))}
+                onChange={e => {
+                  setSocialLinks(prev => ({ ...prev, instagram: e.target.value }));
+                  if (errors.instagram) setErrors(prev => ({ ...prev, instagram: "" }));
+                }}
+                onBlur={() => {
+                  if (!isValidUrl(socialLinks.instagram, "instagram")) {
+                    setErrors(prev => ({ ...prev, instagram: "Enter proper links" }));
+                  }
+                }}
+                className={errors.instagram ? "border-error focus-visible:ring-error" : ""}
               />
+              {errors.instagram && (
+                <p className="text-xs text-error font-medium">{errors.instagram}</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5">
@@ -68,8 +117,20 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
               <Input
                 placeholder="https://facebook.com/..."
                 value={socialLinks.facebook}
-                onChange={e => setSocialLinks(prev => ({ ...prev, facebook: e.target.value }))}
+                onChange={e => {
+                  setSocialLinks(prev => ({ ...prev, facebook: e.target.value }));
+                  if (errors.facebook) setErrors(prev => ({ ...prev, facebook: "" }));
+                }}
+                onBlur={() => {
+                  if (!isValidUrl(socialLinks.facebook, "facebook")) {
+                    setErrors(prev => ({ ...prev, facebook: "Enter proper links" }));
+                  }
+                }}
+                className={errors.facebook ? "border-error focus-visible:ring-error" : ""}
               />
+              {errors.facebook && (
+                <p className="text-xs text-error font-medium">{errors.facebook}</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5">
@@ -78,8 +139,20 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
               <Input
                 placeholder="https://twitter.com/..."
                 value={socialLinks.twitter}
-                onChange={e => setSocialLinks(prev => ({ ...prev, twitter: e.target.value }))}
+                onChange={e => {
+                  setSocialLinks(prev => ({ ...prev, twitter: e.target.value }));
+                  if (errors.twitter) setErrors(prev => ({ ...prev, twitter: "" }));
+                }}
+                onBlur={() => {
+                  if (!isValidUrl(socialLinks.twitter, "twitter") && !isValidUrl(socialLinks.twitter, "x.com")) {
+                    setErrors(prev => ({ ...prev, twitter: "Enter proper links" }));
+                  }
+                }}
+                className={errors.twitter ? "border-error focus-visible:ring-error" : ""}
               />
+              {errors.twitter && (
+                <p className="text-xs text-error font-medium">{errors.twitter}</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5">
@@ -88,8 +161,20 @@ export function ArtistMediaGallery({ media, onSave }: ArtistMediaGalleryProps) {
               <Input
                 placeholder="https://www..."
                 value={socialLinks.website}
-                onChange={e => setSocialLinks(prev => ({ ...prev, website: e.target.value }))}
+                onChange={e => {
+                  setSocialLinks(prev => ({ ...prev, website: e.target.value }));
+                  if (errors.website) setErrors(prev => ({ ...prev, website: "" }));
+                }}
+                onBlur={() => {
+                  if (!isValidUrl(socialLinks.website)) {
+                    setErrors(prev => ({ ...prev, website: "Enter proper links" }));
+                  }
+                }}
+                className={errors.website ? "border-error focus-visible:ring-error" : ""}
               />
+              {errors.website && (
+                <p className="text-xs text-error font-medium">{errors.website}</p>
+              )}
             </div>
           </div>
         </div>

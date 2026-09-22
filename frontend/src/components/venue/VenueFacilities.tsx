@@ -355,26 +355,26 @@ export function VenueFacilities({ data, onSave }: VenueFacilitiesProps) {
       </div>
 
       {/* Controls Bar: Search & Filters */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between p-4 border border-border bg-accent/15 rounded-2xl">
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-2.5 h-4.5 w-4.5 text-muted-foreground" />
-          <Input 
-            placeholder="Search facility name..." 
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between p-3.5 sm:p-4 border border-border bg-accent/15 rounded-2xl">
+        <div className="relative flex-1 sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Search facility name..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="pl-9 h-9.5 text-xs"
+            className="pl-9 h-9 text-xs bg-background/60 border-border rounded-md"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto justify-end">
-          
+        <div className="flex flex-wrap items-center gap-3 justify-start sm:justify-end">
+
           {/* Category Filter */}
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span>Category:</span>
-            <select 
-              value={categoryFilter} 
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="whitespace-nowrap font-medium">Category:</span>
+            <select
+              value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value as any)}
-              className="h-8.5 px-2.5 rounded-lg border border-border bg-card text-foreground text-[11px]"
+              className="h-9 px-3 rounded-md border border-border bg-background/60 text-foreground text-xs cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
             >
               <option value="All">All Categories</option>
               <option value="Space">Halls & Spaces</option>
@@ -386,12 +386,12 @@ export function VenueFacilities({ data, onSave }: VenueFacilitiesProps) {
           </div>
 
           {/* Status Filter */}
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span>Status:</span>
-            <select 
-              value={statusFilter} 
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="whitespace-nowrap font-medium">Status:</span>
+            <select
+              value={statusFilter}
               onChange={e => setStatusFilter(e.target.value as any)}
-              className="h-8.5 px-2.5 rounded-lg border border-border bg-card text-foreground text-[11px]"
+              className="h-9 px-3 rounded-md border border-border bg-background/60 text-foreground text-xs cursor-pointer focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
             >
               <option value="All">All Statuses</option>
               <option value="Active">Active Only</option>

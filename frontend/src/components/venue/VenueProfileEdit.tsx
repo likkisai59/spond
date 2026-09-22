@@ -22,7 +22,21 @@ import {
   Briefcase
 } from "lucide-react";
 import { bandService } from "@/services/band";
+import { siteConfig } from "@/config/site";
 import toast from "react-hot-toast";
+
+const resolveDocUrl = (url?: string) => {
+  if (!url) return "#";
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("data:") ||
+    url.startsWith("blob:")
+  ) {
+    return url;
+  }
+  return `${siteConfig.apiUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+};
 
 interface VenueProfileEditProps {
   profile: VenueResponseData;
@@ -233,7 +247,8 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-1.5">
             <Label htmlFor="venue_name">Venue Name</Label>
-            <Input id="venue_name" {...register("venue_name")} />
+            <Input id="venue_name" placeholder="e.g. Royal Grand Hall" {...register("venue_name")} />
+            <p className="text-[10px] text-muted-foreground">Letters and spaces only — no numbers</p>
             {errors.venue_name && <p className="text-xs text-error">{errors.venue_name.message}</p>}
           </div>
 
@@ -250,7 +265,20 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
 
           <div className="space-y-1.5">
             <Label htmlFor="established_year">Established Year</Label>
-            <Input id="established_year" type="number" {...register("established_year", { valueAsNumber: true })} />
+            <Input
+              id="established_year"
+              type="number"
+              inputMode="numeric"
+              min={1800}
+              max={new Date().getFullYear()}
+              maxLength={4}
+              placeholder={`e.g. ${new Date().getFullYear()}`}
+              onInput={(e) => {
+                const el = e.currentTarget;
+                if (el.value.length > 4) el.value = el.value.slice(0, 4);
+              }}
+              {...register("established_year", { valueAsNumber: true })}
+            />
             {errors.established_year && <p className="text-xs text-error">{errors.established_year.message}</p>}
           </div>
 
@@ -297,17 +325,35 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
 
           <div className="space-y-1.5">
             <Label htmlFor="contact_person">Booking Representative</Label>
-            <Input id="contact_person" {...register("contact_person")} />
+            <Input id="contact_person" placeholder="e.g. Ramesh Kumar" {...register("contact_person")} />
+            <p className="text-[10px] text-muted-foreground">Letters and spaces only — no numbers</p>
+            {errors.contact_person && <p className="text-xs text-error">{errors.contact_person.message}</p>}
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="gst_number">GST Identification Number</Label>
-            <Input id="gst_number" placeholder="Optional" {...register("gst_number")} />
+            <Input
+              id="gst_number"
+              placeholder="e.g. 22AAAAA0000A1Z5"
+              maxLength={15}
+              style={{ textTransform: "uppercase" }}
+              {...register("gst_number")}
+            />
+            <p className="text-[10px] text-muted-foreground">Format: 2 digits + 5 letters + 4 digits + 4 chars</p>
+            {errors.gst_number && <p className="text-xs text-error">{errors.gst_number.message}</p>}
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="pan_number">Corporate PAN Card</Label>
-            <Input id="pan_number" placeholder="Optional" {...register("pan_number")} />
+            <Input
+              id="pan_number"
+              placeholder="e.g. ABCDE1234F"
+              maxLength={10}
+              style={{ textTransform: "uppercase" }}
+              {...register("pan_number")}
+            />
+            <p className="text-[10px] text-muted-foreground">Format: 5 letters + 4 digits + 1 letter</p>
+            {errors.pan_number && <p className="text-xs text-error">{errors.pan_number.message}</p>}
           </div>
         </div>
       </div>
@@ -362,23 +408,47 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
 
           <div className="space-y-1.5">
             <Label htmlFor="area">Area / Suburb</Label>
-            <Input id="area" {...register("area")} />
+            <Input id="area" placeholder="e.g. Anna Nagar" {...register("area")} />
+            <p className="text-[10px] text-muted-foreground">Letters and spaces only</p>
+            {errors.area && <p className="text-xs text-error">{errors.area.message}</p>}
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="landmark">Landmark</Label>
-            <Input id="landmark" {...register("landmark")} />
+            <Input id="landmark" placeholder="e.g. Near Central Mall" {...register("landmark")} />
+            {errors.landmark && <p className="text-xs text-error">{errors.landmark.message}</p>}
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="pincode">Pincode</Label>
-            <Input id="pincode" {...register("pincode")} />
+            <Input
+              id="pincode"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={6}
+              placeholder="e.g. 600001"
+              onKeyDown={(e) => {
+                // Allow: backspace, delete, tab, escape, enter, arrows, home, end
+                const allowed = ["Backspace","Delete","Tab","Escape","Enter","ArrowLeft","ArrowRight","ArrowUp","ArrowDown","Home","End"];
+                if (!allowed.includes(e.key) && !/^\d$/.test(e.key)) {
+                  e.preventDefault();
+                }
+              }}
+              onInput={(e) => {
+                // Strip any non-digit characters (handles paste)
+                e.currentTarget.value = e.currentTarget.value.replace(/\D/g, "").slice(0, 6);
+              }}
+              {...register("pincode")}
+            />
+            <p className="text-[10px] text-muted-foreground">Exactly 6 digits required</p>
             {errors.pincode && <p className="text-xs text-error">{errors.pincode.message}</p>}
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="google_map_location">Google Maps Link</Label>
             <Input id="google_map_location" placeholder="https://maps.google.com/..." {...register("google_map_location")} />
+            <p className="text-[10px] text-muted-foreground">Must be a valid Google Maps URL</p>
+            {errors.google_map_location && <p className="text-xs text-error">{errors.google_map_location.message}</p>}
           </div>
 
           <div className="space-y-1.5">
@@ -598,7 +668,7 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
                 disabled={uploadingDoc.doc_pan}
               />
               {watchedDocPan && (
-                <a href={watchedDocPan} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
+                <a href={resolveDocUrl(watchedDocPan)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
                   View Upload
                 </a>
               )}
@@ -615,7 +685,7 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
                 disabled={uploadingDoc.doc_gst}
               />
               {watchedDocGst && (
-                <a href={watchedDocGst} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
+                <a href={resolveDocUrl(watchedDocGst)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
                   View Upload
                 </a>
               )}
@@ -632,7 +702,7 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
                 disabled={uploadingDoc.doc_ownership_proof}
               />
               {watchedDocOwnershipProof && (
-                <a href={watchedDocOwnershipProof} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
+                <a href={resolveDocUrl(watchedDocOwnershipProof)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
                   View Upload
                 </a>
               )}
@@ -649,7 +719,7 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
                 disabled={uploadingDoc.doc_government_id}
               />
               {watchedDocGovId && (
-                <a href={watchedDocGovId} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
+                <a href={resolveDocUrl(watchedDocGovId)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
                   View Upload
                 </a>
               )}
@@ -666,7 +736,7 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
                 disabled={uploadingDoc.doc_business_license}
               />
               {watchedDocLicense && (
-                <a href={watchedDocLicense} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
+                <a href={resolveDocUrl(watchedDocLicense)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
                   View Upload
                 </a>
               )}

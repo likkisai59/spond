@@ -15,13 +15,25 @@ interface ArtistPricingProps {
   onSave: (updated: PricingData) => Promise<void>;
 }
 
+const sanitizeNumericString = (raw: string): string => {
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return "";
+  return digits.replace(/^0+(?=\d)/, "");
+};
+
 export function ArtistPricing({ pricing, onSave }: ArtistPricingProps) {
   const [baseRate, setBaseRate] = React.useState(pricing.base_rate || 0);
   const [currency, setCurrency] = React.useState(pricing.currency || "INR");
   const [travelRadius, setTravelRadius] = React.useState(pricing.travel_radius || 0);
-  const travelCharges = pricing.travel_charges || 0;
+  const [travelCharges, setTravelCharges] = React.useState(pricing.travel_charges || 0);
   const minHours = pricing.min_booking_hours || 0;
   const maxHours = pricing.max_booking_hours || 0;
+
+  const handleNumericChange = (setter: (val: number) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const sanitized = sanitizeNumericString(e.target.value);
+    e.target.value = sanitized;
+    setter(sanitized === "" ? 0 : Number(sanitized));
+  };
   
   const [weekendSurcharge, setWeekendSurcharge] = React.useState(pricing.weekend_surcharge || 0);
   const [holidaySurcharge, setHolidaySurcharge] = React.useState(pricing.holiday_surcharge || 0);
@@ -129,7 +141,7 @@ export function ArtistPricing({ pricing, onSave }: ArtistPricingProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-5 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-1.5">
               <Label htmlFor="currency">Currency Code</Label>
               <select
@@ -145,12 +157,17 @@ export function ArtistPricing({ pricing, onSave }: ArtistPricingProps) {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="base_rate">Performance Rate (INR)</Label>
+              <Label htmlFor="base_rate">Performance Rate ({currency})</Label>
               <Input
                 id="base_rate"
-                type="number"
-                value={baseRate}
-                onChange={e => setBaseRate(Number(e.target.value))}
+                type="text"
+                inputMode="numeric"
+                placeholder="0"
+                value={baseRate || ""}
+                onChange={handleNumericChange(setBaseRate)}
+                onBlur={() => {
+                  if (!baseRate || isNaN(baseRate)) setBaseRate(0);
+                }}
               />
             </div>
 
@@ -158,9 +175,29 @@ export function ArtistPricing({ pricing, onSave }: ArtistPricingProps) {
               <Label htmlFor="travel_radius">Travel Radius (km)</Label>
               <Input
                 id="travel_radius"
-                type="number"
-                value={travelRadius}
-                onChange={e => setTravelRadius(Number(e.target.value))}
+                type="text"
+                inputMode="numeric"
+                placeholder="0"
+                value={travelRadius || ""}
+                onChange={handleNumericChange(setTravelRadius)}
+                onBlur={() => {
+                  if (!travelRadius || isNaN(travelRadius)) setTravelRadius(0);
+                }}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="travel_charges">Travel Charges / Flat Fee ({currency})</Label>
+              <Input
+                id="travel_charges"
+                type="text"
+                inputMode="numeric"
+                placeholder="0"
+                value={travelCharges || ""}
+                onChange={handleNumericChange(setTravelCharges)}
+                onBlur={() => {
+                  if (!travelCharges || isNaN(travelCharges)) setTravelCharges(0);
+                }}
               />
             </div>
           </div>
@@ -181,10 +218,14 @@ export function ArtistPricing({ pricing, onSave }: ArtistPricingProps) {
               <Label htmlFor="weekend_surcharge">Weekend Booking Surcharge (%)</Label>
               <Input
                 id="weekend_surcharge"
-                type="number"
-                placeholder="E.g. 15 for 15% increase"
-                value={weekendSurcharge}
-                onChange={e => setWeekendSurcharge(Number(e.target.value))}
+                type="text"
+                inputMode="numeric"
+                placeholder="0"
+                value={weekendSurcharge || ""}
+                onChange={handleNumericChange(setWeekendSurcharge)}
+                onBlur={() => {
+                  if (!weekendSurcharge || isNaN(weekendSurcharge)) setWeekendSurcharge(0);
+                }}
               />
               <span className="text-[10px] text-muted-foreground">Applied to events falling on Saturdays or Sundays.</span>
             </div>
@@ -193,10 +234,14 @@ export function ArtistPricing({ pricing, onSave }: ArtistPricingProps) {
               <Label htmlFor="holiday_surcharge">Festival / Holiday Surcharge (%)</Label>
               <Input
                 id="holiday_surcharge"
-                type="number"
-                placeholder="E.g. 25 for 25% increase"
-                value={holidaySurcharge}
-                onChange={e => setHolidaySurcharge(Number(e.target.value))}
+                type="text"
+                inputMode="numeric"
+                placeholder="0"
+                value={holidaySurcharge || ""}
+                onChange={handleNumericChange(setHolidaySurcharge)}
+                onBlur={() => {
+                  if (!holidaySurcharge || isNaN(holidaySurcharge)) setHolidaySurcharge(0);
+                }}
               />
               <span className="text-[10px] text-muted-foreground">Applied to events falling on calendar holidays.</span>
             </div>
@@ -226,9 +271,14 @@ export function ArtistPricing({ pricing, onSave }: ArtistPricingProps) {
               <div className="space-y-1.5">
                 <Label>Flat Price ({currency})</Label>
                 <Input 
-                  type="number" 
-                  value={pkgPrice}
-                  onChange={e => setPkgPrice(Number(e.target.value))}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={pkgPrice || ""}
+                  onChange={handleNumericChange(setPkgPrice)}
+                  onBlur={() => {
+                    if (!pkgPrice || isNaN(pkgPrice)) setPkgPrice(0);
+                  }}
                 />
               </div>
             </div>
@@ -299,9 +349,14 @@ export function ArtistPricing({ pricing, onSave }: ArtistPricingProps) {
               <div className="space-y-1.5">
                 <Label>Discount (%)</Label>
                 <Input 
-                  type="number" 
-                  value={offDiscount}
-                  onChange={e => setOffDiscount(Number(e.target.value))}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={offDiscount || ""}
+                  onChange={handleNumericChange(setOffDiscount)}
+                  onBlur={() => {
+                    if (!offDiscount || isNaN(offDiscount)) setOffDiscount(0);
+                  }}
                 />
               </div>
             </div>

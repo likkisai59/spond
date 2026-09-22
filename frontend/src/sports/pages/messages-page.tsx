@@ -22,6 +22,7 @@ import { notificationAdded } from "@/store/slices/notification-slice";
 import { fetchGroupsThunk } from "@/store/sports/groups-slice";
 import {
   messageSent,
+  conversationOpened,
   fetchConversations,
   fetchHistory,
 } from "@/store/sports/messages-slice";

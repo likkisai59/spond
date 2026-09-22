@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { isEntertainmentVenue } from "@/utils/sportsFilter";
 import {
   Search,
   MapPin,
@@ -80,7 +81,9 @@ export default function VenuesMarketplacePage() {
       setLoading(true);
       setError(null);
       const data = await (bandService as any).getVenues?.() ?? [];
-      setVenues(Array.isArray(data) ? data : data?.results ?? data?.items ?? []);
+      const allVenues = Array.isArray(data) ? data : data?.results ?? data?.items ?? [];
+      // Bug fix: exclude sports/club venues from band entertainment marketplace
+      setVenues(allVenues.filter((v: any) => isEntertainmentVenue(v as Record<string, unknown>)));
     } catch (err: any) {
       setError(err?.message || "Failed to load venues. Please try again.");
     } finally {

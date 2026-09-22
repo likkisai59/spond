@@ -952,11 +952,18 @@ class BandService:
         final_amount = total_amount - advance_amount
         now = datetime.now(timezone.utc)
 
+        provider_owner_id = None
+        if provider:
+            provider_owner_id = provider.get("created_by") or provider.get("user_id") or provider.get("owner_id")
+
         booking_data = {
             **doc,
             "customer_id": customer_id,
             "provider_id": provider_id,
             "provider_type": provider_type,
+            "venue_id": provider_id if ptype_lower == "venue" else doc.get("venue_id"),
+            "artist_id": provider_id if ptype_lower in ("artist", "solo") else doc.get("artist_id"),
+            "provider_owner_id": str(provider_owner_id) if provider_owner_id else None,
             "status": BookingStatus.REQUESTED.value,
             "booking_status": BookingStatus.REQUESTED.value,
             "payment_status": PaymentStatus.UNPAID.value,
@@ -1072,6 +1079,7 @@ class BandService:
         bookings = await self.bookings.find_many({
             "$or": [
                 {"provider_id": {"$in": search_ids}},
+                {"provider_owner_id": user_id},
                 {"band_id": {"$in": search_ids}},
                 {"venue_id": {"$in": search_ids}}
             ],

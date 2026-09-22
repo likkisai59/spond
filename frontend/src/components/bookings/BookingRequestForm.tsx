@@ -230,37 +230,48 @@ export function BookingRequestForm({
           {/* Section 0: Select Provider / Venue from Marketplace */}
           <div className="space-y-4 p-4 rounded-2xl bg-muted/10 border border-border">
             <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <Music className="h-4 w-4 text-accent" />
-              <span>Select Performer & Venue</span>
+              {isArtistBookingVenue ? (
+                <>
+                  <Building className="h-4 w-4 text-accent" />
+                  <span>Select Venue</span>
+                </>
+              ) : (
+                <>
+                  <Music className="h-4 w-4 text-accent" />
+                  <span>Select Performer & Venue</span>
+                </>
+              )}
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Artist / Performer Select */}
-              <div className="space-y-1.5">
-                <Label htmlFor="artist_profile_id" className="text-xs font-semibold text-foreground">
-                  Performer / Band {artistName ? `(Selected: ${artistName})` : ""}
-                </Label>
-                <select
-                  id="artist_profile_id"
-                  className="w-full h-9 rounded-xl border border-border bg-background text-foreground text-xs px-3 focus:outline-none focus:ring-1 focus:ring-accent"
-                  {...register("artist_profile_id", {
-                    onChange: (e) => {
-                      const selected = artists.find((a) => a.id === e.target.value);
-                      const price = selected?.packages?.[0]?.price;
-                      if (price) {
-                        setValue("proposed_price", price);
-                      }
-                    },
-                  })}
-                >
-                  <option value="">-- Choose Performer / Band from Marketplace --</option>
-                  {artists.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} ({Array.isArray(a.genre) ? a.genre.join(", ") : a.genre || "Live Music"} - ₹{(a.packages?.[0]?.price || 15000).toLocaleString()})
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className={`grid grid-cols-1 ${!isArtistBookingVenue ? "sm:grid-cols-2" : ""} gap-4`}>
+              {/* Artist / Performer Select — hidden when artist is booking a venue (Bug 12 fix) */}
+              {!isArtistBookingVenue && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="artist_profile_id" className="text-xs font-semibold text-foreground">
+                    Performer / Band {artistName ? `(Selected: ${artistName})` : ""}
+                  </Label>
+                  <select
+                    id="artist_profile_id"
+                    className="w-full h-9 rounded-xl border border-border bg-background text-foreground text-xs px-3 focus:outline-none focus:ring-1 focus:ring-accent"
+                    {...register("artist_profile_id", {
+                      onChange: (e) => {
+                        const selected = artists.find((a) => a.id === e.target.value);
+                        const price = selected?.packages?.[0]?.price;
+                        if (price) {
+                          setValue("proposed_price", price);
+                        }
+                      },
+                    })}
+                  >
+                    <option value="">-- Choose Performer / Band from Marketplace --</option>
+                    {artists.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name} ({Array.isArray(a.genre) ? a.genre.join(", ") : a.genre || "Live Music"} - ₹{(a.packages?.[0]?.price || 15000).toLocaleString()})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Venue Select */}
               <div className="space-y-1.5">
@@ -305,9 +316,24 @@ export function BookingRequestForm({
                     id="event_title"
                     placeholder="e.g. Annual Tech Summit Afterparty"
                     className="text-foreground text-xs bg-background border-border placeholder:text-muted-foreground rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
-                    {...register("event_title")}
+                    {...register("event_title", {
+                      onChange: (e) => {
+                        // Restrict numeric input by automatically removing numeric digits (Bug 13 fix)
+                        if (/\d/.test(e.target.value)) {
+                          e.target.value = e.target.value.replace(/\d/g, "");
+                          setValue("event_title", e.target.value, { shouldValidate: true });
+                        }
+                      },
+                    })}
+                    onKeyDown={(e) => {
+                      // Prevent typing numeric digits 0-9
+                      if (e.key >= "0" && e.key <= "9") {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                 </div>
+                <p className="text-[10px] text-muted-foreground">Letters, spaces, and punctuation only (no numbers allowed).</p>
                 {errors.event_title && (
                   <p className="text-xs text-error font-medium">{errors.event_title.message}</p>
                 )}
@@ -463,8 +489,22 @@ export function BookingRequestForm({
                 <Input
                   id="city"
                   placeholder="Bangalore"
-                  className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
-                  {...register("city")}
+                  className={`text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent ${
+                    errors.city ? "border-error focus-visible:ring-error" : ""
+                  }`}
+                  {...register("city", {
+                    onChange: (e) => {
+                      if (/\d/.test(e.target.value)) {
+                        e.target.value = e.target.value.replace(/\d/g, "");
+                        setValue("city", e.target.value, { shouldValidate: true });
+                      }
+                    },
+                  })}
+                  onKeyDown={(e) => {
+                    if (e.key >= "0" && e.key <= "9") {
+                      e.preventDefault();
+                    }
+                  }}
                 />
                 {errors.city && (
                   <p className="text-xs text-error font-medium">{errors.city.message}</p>
@@ -476,8 +516,22 @@ export function BookingRequestForm({
                 <Input
                   id="state"
                   placeholder="Karnataka"
-                  className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
-                  {...register("state")}
+                  className={`text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent ${
+                    errors.state ? "border-error focus-visible:ring-error" : ""
+                  }`}
+                  {...register("state", {
+                    onChange: (e) => {
+                      if (/\d/.test(e.target.value)) {
+                        e.target.value = e.target.value.replace(/\d/g, "");
+                        setValue("state", e.target.value, { shouldValidate: true });
+                      }
+                    },
+                  })}
+                  onKeyDown={(e) => {
+                    if (e.key >= "0" && e.key <= "9") {
+                      e.preventDefault();
+                    }
+                  }}
                 />
                 {errors.state && (
                   <p className="text-xs text-error font-medium">{errors.state.message}</p>
@@ -488,8 +542,22 @@ export function BookingRequestForm({
                 <Label htmlFor="country">Country</Label>
                 <Input
                   id="country"
-                  className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
-                  {...register("country")}
+                  className={`text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent ${
+                    errors.country ? "border-error focus-visible:ring-error" : ""
+                  }`}
+                  {...register("country", {
+                    onChange: (e) => {
+                      if (/\d/.test(e.target.value)) {
+                        e.target.value = e.target.value.replace(/\d/g, "");
+                        setValue("country", e.target.value, { shouldValidate: true });
+                      }
+                    },
+                  })}
+                  onKeyDown={(e) => {
+                    if (e.key >= "0" && e.key <= "9") {
+                      e.preventDefault();
+                    }
+                  }}
                 />
                 {errors.country && (
                   <p className="text-xs text-error font-medium">{errors.country.message}</p>
@@ -501,10 +569,15 @@ export function BookingRequestForm({
               <Label htmlFor="google_maps_coords">Google Maps URL or Coordinates (Optional)</Label>
               <Input
                 id="google_maps_coords"
-                placeholder="e.g. https://maps.google.com/?q=..."
-                className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
+                placeholder="e.g. https://maps.google.com/?q=... or 12.9716, 77.5946"
+                className={`text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent ${
+                  errors.google_maps_coords ? "border-error focus-visible:ring-error" : ""
+                }`}
                 {...register("google_maps_coords")}
               />
+              {errors.google_maps_coords && (
+                <p className="text-xs text-error font-medium">{errors.google_maps_coords.message}</p>
+              )}
             </div>
           </div>
 
@@ -544,17 +617,15 @@ export function BookingRequestForm({
 
           {/* Action triggers */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
-            {onCancel && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onCancel}
-                disabled={isSubmitting}
-                className="font-bold text-xs h-9 px-4 cursor-pointer"
-              >
-                Cancel
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel ? onCancel : () => window.history.back()}
+              disabled={isSubmitting}
+              className="font-bold text-xs h-9 px-5 border-border bg-muted/30 hover:bg-muted text-foreground cursor-pointer rounded-xl transition-colors shadow-sm"
+            >
+              Cancel
+            </Button>
             <Button
               type="submit"
               disabled={isSubmitting}

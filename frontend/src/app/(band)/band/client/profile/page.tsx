@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User, Mail, ShieldCheck, Sparkles, Edit3, Save, X, Phone, CheckCircle2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { PhoneInputField } from "@/components/shared/PhoneInputField";
 
 export default function ClientProfilePage() {
   const { user, setUser } = useAuth() as any;
@@ -131,13 +132,10 @@ export default function ClientProfilePage() {
                 <Label htmlFor="phone" className="text-xs font-bold uppercase text-muted-foreground">
                   Phone Number
                 </Label>
-                <Input
+                <PhoneInputField
                   id="phone"
                   value={form.phone}
-                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                  placeholder="e.g. +91 98765 43210"
-                  type="tel"
-                  className="text-sm bg-card/60"
+                  onChange={(val) => setForm((f) => ({ ...f, phone: val }))}
                 />
               </div>
 

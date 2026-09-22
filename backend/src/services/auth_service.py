@@ -69,7 +69,7 @@ class AuthService:
             raise ConflictError("An account with this email already exists")
             
         # Allow public registration for standard client/provider/sports roles (prevent admin privilege escalation)
-        valid_roles = [MEMBER, "venue_owner", "client", "artist", "band", "player", "coach"]
+        valid_roles = [MEMBER, "venue_owner", "sports_venue_owner", "client", "artist", "band", "player", "coach"]
         assign_role: str = role if role in valid_roles else MEMBER
         
         document = new_user_document(
@@ -158,7 +158,7 @@ class AuthService:
         if await self.users.email_exists(email):
             raise ConflictError("An account with this email already exists")
             
-        valid_roles = [MEMBER, "venue_owner", "client", "artist", "band", "player", "coach"]
+        valid_roles = [MEMBER, "venue_owner", "sports_venue_owner", "client", "artist", "band", "player", "coach"]
         assign_role = role if role in valid_roles else MEMBER
         
         document = new_user_document(

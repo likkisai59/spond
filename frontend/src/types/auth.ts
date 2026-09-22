@@ -21,5 +21,5 @@ export interface UserProfile {
 export interface TokenPayload {
   access_token: string;
   refresh_token: string;
-  role: "client" | "artist" | "venue_owner" | "admin";
+  role: "client" | "artist" | "venue_owner" | "sports_venue_owner" | "admin";
 }

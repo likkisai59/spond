@@ -10,6 +10,7 @@ export const ROLES = [
   "band_admin",
   "coach",
   "venue_owner",
+  "sports_venue_owner",
   "artist",
   "band_manager",
   "player",

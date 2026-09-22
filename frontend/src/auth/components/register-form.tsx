@@ -257,7 +257,8 @@ export function RegisterForm() {
           label="Account type"
           options={[
             { label: "Club Owner", value: "member" },
-            { label: "Venue Owner", value: "venue_owner" },
+            { label: "Sports Venue Owner (Courts & Grounds)", value: "sports_venue_owner" },
+            { label: "Band Venue Owner (Halls & Auditoriums)", value: "venue_owner" },
             { label: "Solo Artist", value: "artist" },
             { label: "Band", value: "band" },
             { label: "Client (Hire Artists & Venues)", value: "client" },

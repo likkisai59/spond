@@ -1,9 +1,11 @@
 import {
+  createAsyncThunk,
   createSlice,
   nanoid,
   type PayloadAction,
 } from "@reduxjs/toolkit";
 import type { SportsPoll } from "@/types";
+import { pollsService } from "@/services/sports/polls.service";
 import { MOCK_POLLS } from "@/sports/mocks/polls.mock";
 
 export interface NewPollInput {
@@ -19,6 +21,40 @@ export interface PollsState {
 }
 
 const initialState: PollsState = { polls: [] };
+
+export const fetchPollsThunk = createAsyncThunk(
+  "sports/polls/fetchPolls",
+  async (groupId?: string) => {
+    const response = await pollsService.list(groupId ? { groupId } : undefined);
+    const resData = (response?.data as any)?.data || response?.data || response;
+    const items = Array.isArray(resData) ? resData : (resData?.items || []);
+    return items as SportsPoll[];
+  }
+);
+
+export const createPollThunk = createAsyncThunk(
+  "sports/polls/createPoll",
+  async (input: NewPollInput) => {
+    const response = await pollsService.create({
+      groupId: input.groupId,
+      question: input.question,
+      optionLabels: input.optionLabels,
+      multipleChoice: input.multipleChoice,
+      expiresAt: input.expiresAt,
+    });
+    const resData = (response?.data as any)?.data || response?.data || response;
+    return resData as SportsPoll;
+  }
+);
+
+export const votePollThunk = createAsyncThunk(
+  "sports/polls/votePoll",
+  async ({ pollId, optionId }: { pollId: string; optionId: string }) => {
+    const response = await pollsService.vote(pollId, [optionId]);
+    const resData = (response?.data as any)?.data || response?.data || response;
+    return resData as SportsPoll;
+  }
+);
 
 const pollsSlice = createSlice({
   name: "sports/polls",
@@ -88,6 +124,21 @@ const pollsSlice = createSlice({
       }
       poll.updatedAt = new Date().toISOString();
     },
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(fetchPollsThunk.fulfilled, (state, action) => {
+        state.polls = action.payload;
+      })
+      .addCase(createPollThunk.fulfilled, (state, action) => {
+        state.polls.unshift(action.payload);
+      })
+      .addCase(votePollThunk.fulfilled, (state, action) => {
+        const index = state.polls.findIndex((p) => p.id === action.payload.id);
+        if (index !== -1) {
+          state.polls[index] = action.payload;
+        }
+      });
   },
 });
 

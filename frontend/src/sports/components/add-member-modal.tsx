@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { UserPlus } from "lucide-react";
@@ -13,7 +14,8 @@ import {
   ModalTitle,
 } from "@/components/ui/modal";
 import { Form, FormInput, FormSelect } from "@/components/forms";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectGroupById } from "@/store/sports/selectors";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { addMemberThunk } from "@/store/sports/groups-slice";
 import { addMemberSchema, type AddMemberFormData } from "../schemas";
@@ -33,13 +35,38 @@ export function AddMemberModal({
   groupName,
 }: AddMemberModalProps) {
   const dispatch = useAppDispatch();
+  const group = useAppSelector((state) => selectGroupById(state, groupId));
 
   const form = useForm<AddMemberFormData>({
     resolver: zodResolver(addMemberSchema),
+    mode: "onChange",
     defaultValues: { name: "", email: "", role: "Member" },
   });
 
-  const { control, handleSubmit, reset, formState: { isSubmitting } } = form;
+  const {
+    control,
+    handleSubmit,
+    reset,
+    setError,
+    clearErrors,
+    formState: { isSubmitting, errors },
+  } = form;
+
+  const emailValue = form.watch("email");
+  useEffect(() => {
+    if (!emailValue) return;
+    const isAlreadyMember = group?.members?.some(
+      (m) => m.email?.toLowerCase() === emailValue.trim().toLowerCase()
+    );
+    if (isAlreadyMember) {
+      setError("email", {
+        type: "manual",
+        message: "Email already registered",
+      });
+    } else if (errors.email?.message === "Email already registered") {
+      clearErrors("email");
+    }
+  }, [emailValue, group?.members, setError, clearErrors, errors.email?.message]);
 
   const handleClose = (next: boolean) => {
     if (!next) reset();
@@ -47,6 +74,17 @@ export function AddMemberModal({
   };
 
   const onSubmit = async (data: AddMemberFormData) => {
+    const isAlreadyMember = group?.members?.some(
+      (m) => m.email?.toLowerCase() === data.email.trim().toLowerCase()
+    );
+    if (isAlreadyMember) {
+      setError("email", {
+        type: "manual",
+        message: "Email already registered",
+      });
+      return;
+    }
+
     try {
       await dispatch(
         addMemberThunk({
@@ -69,10 +107,21 @@ export function AddMemberModal({
       reset();
       onOpenChange(false);
     } catch (error: any) {
+      const msg = error?.message || "";
+      if (
+        msg.toLowerCase().includes("already a member") ||
+        msg.toLowerCase().includes("already registered")
+      ) {
+        setError("email", {
+          type: "manual",
+          message: "Email already registered",
+        });
+        return;
+      }
       dispatch(
         notificationAdded({
           title: "Error adding member",
-          message: error.message || "Something went wrong",
+          message: msg || "Something went wrong",
           variant: "error",
         })
       );
@@ -107,7 +156,7 @@ export function AddMemberModal({
               name="email"
               label="Email"
               type="email"
-              placeholder="priya@example.com"
+              placeholder="priya@gmail.com"
               autoComplete="email"
             />
             <FormSelect

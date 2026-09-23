@@ -15,7 +15,7 @@ export const registerSchema = z
     email: emailSchema,
     password: passwordSchema,
     confirmPassword: z.string().min(1, "Please confirm your password"),
-    role: z.enum(["member", "venue_owner", "artist", "band", "client"]).default("client"),
+    role: z.enum(["member", "venue_owner", "sports_venue_owner", "artist", "band", "client"]).default("client"),
     terms: z.boolean().optional().default(true),
   })
   .refine((data) => data.password === data.confirmPassword, {

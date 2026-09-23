@@ -41,7 +41,7 @@ export function DashboardLayout({
     !mounted
       ? []
       : product === "sports"
-      ? user?.role === "venue_owner"
+      ? (user?.role === "venue_owner" || user?.role === "sports_venue_owner")
         ? OWNER_NAV
         : SPORTS_NAV
       : effectiveRole === "artist" || effectiveRole === "band"

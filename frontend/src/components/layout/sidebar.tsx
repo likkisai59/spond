@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks";
 import { getInitials } from "@/utils/helpers";
 import type { NavSection } from "@/types";
 import { cn } from "@/utils/cn";
+import { ROUTES } from "@/constants";
 
 export interface SidebarProps {
   sections: NavSection[];
@@ -216,12 +217,14 @@ function SidebarProfile({
     ? (user.fullName?.trim() || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.name || "Guest user")
     : "Guest user";
   const displayRole = mounted && user
-    ? (user.role === "member" ? "Club Owner" : user.role === "venue_owner" ? "Venue Owner" : user.role)
+    ? (user.role === "member" ? "Club Owner" : user.role === "sports_venue_owner" ? "Sports Venue Owner" : user.role === "venue_owner" ? "Venue Owner" : user.role)
     : null;
   const role = user ? user.role : null;
 
   const profileHref =
-    role === "artist" || role === "band"
+    role === "sports_venue_owner"
+      ? ROUTES.SPORTS_SETTINGS
+      : role === "artist" || role === "band"
       ? "/band/artist/profile?tab=edit"
       : role === "venue_owner"
       ? "/band/venue/profile?tab=edit"

@@ -6,6 +6,7 @@ SPORTS_ADMIN = "sports_admin"
 BAND_ADMIN = "band_admin"
 COACH = "coach"
 VENUE_OWNER = "venue_owner"
+SPORTS_VENUE_OWNER = "sports_venue_owner"
 ARTIST = "artist"
 BAND_MANAGER = "band_manager"
 PLAYER = "player"
@@ -21,6 +22,7 @@ ALL_ROLES = [
     BAND_ADMIN,
     COACH,
     VENUE_OWNER,
+    SPORTS_VENUE_OWNER,
     ARTIST,
     BAND_MANAGER,
     PLAYER,
@@ -43,6 +45,7 @@ ROLE_MODULES: dict[str, list[str]] = {
     BAND_ADMIN: [MODULE_BAND],
     COACH: [MODULE_SPORTS],
     VENUE_OWNER: [MODULE_SPORTS, MODULE_BAND],
+    SPORTS_VENUE_OWNER: [MODULE_SPORTS],
     ARTIST: [MODULE_BAND],
     BAND_MANAGER: [MODULE_BAND],
     PLAYER: [MODULE_SPORTS],
@@ -112,6 +115,12 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         PERM_PAYMENTS_READ,
         PERM_ANALYTICS_READ,
     ],
+    SPORTS_VENUE_OWNER: [
+        PERM_FILES_WRITE,
+        PERM_FILES_READ,
+        PERM_PAYMENTS_READ,
+        PERM_ANALYTICS_READ,
+    ],
     ARTIST: [
         PERM_FILES_WRITE,
         PERM_FILES_READ,
@@ -143,6 +152,7 @@ ROLE_DESCRIPTIONS = {
     BAND_ADMIN: "Administers the Band product only",
     COACH: "Runs teams, sessions and attendance (Sports)",
     VENUE_OWNER: "Manages venue listings and slots (Sports & Band)",
+    SPORTS_VENUE_OWNER: "Manages sports turf/court listings and slots (Sports)",
     ARTIST: "Performer profile and bookings (Band)",
     BAND_MANAGER: "Manages bands and bookings (Band)",
     PLAYER: "Team member participation (Sports)",

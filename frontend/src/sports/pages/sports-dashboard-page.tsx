@@ -69,6 +69,10 @@ export function SportsDashboardPage() {
       router.replace("/band/artist/dashboard");
       return;
     }
+    if (user?.role === "sports_venue_owner") {
+      router.replace(ROUTES.SPORTS_OWNER_DASHBOARD);
+      return;
+    }
     if (user?.role === "venue_owner") {
       router.replace("/band/venue/dashboard");
       return;
@@ -106,7 +110,7 @@ export function SportsDashboardPage() {
   const dashboardPolls = activePolls.slice(0, 2);
   const dueAmount = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
 
-  if (user?.role === "venue_owner") {
+  if (user?.role === "venue_owner" || user?.role === "sports_venue_owner") {
     return null;
   }
 

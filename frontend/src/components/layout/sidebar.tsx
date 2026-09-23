@@ -222,13 +222,13 @@ function SidebarProfile({
   const role = user ? user.role : null;
 
   const profileHref =
-    role === "sports_venue_owner"
-      ? ROUTES.SPORTS_SETTINGS
-      : role === "artist" || role === "band"
+    role === "artist" || role === "band"
       ? "/band/artist/profile?tab=edit"
       : role === "venue_owner"
       ? "/band/venue/profile?tab=edit"
-      : "/band/client/profile";
+      : role === "client" || role === "user"
+      ? "/band/client/profile"
+      : ROUTES.SPORTS_SETTINGS;
 
   const content = (
     <Link

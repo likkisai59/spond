@@ -109,14 +109,15 @@ export const preferencesSchema = z.object({
 export type PreferencesFormData = z.infer<typeof preferencesSchema>;
 
 export const createVenueSchema = z.object({
-  name: requiredStringSchema("Venue name", 2),
+  name: requiredStringSchema("Venue name", 2)
+    .regex(/^[a-zA-Z\s.'-]+$/, "Venue name must contain only alphabetic characters and spaces"),
   description: requiredStringSchema("Description", 10),
   sportType: z.union([z.string(), z.array(z.string())]).optional(),
   address: requiredStringSchema("Address", 5),
   city: requiredStringSchema("City", 2).regex(/^[a-zA-Z\s,.-]+$/, "City cannot contain numbers"),
   state: z.string().optional(),
   country: z.string().optional(),
-  contactName: z.string().regex(/^[a-zA-Z\s.'-]*$/, "Contact name cannot contain numbers").optional().or(z.literal("")),
+  contactName: z.string().regex(/^[a-zA-Z\s]*$/, "Contact name must contain only alphabetic characters and spaces").optional().or(z.literal("")),
   contactPhone: z.string().regex(/^[0-9+\s\-()]*$/, "Phone number cannot contain alphabets").optional().or(z.literal("")),
   openingTime: z.string().optional(),
   closingTime: z.string().optional(),

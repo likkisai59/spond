@@ -79,16 +79,13 @@ class SportsService:
             "joined_at": utc_now()
         })
 
-        # Mutate dashboard cache instantly
+        # Invalidate dashboard cache
         try:
             redis = RedisClient.get_client()
-            cache_key = "analytics:sports:dashboard:overview"
-            cached = await redis.get(cache_key)
-            if cached:
-                overview = json.loads(cached)
-                overview["groups"] = overview.get("groups", 0) + 1
-                overview["members"] = overview.get("members", 0) + 1
-                await redis.set(cache_key, json.dumps(overview), ex=300)
+            await redis.delete(
+                "analytics:sports:dashboard:overview",
+                f"analytics:sports:dashboard:overview:{user_id}"
+            )
         except Exception:
             pass
 
@@ -207,6 +204,16 @@ class SportsService:
             "joined_at": utc_now()
         })
 
+        # Invalidate dashboard cache
+        try:
+            redis = RedisClient.get_client()
+            keys_to_del = ["analytics:sports:dashboard:overview"]
+            if current_user and "id" in current_user:
+                keys_to_del.append(f"analytics:sports:dashboard:overview:{current_user['id']}")
+            await redis.delete(*keys_to_del)
+        except Exception:
+            pass
+
         group = await self.get_group(group_id)
 
         admin_name = "Club Owner"
@@ -304,6 +311,17 @@ class SportsService:
             "updated_at": utc_now(),
         })
         created = await self.events.insert(event_doc)
+
+        # Invalidate dashboard cache
+        try:
+            redis = RedisClient.get_client()
+            await redis.delete(
+                "analytics:sports:dashboard:overview",
+                f"analytics:sports:dashboard:overview:{user_id}"
+            )
+        except Exception:
+            pass
+
         return await self.get_event(created["id"])
 
     async def get_event(self, event_id: str) -> dict:

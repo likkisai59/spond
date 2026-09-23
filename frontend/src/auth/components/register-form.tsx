@@ -28,18 +28,18 @@ import { PasswordStrengthBar } from "./password-strength-bar";
 import toast from "react-hot-toast";
 
 function TermsLabel() {
-  const dispatch = useAppDispatch();
+  const [modalType, setModalType] = useState<"terms" | "privacy" | null>(null);
 
-  const openDocument = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const openTerms = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    dispatch(
-      notificationAdded({
-        title: "Legal documents",
-        message: "Terms of Service and Privacy Policy will be published at launch.",
-        variant: "info",
-      })
-    );
+    setModalType("terms");
+  };
+
+  const openPrivacy = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setModalType("privacy");
   };
 
   return (
@@ -47,7 +47,7 @@ function TermsLabel() {
       I agree to the{" "}
       <button
         type="button"
-        onClick={openDocument}
+        onClick={openTerms}
         className="font-semibold text-foreground underline decoration-accent underline-offset-2"
       >
         Terms of Service
@@ -55,11 +55,76 @@ function TermsLabel() {
       and{" "}
       <button
         type="button"
-        onClick={openDocument}
+        onClick={openPrivacy}
         className="font-semibold text-foreground underline decoration-accent underline-offset-2"
       >
         Privacy Policy
       </button>
+
+      <Modal open={modalType !== null} onOpenChange={(open) => !open && setModalType(null)}>
+        <ModalContent className="max-w-xl max-h-[85vh] flex flex-col">
+          <ModalHeader>
+            <ModalTitle>
+              {modalType === "terms" ? "Terms of Service" : "Privacy Policy"}
+            </ModalTitle>
+            <ModalDescription>
+              {modalType === "terms"
+                ? "Please review our terms and conditions for using the platform."
+                : "Learn how we collect, use, and protect your personal information."}
+            </ModalDescription>
+          </ModalHeader>
+          <div className="overflow-y-auto max-h-[50vh] pr-2 space-y-4 text-sm text-muted-foreground leading-relaxed">
+            {modalType === "terms" ? (
+              <>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">1. Acceptance of Terms</h4>
+                  <p>By creating an account or using Spond, you agree to comply with and be bound by these Terms of Service. If you do not agree, please do not use the services.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">2. User Accounts & Responsibilities</h4>
+                  <p>You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">3. Venue & Booking Policies</h4>
+                  <p>Bookings made via the platform are subject to availability, confirmation, and venue-specific guidelines. Cancellations must adhere to our standard cancellation policy.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">4. Code of Conduct</h4>
+                  <p>All members and venue partners agree to treat others with respect and uphold fair play, community standards, and lawful conduct at all times.</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">1. Information We Collect</h4>
+                  <p>We collect information you provide directly to us when registering, such as your full name, email address, role, phone number, and venue details.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">2. How We Use Information</h4>
+                  <p>We use your information to operate and improve the platform, process bookings, manage communication between members and venues, and provide security.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">3. Data Sharing & Security</h4>
+                  <p>We do not sell your personal data. We implement industry-standard encryption and security measures to protect your credentials and activity.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">4. Your Rights</h4>
+                  <p>You may view, update, or request deletion of your personal account information at any time via your account settings.</p>
+                </div>
+              </>
+            )}
+          </div>
+          <ModalFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setModalType(null)}
+            >
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </>
   );
 }

@@ -5,7 +5,7 @@ const personNameSchema = z
   .trim()
   .min(2, "Name must be at least 2 characters")
   .max(100, "Name cannot exceed 100 characters")
-  .regex(/^[a-zA-Z\s.'-]+$/, "Name contains invalid characters");
+  .regex(/^[a-zA-Z\s]+$/, "Name must contain only alphabetic characters and spaces");
 
 const optionalPersonNameSchema = z
   .string()
@@ -92,7 +92,12 @@ export const venueProfileUpdateSchema = z
     gst_number: z.string().optional().default(""),
     pan_number: z.string().optional().default(""),
 
-    venue_name: z.string().min(2, "Venue Name must be at least 2 characters"),
+    venue_name: z
+      .string()
+      .trim()
+      .min(2, "Venue Name must be at least 2 characters")
+      .max(100, "Venue Name cannot exceed 100 characters")
+      .regex(/^[a-zA-Z\s.'-]+$/, "Venue name must contain only alphabetic characters and spaces"),
     venue_type: z.enum([
       "Marriage Hall",
       "Resort",

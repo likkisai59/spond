@@ -20,7 +20,14 @@ export type CreateGroupFormData = z.infer<typeof createGroupSchema>;
 
 export const addMemberSchema = z.object({
   name: nameSchema,
-  email: emailSchema,
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email is required")
+    .regex(
+      /^[a-zA-Z0-9._%+-]+@(gmail|yahoo)\.com$/i,
+      "Enter a valid email address"
+    ),
   role: z.enum(MEMBER_ROLES, { message: "Select a role" }),
 });
 export type AddMemberFormData = z.infer<typeof addMemberSchema>;
@@ -37,10 +44,48 @@ export const createEventSchema = z
     description: requiredStringSchema("Description", 5),
     notifyMembers: z.boolean(),
   })
-  .refine((data) => data.endTime > data.startTime, {
-    message: "End time must be after start time",
-    path: ["endTime"],
-  });
+  .refine(
+    (data) => {
+      if (!data.date || !data.startTime) return true;
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      if (data.date === today) {
+        const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+        return data.startTime > currentTime;
+      }
+      return true;
+    },
+    {
+      message: "Start time must be after the current time",
+      path: ["startTime"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (!data.date || !data.endTime) return true;
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      if (data.date === today) {
+        const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+        return data.endTime > currentTime;
+      }
+      return true;
+    },
+    {
+      message: "End time must be after the current time",
+      path: ["endTime"],
+    }
+  )
+  .refine(
+    (data) => {
+      if (!data.startTime || !data.endTime) return true;
+      return data.endTime > data.startTime;
+    },
+    {
+      message: "End time should be greater than the start time",
+      path: ["endTime"],
+    }
+  );
 export type CreateEventFormData = z.infer<typeof createEventSchema>;
 
 export const createPollSchema = z.object({

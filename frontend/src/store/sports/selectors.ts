@@ -76,24 +76,24 @@ export const selectPollById = (
 ): SportsPoll | undefined =>
   state.sports.polls.polls.find((p) => p.id === pollId);
 
+export function isPollExpired(expiresAt?: string): boolean {
+  if (!expiresAt) return false;
+  if (expiresAt.length <= 10) {
+    const [year, month, day] = expiresAt.split("-").map(Number);
+    const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+    return endOfDay.getTime() <= Date.now();
+  }
+  return new Date(expiresAt).getTime() <= Date.now();
+}
+
 export const selectActivePolls = createSelector(
   [selectAllPolls],
-  (polls) => {
-    const now = new Date();
-    return polls.filter(
-      (p) => p.status === "Active" && (!p.expiresAt || new Date(p.expiresAt) > now)
-    );
-  }
+  (polls) => polls.filter((p) => p.status === "Active" && !isPollExpired(p.expiresAt))
 );
 
 export const selectClosedPolls = createSelector(
   [selectAllPolls],
-  (polls) => {
-    const now = new Date();
-    return polls.filter(
-      (p) => p.status === "Closed" || (p.expiresAt && new Date(p.expiresAt) <= now)
-    );
-  }
+  (polls) => polls.filter((p) => p.status === "Closed" || isPollExpired(p.expiresAt))
 );
 
 export const selectAllPayments = (state: RootState): PaymentRequest[] =>

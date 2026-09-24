@@ -42,6 +42,7 @@ export function CreateEventPage() {
 
   const form = useForm<CreateEventFormData>({
     resolver: zodResolver(createEventSchema),
+    mode: "onChange",
     defaultValues: {
       groupId: "",
       type: undefined,
@@ -55,6 +56,17 @@ export function CreateEventPage() {
     },
   });
   const { control, handleSubmit, formState } = form;
+
+  const date = form.watch("date");
+  const startTime = form.watch("startTime");
+  useEffect(() => {
+    if (form.getValues("startTime")) {
+      form.trigger("startTime");
+    }
+    if (form.getValues("endTime")) {
+      form.trigger("endTime");
+    }
+  }, [date, startTime, form]);
 
   const onSubmit: SubmitHandler<CreateEventFormData> = async (data) => {
     try {

@@ -302,7 +302,7 @@ export function CreateGroupPage() {
                         })
                       }
                       className={cn(
-                        "flex items-start gap-3 rounded-xl border px-4 py-4 text-left transition-all",
+                        "flex w-full h-full items-start gap-3 rounded-xl border px-4 py-4 text-left transition-all",
                         active
                           ? "border-accent/50 bg-brand-gradient-soft shadow-sm"
                           : "border-border/70 hover:border-accent/40 hover:bg-muted/50"
@@ -326,11 +326,15 @@ export function CreateGroupPage() {
                           {option.description}
                         </span>
                       </span>
-                      {active ? (
-                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent">
-                          <Check className="h-3 w-3 text-white" />
-                        </span>
-                      ) : null}
+                      <span
+                        className={cn(
+                          "flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent transition-opacity",
+                          active ? "opacity-100" : "opacity-0 pointer-events-none"
+                        )}
+                        aria-hidden="true"
+                      >
+                        <Check className="h-3 w-3 text-white" />
+                      </span>
                     </button>
                   );
                 })}

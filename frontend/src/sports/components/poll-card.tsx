@@ -4,6 +4,7 @@ import { BarChart3, CalendarClock } from "lucide-react";
 import { Card } from "@/components/shared/card";
 import { useAppDispatch } from "@/store/hooks";
 import { voteToggled } from "@/store/sports/polls-slice";
+import { isPollExpired } from "@/store/sports/selectors";
 import { StatusBadge } from "./status-badge";
 import { formatDate } from "@/utils/date";
 import type { SportsPoll } from "@/types";
@@ -17,6 +18,7 @@ export interface PollCardProps {
 
 export function PollCard({ poll, groupName, className }: PollCardProps) {
   const dispatch = useAppDispatch();
+  const isClosed = poll.status === "Closed" || isPollExpired(poll.expiresAt);
   const totalVotes = poll.options.reduce((sum, o) => sum + o.votes, 0);
   const hasVoted = poll.votedOptionIds.length > 0;
 
@@ -36,7 +38,7 @@ export function PollCard({ poll, groupName, className }: PollCardProps) {
             {poll.question}
           </h3>
         </div>
-        <StatusBadge status={poll.status} />
+        <StatusBadge status={isClosed ? "Closed" : "Active"} />
       </div>
 
       <div className="mt-5 flex-1 space-y-3">
@@ -49,7 +51,7 @@ export function PollCard({ poll, groupName, className }: PollCardProps) {
             <button
               key={option.id}
               type="button"
-              disabled={poll.status !== "Active"}
+              disabled={isClosed}
               onClick={() =>
                 dispatch(voteToggled({ pollId: poll.id, optionId: option.id }))
               }
@@ -58,7 +60,7 @@ export function PollCard({ poll, groupName, className }: PollCardProps) {
                 voted
                   ? "border-accent/50 bg-brand-gradient-soft"
                   : "border-border/70 hover:border-accent/40",
-                poll.status === "Active" ? "cursor-pointer" : "cursor-default"
+                !isClosed ? "cursor-pointer" : "cursor-default"
               )}
               aria-pressed={voted}
             >
@@ -103,9 +105,9 @@ export function PollCard({ poll, groupName, className }: PollCardProps) {
         </span>
         <span className="inline-flex items-center gap-1.5">
           <CalendarClock className="h-3.5 w-3.5 text-accent" />
-          {poll.status === "Active"
-            ? `Ends ${formatDate(poll.expiresAt)}`
-            : `Ended ${formatDate(poll.expiresAt)}`}
+          {isClosed
+            ? `Ended ${formatDate(poll.expiresAt)}`
+            : `Ends ${formatDate(poll.expiresAt)}`}
         </span>
       </div>
     </Card>

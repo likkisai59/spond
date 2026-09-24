@@ -22,7 +22,7 @@ import { Card } from "@/components/shared/card";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { voteToggled } from "@/store/sports/polls-slice";
-import { selectAllGroups, selectPollById } from "@/store/sports/selectors";
+import { selectAllGroups, selectPollById, isPollExpired } from "@/store/sports/selectors";
 import { StatusBadge } from "../components/status-badge";
 import { ROUTES } from "@/constants";
 import { formatDate, formatRelative } from "@/utils/date";
@@ -66,15 +66,17 @@ export function PollDetailsPage() {
     );
   }
 
+  const isClosed = poll.status === "Closed" || isPollExpired(poll.expiresAt);
   const totalVotes = poll.options.reduce((sum, option) => sum + option.votes, 0);
   const leadingOption = poll.options.reduce(
-    (best, option) => (option.votes > best.votes ? option : best),
+    (max, option) => (option.votes > max.votes ? option : max),
     poll.options[0]
   );
   const isTied =
     poll.options.filter((o) => o.votes === leadingOption.votes).length > 1;
 
   const handleVote = (optionId: string) => {
+    if (isClosed) return;
     dispatch(voteToggled({ pollId: poll.id, optionId }));
     dispatch(
       notificationAdded({
@@ -117,7 +119,7 @@ export function PollDetailsPage() {
       <div className="animate-fade-in-up flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={poll.status} />
+            <StatusBadge status={isClosed ? "Closed" : "Active"} />
             {group ? <Badge variant="gradient">{group.name}</Badge> : null}
             {poll.multipleChoice ? (
               <Badge variant="secondary">Multiple choice</Badge>
@@ -149,7 +151,7 @@ export function PollDetailsPage() {
           </span>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          {poll.status === "Active"
+          {!isClosed
             ? poll.multipleChoice
               ? "Select every option you support."
               : "Select one option to register your vote."
@@ -168,15 +170,15 @@ export function PollDetailsPage() {
               <button
                 key={option.id}
                 type="button"
-                disabled={poll.status !== "Active"}
+                disabled={isClosed}
                 onClick={() => handleVote(option.id)}
                 aria-pressed={voted}
                 className={cn(
-                  "group relative w-full overflow-hidden rounded-xl border px-5 py-4 text-left transition-all",
+                  "group relative w-full overflow-hidden rounded-2xl border p-4 text-left transition-all sm:p-5",
                   voted
-                    ? "border-accent/50 bg-brand-gradient-soft shadow-sm"
+                    ? "border-accent/60 bg-brand-gradient-soft shadow-sm"
                     : "border-border/70 hover:border-accent/40",
-                  poll.status === "Active" ? "cursor-pointer" : "cursor-default"
+                  !isClosed ? "cursor-pointer" : "cursor-default"
                 )}
               >
                 <span
@@ -271,7 +273,7 @@ export function PollDetailsPage() {
             </div>
             <div className="flex items-center justify-between">
               <dt className="text-muted-foreground">
-                {poll.status === "Active" ? "Closes" : "Closed"}
+                {!isClosed ? "Closes" : "Closed"}
               </dt>
               <dd className="font-extrabold">{formatDate(poll.expiresAt)}</dd>
             </div>

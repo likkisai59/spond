@@ -60,7 +60,26 @@ export function SportsDashboardPage() {
   });
 
   useEffect(() => {
-
+    if (user?.role === "client") {
+      router.replace("/band/client/dashboard");
+      return;
+    }
+    if (user?.role === "artist") {
+      router.replace("/band/artist/dashboard");
+      return;
+    }
+    if (user?.role === "sports_venue_owner") {
+      router.replace(ROUTES.SPORTS_OWNER_DASHBOARD);
+      return;
+    }
+    if (user?.role === "venue_owner") {
+      router.replace("/band/venue/dashboard");
+      return;
+    }
+    if (user?.role === "band") {
+      router.replace("/band/artist/dashboard");
+      return;
+    }
     const fetchStats = async () => {
       try {
         const response = await apiClient.get("/api/v1/sports/dashboard");
@@ -90,7 +109,7 @@ export function SportsDashboardPage() {
   const dashboardPolls = activePolls.slice(0, 2);
   const dueAmount = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
 
-  if (user?.role === "venue_owner") {
+  if (user?.role === "venue_owner" || user?.role === "sports_venue_owner") {
     return null;
   }
 

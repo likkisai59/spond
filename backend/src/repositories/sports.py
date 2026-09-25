@@ -7,7 +7,8 @@ from src.constants.collections import (
     SPORTS_VENUES,
     SPORTS_VENUE_SLOTS,
     SPORTS_BOOKINGS,
-    SPORTS_PAYMENT_REQUESTS
+    SPORTS_PAYMENT_REQUESTS,
+    SPORTS_POLLS
 )
 from src.database.base_repository import BaseRepository
 
@@ -66,6 +67,13 @@ class SportsBookingRepository(BaseRepository):
 
 class PaymentRequestRepository(BaseRepository):
     collection_name = SPORTS_PAYMENT_REQUESTS
+
+    async def ensure_indexes(self) -> None:
+        await self.create_index([("group_id", 1)])
+        await self.create_index([("created_at", -1)])
+
+class PollRepository(BaseRepository):
+    collection_name = SPORTS_POLLS
 
     async def ensure_indexes(self) -> None:
         await self.create_index([("group_id", 1)])

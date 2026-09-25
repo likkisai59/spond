@@ -8,7 +8,7 @@ from src.repositories.sports import (
     GroupRepository, GroupMemberRepository, EventRepository,
     RsvpRepository, AttendanceRepository,
     SportsVenueRepository, SportsSlotRepository, SportsBookingRepository,
-    PaymentRequestRepository
+    PaymentRequestRepository, PollRepository
 )
 from src.repositories import UserRepository
 from src.exceptions.handlers import NotFoundError, AppException
@@ -21,7 +21,8 @@ from src.schemas.sports import (
     VenueCreateRequest, VenueUpdateRequest,
     SlotCreateRequest, SlotUpdateRequest,
     BookingCreateRequest,
-    PaymentRequestCreateRequest
+    PaymentRequestCreateRequest,
+    PollCreateRequest, PollVoteRequest
 )
 from bson import ObjectId
 
@@ -39,6 +40,7 @@ class SportsService:
         self.slots = SportsSlotRepository()
         self.bookings = SportsBookingRepository()
         self.payment_requests = PaymentRequestRepository()
+        self.polls = PollRepository()
         self.email_service = EmailService()
 
     async def create_group(self, user_id: str, data: GroupCreateRequest) -> dict:
@@ -680,4 +682,79 @@ class SportsService:
         if not updated:
             raise NotFoundError("Payment request not found")
         return updated
+
+    # --- Polls ---
+    async def create_poll(self, user_id: str, data: PollCreateRequest) -> dict:
+        labels = data.option_labels or []
+        if not labels and data.options:
+            labels = [opt if isinstance(opt, str) else opt.get("label", "") for opt in data.options]
+        
+        creator = await self.users.find_by_id(user_id)
+        created_by_name = creator.get("name", "You") if creator else "You"
+
+        poll_doc = {
+            "group_id": data.group_id,
+            "question": data.question,
+            "multiple_choice": data.multiple_choice,
+            "expires_at": data.expires_at,
+            "status": "Active",
+            "created_by": created_by_name,
+            "user_id": user_id,
+            "voted_option_ids": [],
+            "options": [{"id": uuid.uuid4().hex[:6], "label": label, "votes": 0} for label in labels],
+            "created_at": utc_now(),
+            "updated_at": utc_now(),
+        }
+        return await self.polls.insert(poll_doc)
+
+    async def list_polls(self, group_id: str | None = None) -> list[dict]:
+        query = {}
+        if group_id:
+            query["group_id"] = group_id
+        return await self.polls.find_many(query, sort=[("created_at", -1)])
+
+    async def get_poll(self, poll_id: str) -> dict:
+        poll = await self.polls.find_by_id(poll_id)
+        if not poll:
+            raise NotFoundError("Poll not found")
+        return poll
+
+    async def vote_poll(self, poll_id: str, user_id: str, option_id: str) -> dict:
+        poll = await self.get_poll(poll_id)
+        if poll.get("status") != "Active":
+            raise AppException(400, "Poll is closed")
+
+        options = poll.get("options", [])
+        voted_ids = list(poll.get("voted_option_ids", []))
+        is_multiple = poll.get("multiple_choice", False)
+
+        if is_multiple:
+            for opt in options:
+                if opt["id"] == option_id:
+                    if option_id in voted_ids:
+                        opt["votes"] = max(0, opt.get("votes", 0) - 1)
+                        voted_ids.remove(option_id)
+                    else:
+                        opt["votes"] = opt.get("votes", 0) + 1
+                        voted_ids.append(option_id)
+                    break
+        else:
+            already_voted = option_id in voted_ids
+            for opt in options:
+                if opt["id"] in voted_ids:
+                    opt["votes"] = max(0, opt.get("votes", 0) - 1)
+            voted_ids = []
+            if not already_voted:
+                for opt in options:
+                    if opt["id"] == option_id:
+                        opt["votes"] = opt.get("votes", 0) + 1
+                        voted_ids.append(option_id)
+                        break
+
+        updated = await self.polls.update_by_id(poll_id, {
+            "options": options,
+            "voted_option_ids": voted_ids,
+            "updated_at": utc_now(),
+        })
+        return updated or poll
 

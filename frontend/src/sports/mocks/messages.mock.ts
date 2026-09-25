@@ -32,31 +32,4 @@ export const MOCK_CONVERSATIONS: Conversation[] = [
       { id: "msg-07", senderId: "mem-d2", senderName: "Ananya Iyer", content: "Goa is leading the poll by 3 votes.", sentAt: "2026-08-20T08:10:00.000Z", isMine: false },
     ],
   },
-  {
-    id: "cnv-03",
-    createdAt: "2026-07-01T09:00:00.000Z",
-    updatedAt: "2026-08-19T19:30:00.000Z",
-    type: "Direct",
-    name: "Rohan Verma",
-    lastMessage: "Can you cover the drill setup on Wednesday?",
-    lastMessageAt: "2026-08-19T19:30:00.000Z",
-    unreadCount: 0,
-    messages: [
-      { id: "msg-08", senderId: "mem-s2", senderName: "Rohan Verma", content: "Can you cover the drill setup on Wednesday?", sentAt: "2026-08-19T19:30:00.000Z", isMine: false },
-    ],
-  },
-  {
-    id: "cnv-04",
-    createdAt: "2026-07-15T09:00:00.000Z",
-    updatedAt: "2026-08-18T14:05:00.000Z",
-    type: "Direct",
-    name: "Neha Kapoor",
-    lastMessage: "Registration receipts are in the Files tab.",
-    lastMessageAt: "2026-08-18T14:05:00.000Z",
-    unreadCount: 0,
-    messages: [
-      { id: "msg-09", senderId: "me", senderName: "You", content: "Did the tournament entry go through?", sentAt: "2026-08-18T13:58:00.000Z", isMine: true },
-      { id: "msg-10", senderId: "mem-a1", senderName: "Neha Kapoor", content: "Registration receipts are in the Files tab.", sentAt: "2026-08-18T14:05:00.000Z", isMine: false },
-    ],
-  },
 ];

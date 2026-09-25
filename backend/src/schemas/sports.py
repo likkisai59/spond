@@ -275,4 +275,17 @@ class PaymentRequestResponse(CamelModel):
     created_at: datetime
     updated_at: datetime
 
+# --- Polls ---
+class PollCreateRequest(CamelModel):
+    group_id: str
+    question: str
+    option_labels: list[str] | None = None
+    options: list[str] | list[dict] | None = None
+    multiple_choice: bool = False
+    expires_at: str
+
+class PollVoteRequest(CamelModel):
+    option_id: str
+
+
 

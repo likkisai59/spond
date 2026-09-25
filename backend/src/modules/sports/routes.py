@@ -19,7 +19,8 @@ from src.schemas.sports import (
     VenueCreateRequest, VenueUpdateRequest,
     SlotCreateRequest, SlotUpdateRequest,
     BookingCreateRequest, GenerateSlotsRequest,
-    PaymentRequestCreateRequest, UpdateBookingStatusRequest
+    PaymentRequestCreateRequest, UpdateBookingStatusRequest,
+    PollCreateRequest, PollVoteRequest
 )
 
 router = APIRouter(prefix="/sports", tags=["Sports"])
@@ -318,4 +319,26 @@ async def get_payment_request(id: str, _: dict = Depends(get_current_user)) -> d
 async def update_payment_request_status(id: str, status: str = "Paid", _: dict = Depends(get_current_user)) -> dict:
     req = await service.update_payment_request_status(id, status)
     return {"status": "success", "data": req}
+
+# --- Polls ---
+@router.post("/polls")
+async def create_poll(data: PollCreateRequest, user: dict = Depends(get_current_user)) -> dict:
+    poll = await service.create_poll(user["id"], data)
+    return {"status": "success", "data": poll}
+
+@router.get("/polls")
+async def list_polls(group_id: str = None, _: dict = Depends(get_current_user)) -> dict:
+    polls = await service.list_polls(group_id)
+    return {"status": "success", "data": {"items": polls}}
+
+@router.get("/polls/{id}")
+async def get_poll(id: str, _: dict = Depends(get_current_user)) -> dict:
+    poll = await service.get_poll(id)
+    return {"status": "success", "data": poll}
+
+@router.post("/polls/{id}/vote")
+async def vote_poll(id: str, data: PollVoteRequest, user: dict = Depends(get_current_user)) -> dict:
+    poll = await service.vote_poll(id, user["id"], data.option_id)
+    return {"status": "success", "data": poll}
+
 

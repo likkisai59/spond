@@ -96,8 +96,7 @@ const messagesSlice = createSlice({
       })
       .addCase(fetchConversations.fulfilled, (state, action) => {
         state.status = "succeeded";
-        // Merge state or overwrite, fallback to mock if empty
-        const fetched = action.payload.length > 0 ? action.payload : MOCK_CONVERSATIONS;
+        const fetched = action.payload || [];
         state.conversations = fetched.map((conv: Conversation) => ({
           ...conv,
           messages: state.conversations.find(c => c.id === conv.id)?.messages || conv.messages || []
@@ -106,8 +105,7 @@ const messagesSlice = createSlice({
       .addCase(fetchConversations.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error.message || "Failed to fetch conversations";
-        // Fallback to mock data if API fails (e.g. not signed in)
-        state.conversations = MOCK_CONVERSATIONS;
+        state.conversations = [];
       })
       .addCase(fetchHistory.fulfilled, (state, action) => {
         const conversation = state.conversations.find(c => c.id === action.payload.conversationId);

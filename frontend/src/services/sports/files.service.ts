@@ -15,7 +15,7 @@ import { apiClient } from "../api-client";
 
 export const filesService: FilesService = {
   list: async (query) => {
-    return apiClient.get("/api/v1/files", { params: query });
+    return apiClient.get("/api/v1/files", { params: { module: "sports", ...query } });
   },
   upload: async (input) => {
     // Input must be FormData

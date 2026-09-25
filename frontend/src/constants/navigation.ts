@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   MessageSquare,
   Mic2,
-  Music,
   Settings,
   Users,
   Vote,

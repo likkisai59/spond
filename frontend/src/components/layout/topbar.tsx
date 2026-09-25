@@ -138,15 +138,11 @@ function UserMenu() {
   };
 
   const role = user?.role || "";
-  let profileLink = "/band/client/profile";
-  let editProfileLink = "/band/client/profile";
-  let settingsLink = "/band/client/settings";
+  let profileLink = "/sports/settings";
+  let editProfileLink = "/sports/settings";
+  let settingsLink = "/sports/settings";
 
-  if (role === "client" || role === "user") {
-    profileLink = "/band/client/profile";
-    editProfileLink = "/band/client/profile";
-    settingsLink = "/band/client/settings";
-  } else if (role === "artist" || role === "band") {
+  if (role === "artist" || role === "band") {
     profileLink = "/band/artist/profile";
     editProfileLink = "/band/artist/profile?tab=edit";
     settingsLink = "/band/artist/settings";
@@ -154,7 +150,11 @@ function UserMenu() {
     profileLink = "/band/venue/profile";
     editProfileLink = "/band/venue/profile?tab=edit";
     settingsLink = "/band/venue/settings";
-  } else if (role === "owner" || role === "admin" || role === "super-admin") {
+  } else if (role === "client" || role === "user") {
+    profileLink = "/band/client/profile";
+    editProfileLink = "/band/client/profile";
+    settingsLink = "/band/client/settings";
+  } else {
     profileLink = "/sports/settings";
     editProfileLink = "/sports/settings";
     settingsLink = "/sports/settings";

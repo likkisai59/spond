@@ -13,7 +13,7 @@ import toast from "react-hot-toast";
 import { PhoneInputField } from "@/components/shared/PhoneInputField";
 
 export default function ClientProfilePage() {
-  const { user, setUser } = useAuth() as any;
+  const { user, setUser } = useAuth() as { user: Record<string, any> | null; setUser: (u: any) => void };
 
   const [editing, setEditing] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -39,7 +39,7 @@ export default function ClientProfilePage() {
     }
     setSaving(true);
     try {
-      const { data } = await api.patch<any>("/auth/me", form);
+      const { data } = await api.patch<Record<string, any>>("/auth/me", form);
       const updated = data.data;
       // Refresh auth user in store if setUser is available
       if (setUser && typeof setUser === "function") {
@@ -47,8 +47,9 @@ export default function ClientProfilePage() {
       }
       toast.success("Profile updated successfully!");
       setEditing(false);
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || err.response?.data?.message || "Failed to update profile.");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string; message?: string } } };
+      toast.error(error.response?.data?.detail || error.response?.data?.message || "Failed to update profile.");
     } finally {
       setSaving(false);
     }

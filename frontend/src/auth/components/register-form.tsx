@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -18,28 +18,26 @@ import {
 import { AuthDivider, SocialAuthButtons } from "./social-auth-buttons";
 import { authService } from "@/services";
 import { registerSchema, type RegisterFormData } from "../schemas";
-import { ROUTES, getDefaultRouteForRole } from "@/constants";
+import { ROUTES } from "@/constants";
 import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { credentialsReceived } from "@/store/slices/auth-slice";
-import { getPasswordStrength } from "@/utils/validations";
 import { PasswordStrengthBar } from "./password-strength-bar";
 
 import toast from "react-hot-toast";
 
 function TermsLabel() {
-  const dispatch = useAppDispatch();
+  const [modalType, setModalType] = useState<"terms" | "privacy" | null>(null);
 
-  const openDocument = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const openTerms = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    dispatch(
-      notificationAdded({
-        title: "Legal documents",
-        message: "Terms of Service and Privacy Policy will be published at launch.",
-        variant: "info",
-      })
-    );
+    setModalType("terms");
+  };
+
+  const openPrivacy = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setModalType("privacy");
   };
 
   return (
@@ -47,7 +45,7 @@ function TermsLabel() {
       I agree to the{" "}
       <button
         type="button"
-        onClick={openDocument}
+        onClick={openTerms}
         className="font-semibold text-foreground underline decoration-accent underline-offset-2"
       >
         Terms of Service
@@ -55,11 +53,76 @@ function TermsLabel() {
       and{" "}
       <button
         type="button"
-        onClick={openDocument}
+        onClick={openPrivacy}
         className="font-semibold text-foreground underline decoration-accent underline-offset-2"
       >
         Privacy Policy
       </button>
+
+      <Modal open={modalType !== null} onOpenChange={(open) => !open && setModalType(null)}>
+        <ModalContent className="max-w-xl max-h-[85vh] flex flex-col">
+          <ModalHeader>
+            <ModalTitle>
+              {modalType === "terms" ? "Terms of Service" : "Privacy Policy"}
+            </ModalTitle>
+            <ModalDescription>
+              {modalType === "terms"
+                ? "Please review our terms and conditions for using the platform."
+                : "Learn how we collect, use, and protect your personal information."}
+            </ModalDescription>
+          </ModalHeader>
+          <div className="overflow-y-auto max-h-[50vh] pr-2 space-y-4 text-sm text-muted-foreground leading-relaxed">
+            {modalType === "terms" ? (
+              <>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">1. Acceptance of Terms</h4>
+                  <p>By creating an account or using Spond, you agree to comply with and be bound by these Terms of Service. If you do not agree, please do not use the services.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">2. User Accounts & Responsibilities</h4>
+                  <p>You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">3. Venue & Booking Policies</h4>
+                  <p>Bookings made via the platform are subject to availability, confirmation, and venue-specific guidelines. Cancellations must adhere to our standard cancellation policy.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">4. Code of Conduct</h4>
+                  <p>All members and venue partners agree to treat others with respect and uphold fair play, community standards, and lawful conduct at all times.</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">1. Information We Collect</h4>
+                  <p>We collect information you provide directly to us when registering, such as your full name, email address, role, phone number, and venue details.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">2. How We Use Information</h4>
+                  <p>We use your information to operate and improve the platform, process bookings, manage communication between members and venues, and provide security.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">3. Data Sharing & Security</h4>
+                  <p>We do not sell your personal data. We implement industry-standard encryption and security measures to protect your credentials and activity.</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-foreground mb-1">4. Your Rights</h4>
+                  <p>You may view, update, or request deletion of your personal account information at any time via your account settings.</p>
+                </div>
+              </>
+            )}
+          </div>
+          <ModalFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setModalType(null)}
+            >
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </>
   );
 }
@@ -67,6 +130,7 @@ function TermsLabel() {
 // ── Register form ────────────────────────────────────────────────────────────
 export function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
 
   const form = useForm<RegisterFormData>({
@@ -119,8 +183,8 @@ export function RegisterForm() {
           variant: "success",
         })
       );
-    } catch (error: any) {
-      const msg = error?.message || (error instanceof Error ? error.message : "");
+    } catch (error: unknown) {
+      const msg = (error as any)?.message || (error instanceof Error ? error.message : "");
       const isDuplicate =
         msg.toLowerCase().includes("already exists") ||
         msg.toLowerCase().includes("conflict") ||
@@ -178,7 +242,7 @@ export function RegisterForm() {
     try {
       const { signup_token } = await authService.verifyOtp({ email: pendingData.email, otp });
       
-      const session = await authService.completeSignup({
+      await authService.completeSignup({
         signup_token,
         full_name: pendingData.name,
         password: pendingData.password,
@@ -194,7 +258,12 @@ export function RegisterForm() {
           variant: "success",
         })
       );
-      router.push(ROUTES.LOGIN);
+      let redirectUrl = ROUTES.LOGIN;
+      const callbackUrl = searchParams.get("callbackUrl");
+      if (callbackUrl) {
+        redirectUrl += `?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+      }
+      router.push(redirectUrl);
     } catch (error: unknown) {
       dispatch(
         notificationAdded({
@@ -208,8 +277,8 @@ export function RegisterForm() {
     }
   };
 
-  const onInvalid = (errors: any) => {
-    const firstError = Object.values(errors)[0] as any;
+  const onInvalid = (errors: Record<string, any>) => {
+    const firstError = Object.values(errors)[0];
     if (firstError?.message) {
       toast.error(firstError.message);
     }
@@ -285,7 +354,7 @@ export function RegisterForm() {
           <ModalHeader>
             <ModalTitle>Verify your email</ModalTitle>
             <ModalDescription>
-              We've sent a 6-digit code to {pendingData?.email}. Enter it below to complete your registration.
+              We&apos;ve sent a 6-digit code to {pendingData?.email}. Enter it below to complete your registration.
             </ModalDescription>
           </ModalHeader>
           <div className="space-y-4 py-4">
@@ -309,7 +378,7 @@ export function RegisterForm() {
                   disabled={isResending}
                   className="font-semibold text-accent hover:opacity-80 disabled:opacity-50 transition-opacity"
                 >
-                  Didn't receive the code? {isResending ? "Resending..." : "Resend OTP"}
+                  Didn&apos;t receive the code? {isResending ? "Resending..." : "Resend OTP"}
                 </button>
               )}
             </div>

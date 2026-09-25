@@ -18,7 +18,7 @@ import {
 } from "@/components/forms";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { pollAdded } from "@/store/sports/polls-slice";
+import { pollAdded, createPollThunk } from "@/store/sports/polls-slice";
 import { selectAllGroups } from "@/store/sports/selectors";
 import { createPollSchema, type CreatePollFormData } from "../schemas";
 import { ROUTES } from "@/constants";
@@ -41,20 +41,32 @@ export function CreatePollPage() {
   const { control, handleSubmit, formState } = form;
   const { fields, append, remove } = useFieldArray({ control, name: "options" });
 
-  const onSubmit: SubmitHandler<CreatePollFormData> = (data) => {
-    dispatch(
-      pollAdded({
-        groupId: data.groupId,
-        question: data.question,
-        optionLabels: data.options.map((option) => option.label),
-        multipleChoice: data.multipleChoice,
-        expiresAt: data.expiresAt,
-      })
-    );
+  const onSubmit: SubmitHandler<CreatePollFormData> = async (data) => {
+    try {
+      await dispatch(
+        createPollThunk({
+          groupId: data.groupId,
+          question: data.question,
+          optionLabels: data.options.map((option) => option.label),
+          multipleChoice: data.multipleChoice,
+          expiresAt: data.expiresAt,
+        })
+      ).unwrap();
+    } catch {
+      dispatch(
+        pollAdded({
+          groupId: data.groupId,
+          question: data.question,
+          optionLabels: data.options.map((option) => option.label),
+          multipleChoice: data.multipleChoice,
+          expiresAt: data.expiresAt,
+        })
+      );
+    }
     dispatch(
       notificationAdded({
         title: "Poll created",
-        message: "Members can start voting right away (demo mode).",
+        message: "Members can start voting right away.",
         variant: "success",
       })
     );

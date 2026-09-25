@@ -19,7 +19,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks";
 import { apiClient } from "@/services/api-client";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchGroupsThunk } from "@/store/sports/groups-slice";
 import {
   selectActivePolls,
   selectPendingPayments,
@@ -44,11 +45,13 @@ import { formatCurrency } from "@/utils/helpers";
 export function SportsDashboardPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    dispatch(fetchGroupsThunk());
+  }, [dispatch]);
 
 
   const [realStats, setRealStats] = useState({
@@ -103,6 +106,15 @@ export function SportsDashboardPage() {
   const recentActivity = useAppSelector(selectRecentActivity);
   const activePolls = useAppSelector(selectActivePolls);
   const pendingPayments = useAppSelector(selectPendingPayments);
+  const storeStats = useAppSelector(selectSportsStats);
+
+  const displayStats = {
+    groups: realStats.groups || storeStats.groups,
+    events: realStats.events || storeStats.events,
+    members: realStats.members || storeStats.members,
+    paymentsDue: realStats.paymentsDue || storeStats.paymentsDue,
+    unreadMessages: realStats.unreadMessages || storeStats.unreadMessages,
+  };
 
   const groupNames = Object.fromEntries(groups.map((g) => [g.id, g.name]));
   const nextEvents = upcomingEvents.slice(0, 3);
@@ -146,23 +158,23 @@ export function SportsDashboardPage() {
       />
 
       <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
-        <StatsCard label="Groups" value={realStats.groups} icon={Users} className="animate-fade-in-up" />
+        <StatsCard label="Groups" value={displayStats.groups} icon={Users} className="animate-fade-in-up" />
         <StatsCard
           label="Upcoming events"
-          value={realStats.events}
+          value={displayStats.events}
           icon={CalendarPlus}
           className="animate-fade-in-up [animation-delay:60ms]"
         />
-        <StatsCard label="Members" value={realStats.members} icon={UserPlus} className="animate-fade-in-up [animation-delay:120ms]" />
+        <StatsCard label="Members" value={displayStats.members} icon={UserPlus} className="animate-fade-in-up [animation-delay:120ms]" />
         <StatsCard
           label="Payments due"
-          value={realStats.paymentsDue}
+          value={displayStats.paymentsDue}
           icon={CreditCard}
           className="animate-fade-in-up [animation-delay:180ms]"
         />
         <StatsCard
           label="Unread messages"
-          value={realStats.unreadMessages}
+          value={displayStats.unreadMessages}
           icon={MessageSquare}
           className="animate-fade-in-up [animation-delay:240ms]"
         />

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { bandService } from "@/services/band";
 import { VenueProfilePreview } from "@/components/venue/VenueProfilePreview";
 import { VenueResponseData } from "@/types/venue";
@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/use-auth";
 export default function VenuePublicProfilePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   
   const venueId = params.id as string;
@@ -43,10 +44,19 @@ export default function VenuePublicProfilePage() {
     }
   }, [venueId]);
 
+  // Auto-open booking modal if redirected back with action=book
+  React.useEffect(() => {
+    if (user && profile && searchParams.get("action") === "book") {
+      setShowBookingWizard(true);
+      // Clean up the URL so it doesn't reopen on refresh
+      window.history.replaceState(null, "", `/band/marketplace/venues/${venueId}`);
+    }
+  }, [user, profile, searchParams, venueId]);
+
   const handleBookNow = () => {
     if (!user) {
-      // Redirect to login if unauthenticated
-      router.push(`/login?redirect=/band/marketplace/venues/${venueId}`);
+      // Redirect to login if unauthenticated with action=book
+      router.push(`/login?callbackUrl=${encodeURIComponent(`/band/marketplace/venues/${venueId}?action=book`)}`);
       return;
     }
     setShowBookingWizard(true);

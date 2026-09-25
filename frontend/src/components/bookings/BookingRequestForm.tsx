@@ -42,7 +42,6 @@ export function BookingRequestForm({
   const [summary, setSummary] = useState<string>("");
   const [artists, setArtists] = useState<Artist[]>([]);
   const [venues, setVenues] = useState<Venue[]>([]);
-  const [loadingProviders, setLoadingProviders] = useState<boolean>(true);
 
   const {
     register,
@@ -76,7 +75,6 @@ export function BookingRequestForm({
   useEffect(() => {
     async function loadProviders() {
       try {
-        setLoadingProviders(true);
         const [aList, vList] = await Promise.all([
           bandService.getArtists().catch(() => []),
           bandService.getVenues().catch(() => []),
@@ -85,8 +83,6 @@ export function BookingRequestForm({
         setVenues(vList);
       } catch {
         // Fallback gracefully
-      } finally {
-        setLoadingProviders(false);
       }
     }
     loadProviders();

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { Plus, Vote } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
@@ -8,7 +9,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { EmptyCard } from "@/components/cards";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchPollsThunk } from "@/store/sports/polls-slice";
 import {
   selectActivePolls,
   selectAllGroups,
@@ -18,10 +20,15 @@ import { PollCard } from "../components/poll-card";
 import { ROUTES } from "@/constants";
 
 export function PollsPage() {
+  const dispatch = useAppDispatch();
   const activePolls = useAppSelector(selectActivePolls);
   const closedPolls = useAppSelector(selectClosedPolls);
   const groups = useAppSelector(selectAllGroups);
   const groupNames = Object.fromEntries(groups.map((g) => [g.id, g.name]));
+
+  useEffect(() => {
+    dispatch(fetchPollsThunk());
+  }, [dispatch]);
 
   return (
     <PageContainer as="main">

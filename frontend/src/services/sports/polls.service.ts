@@ -1,4 +1,4 @@
-import { notImplemented } from "@/utils/helpers";
+import { apiClient } from "@/services/api-client";
 import type { ApiResponse, Paginated, PaginationQuery, SportsPoll } from "@/types";
 
 export interface PollQuery extends PaginationQuery {
@@ -14,8 +14,22 @@ export interface PollsService {
 }
 
 export const pollsService: PollsService = {
-  list: () => notImplemented("pollsService.list"),
-  getById: () => notImplemented("pollsService.getById"),
-  create: () => notImplemented("pollsService.create"),
-  vote: () => notImplemented("pollsService.vote"),
+  list: async (query) => {
+    const { data } = await apiClient.get("/api/v1/sports/polls", { params: query });
+    return data;
+  },
+  getById: async (id) => {
+    const { data } = await apiClient.get(`/api/v1/sports/polls/${id}`);
+    return data;
+  },
+  create: async (input) => {
+    const { data } = await apiClient.post("/api/v1/sports/polls", input);
+    return data;
+  },
+  vote: async (pollId, optionIds) => {
+    const { data } = await apiClient.post(`/api/v1/sports/polls/${pollId}/vote`, {
+      optionId: optionIds[0],
+    });
+    return data;
+  },
 };

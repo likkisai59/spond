@@ -15,15 +15,21 @@ class AnalyticsService:
         self.matches = MatchRepository()
 
     async def _cache_get(self, key: str):
-        redis = RedisClient.get_client()
-        val = await redis.get(key)
-        return json.loads(val) if val else None
+        try:
+            redis = RedisClient.get_client()
+            val = await redis.get(key)
+            return json.loads(val) if val else None
+        except Exception:
+            return None
 
     async def _cache_set(self, key: str, val: dict, ttl: int = 300):
-        redis = RedisClient.get_client()
-        await redis.set(key, json.dumps(val), ex=ttl)
+        try:
+            redis = RedisClient.get_client()
+            await redis.set(key, json.dumps(val), ex=ttl)
+        except Exception:
+            pass
 
-    async def get_sports_dashboard_overview(self, user_id: str = None) -> dict:
+    async def get_sports_dashboard_overview(self, user_id: str | None = None) -> dict:
         cache_key = f"analytics:sports:dashboard:overview:{user_id}" if user_id else "analytics:sports:dashboard:overview"
         cached = await self._cache_get(cache_key)
         if cached:
@@ -47,18 +53,20 @@ class AnalyticsService:
             })
             groups_count = len(user_groups)
             user_group_ids = [str(g["id"]) for g in user_groups if "id" in g]
+            user_group_obj_ids = [ObjectId(gid) for gid in user_group_ids if ObjectId.is_valid(gid)]
+            all_match_ids = list(set(user_group_ids + user_group_obj_ids))
 
-            members_count = await self.members.collection.count_documents({"group_id": {"$in": user_group_ids}}) if user_group_ids else 0
+            members_count = await self.members.collection.count_documents({"group_id": {"$in": all_match_ids}}) if all_match_ids else 0
             events_count = await self.events.collection.count_documents({
                 "$or": [
                     {"created_by": user_id},
-                    {"group_id": {"$in": user_group_ids}}
+                    {"group_id": {"$in": all_match_ids}}
                 ]
-            }) if user_group_ids else await self.events.collection.count_documents({"created_by": user_id})
+            }) if all_match_ids else await self.events.collection.count_documents({"created_by": user_id})
             matches_played = await self.matches.collection.count_documents({
                 "status": "COMPLETED",
-                "group_id": {"$in": user_group_ids}
-            }) if user_group_ids else 0
+                "group_id": {"$in": all_match_ids}
+            }) if all_match_ids else 0
         else:
             groups_count = await self.groups.collection.count_documents({})
             members_count = await self.members.collection.count_documents({})

@@ -1,6 +1,6 @@
 "use client";
 
-import { getPasswordStrength } from "@/utils/validations";
+import { getPasswordStrength } from "@/utils/validation";
 
 export function PasswordStrengthBar({ password }: { password: string }) {
   if (!password) return null;

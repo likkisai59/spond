@@ -27,8 +27,8 @@ export default function ReviewsPage() {
       const response = await reviewService.getReviews();
       setReviews(response.data);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || "Failed to load reviews");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to load reviews");
     } finally {
       setLoading(false);
     }
@@ -49,8 +49,8 @@ export default function ReviewsPage() {
         await reviewService.deleteReview(review.id);
         toast.success("Review deleted successfully!");
         fetchReviews();
-      } catch (err: any) {
-        toast.error(err.message || "Failed to delete review");
+      } catch (err: unknown) {
+        toast.error((err as Error).message || "Failed to delete review");
       }
     }
   };
@@ -77,8 +77,8 @@ export default function ReviewsPage() {
       setIsModalOpen(false);
       setEditingReview(null);
       fetchReviews();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to submit review");
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Failed to submit review");
     } finally {
       setIsSubmitting(false);
     }

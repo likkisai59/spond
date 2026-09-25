@@ -1,4 +1,5 @@
 import razorpay
+import razorpay.errors
 import hmac
 import hashlib
 from src.database.mongo import utc_now
@@ -38,7 +39,7 @@ class PaymentService:
         
         if self.client:
             try:
-                razorpay_order = self.client.order.create(data=order_data)
+                razorpay_order = self.client.order.create(data=order_data)  # type: ignore
                 order_id = razorpay_order["id"]
             except Exception as e:
                 raise AppException(500, f"Failed to create Razorpay order: {str(e)}")
@@ -144,11 +145,11 @@ class PaymentService:
                                 is_mock_client or (
                                     not str(gateway_payment_id).startswith("pay_mock_")
                                     and not str(gateway_payment_id).startswith("pay_expired_")
-                                    and not str(data.razorpay_order_id).startswith("order_mock_")
+                                    and not data.razorpay_order_id.startswith("order_mock_")
                                 )
                             ):
                                 try:
-                                    self.client.payment.refund(gateway_payment_id, {
+                                    self.client.payment.refund(gateway_payment_id, {  # type: ignore
                                         "amount": int(payment["amount"] * 100),
                                         "notes": {
                                             "reason": "Booking 15-minute advance payment window expired",
@@ -232,7 +233,7 @@ class PaymentService:
         # Return updated payment
         return await self.get_payment(payment_id_str)
 
-    async def generate_receipt(self, payment_id: str) -> dict:
+    async def generate_receipt(self, payment_id: str) -> dict | None:
         payment = await self.get_payment(payment_id)
         if payment.get("payment_status") != "SUCCESS":
             raise AppException(400, "Cannot generate receipt for unpaid order")
@@ -257,7 +258,7 @@ class PaymentService:
             raise NotFoundError("Payment not found")
         return payment
 
-    async def list_payments(self, user_id: str = None, module: str = None) -> list[dict]:
+    async def list_payments(self, user_id: str | None = None, module: str | None = None) -> list[dict]:
         query = {}
         if user_id:
             query["user_id"] = user_id
@@ -275,7 +276,7 @@ class PaymentService:
                 refund_data = {}
                 if data.amount:
                     refund_data["amount"] = int(data.amount * 100)
-                self.client.payment.refund(payment["payment_id"], refund_data)
+                self.client.payment.refund(payment["payment_id"], refund_data)  # type: ignore
             except Exception as e:
                 raise AppException(500, f"Refund failed at gateway: {str(e)}")
 

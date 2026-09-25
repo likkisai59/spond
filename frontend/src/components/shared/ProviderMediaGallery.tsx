@@ -103,7 +103,7 @@ export function ProviderMediaGallery<
   };
 
   const handleSave = async () => {
-    let currentYoutubeLinks = [...youtubeLinks];
+    const currentYoutubeLinks = [...youtubeLinks];
     if (newYoutubeUrl.trim()) {
       if (!isValidYoutubeUrl(newYoutubeUrl)) {
         setYoutubeError("Enter proper links");
@@ -189,11 +189,7 @@ export function ProviderMediaGallery<
     });
   };
 
-  const handleAlbumChange = (idx: number, album: string) => {
-    setGallery(prev =>
-      prev.map((item, i) => (i === idx ? { ...item, album } : item))
-    );
-  };
+
 
   // Video File methods
   const addVideoFile = (url: string) => {
@@ -316,6 +312,7 @@ export function ProviderMediaGallery<
               className="border border-border rounded-2xl overflow-hidden bg-card/85 flex flex-col group relative"
             >
               <div className="aspect-video w-full relative bg-accent/40 flex items-center justify-center border-b border-border">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={item.url} alt="Gallery item" className="absolute inset-0 w-full h-full object-cover" />
                 {item.is_cover && (
                   <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-primary text-primary-foreground flex items-center gap-1 shadow-sm border border-primary-light">

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { bandService } from "@/services/band";
 import { ArtistProfilePreview } from "@/components/artist/ArtistProfilePreview";
 import { ArtistProfile } from "@/types/artist";
@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/use-auth";
 export default function ArtistPublicProfilePage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   
   const artistId = params.id as string;
@@ -43,10 +44,19 @@ export default function ArtistPublicProfilePage() {
     }
   }, [artistId]);
 
+  // Auto-open booking modal if redirected back with action=book
+  React.useEffect(() => {
+    if (user && profile && searchParams.get("action") === "book") {
+      setShowBookingWizard(true);
+      // Clean up the URL so it doesn't reopen on refresh
+      window.history.replaceState(null, "", `/band/marketplace/artists/${artistId}`);
+    }
+  }, [user, profile, searchParams, artistId]);
+
   const handleBookNow = () => {
     if (!user) {
-      // Redirect to login if unauthenticated
-      router.push(`/login?redirect=/band/marketplace/artists/${artistId}`);
+      // Redirect to login if unauthenticated with action=book
+      router.push(`/login?callbackUrl=${encodeURIComponent(`/band/marketplace/artists/${artistId}?action=book`)}`);
       return;
     }
     setShowBookingWizard(true);

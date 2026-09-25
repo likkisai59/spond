@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -21,7 +21,7 @@ import { EmptyCard } from "@/components/cards";
 import { Card } from "@/components/shared/card";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { voteToggled } from "@/store/sports/polls-slice";
+import { voteToggled, fetchPollsThunk, votePollThunk } from "@/store/sports/polls-slice";
 import { selectAllGroups, selectPollById, isPollExpired } from "@/store/sports/selectors";
 import { StatusBadge } from "../components/status-badge";
 import { ROUTES } from "@/constants";
@@ -34,6 +34,12 @@ export function PollDetailsPage() {
   const poll = useAppSelector((state) => selectPollById(state, params.pollId));
   const groups = useAppSelector(selectAllGroups);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!poll) {
+      dispatch(fetchPollsThunk());
+    }
+  }, [dispatch, poll]);
 
   const group = useMemo(
     () => groups.find((g) => g.id === poll?.groupId),
@@ -75,13 +81,18 @@ export function PollDetailsPage() {
   const isTied =
     poll.options.filter((o) => o.votes === leadingOption.votes).length > 1;
 
-  const handleVote = (optionId: string) => {
+  const handleVote = async (optionId: string) => {
     if (isClosed) return;
-    dispatch(voteToggled({ pollId: poll.id, optionId }));
+    try {
+      await dispatch(votePollThunk({ pollId: poll.id, optionId })).unwrap();
+    } catch {
+      dispatch(voteToggled({ pollId: poll.id, optionId }));
+    }
+
     dispatch(
       notificationAdded({
         title: "Vote recorded",
-        message: "Your vote was saved (demo mode).",
+        message: "Your vote was saved.",
         variant: "success",
       })
     );

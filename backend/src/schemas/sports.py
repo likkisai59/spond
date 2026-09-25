@@ -168,7 +168,7 @@ class VenueResponse(CamelModel):
     created_at: datetime
 
 class VenueCreateRequest(CamelModel):
-    name: str
+    name: str = Field(..., min_length=2, max_length=100, pattern=r"^[a-zA-Z\s.'-]+$")
     description: str
     sport_type: str | None = None
     address: str
@@ -177,14 +177,14 @@ class VenueCreateRequest(CamelModel):
     country: str | None = None
     amenities: list[str] = []
     images: list[str] = []
-    contact_name: str | None = None
+    contact_name: str | None = Field(default=None, pattern=r"^[a-zA-Z\s]+$")
     contact_phone: str | None = None
     opening_time: str | None = None
     closing_time: str | None = None
     status: str = "Draft"
 
 class VenueUpdateRequest(CamelModel):
-    name: str | None = None
+    name: str | None = Field(default=None, min_length=2, max_length=100, pattern=r"^[a-zA-Z\s.'-]+$")
     description: str | None = None
     sport_type: str | None = None
     address: str | None = None
@@ -193,7 +193,7 @@ class VenueUpdateRequest(CamelModel):
     country: str | None = None
     amenities: list[str] | None = None
     images: list[str] | None = None
-    contact_name: str | None = None
+    contact_name: str | None = Field(default=None, pattern=r"^[a-zA-Z\s]+$")
     contact_phone: str | None = None
     opening_time: str | None = None
     closing_time: str | None = None
@@ -274,5 +274,18 @@ class PaymentRequestResponse(CamelModel):
     created_by: str | None = None
     created_at: datetime
     updated_at: datetime
+
+# --- Polls ---
+class PollCreateRequest(CamelModel):
+    group_id: str
+    question: str
+    option_labels: list[str] | None = None
+    options: list[str] | list[dict] | None = None
+    multiple_choice: bool = False
+    expires_at: str
+
+class PollVoteRequest(CamelModel):
+    option_id: str
+
 
 

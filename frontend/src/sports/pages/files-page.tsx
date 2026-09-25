@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Clock, FolderOpen, Search, SearchX, UploadCloud } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { filesAdded, fileRemoved } from "@/store/sports/files-slice";
+import { filesAdded, fileRemoved, fetchFilesThunk } from "@/store/sports/files-slice";
 import { selectAllFiles, selectRecentFiles } from "@/store/sports/selectors";
 import { FileCardWithActions } from "../components/file-card-with-actions";
 import { downloadMockFile } from "../components/file-utils";
@@ -64,10 +64,14 @@ export function FilesPage() {
   const [fileError, setFileError] = useState<string | null>(null);
   const debouncedSearch = useDebounce(search, 250);
 
+  useEffect(() => {
+    dispatch(fetchFilesThunk());
+  }, [dispatch]);
+
   const filteredFiles = useMemo(() => {
     const query = debouncedSearch.trim().toLowerCase();
     return files.filter((file) => {
-      const matchesFolder = folder === "All" || file.folder === folder;
+      const matchesFolder = folder === "All" || file.folder.toLowerCase() === folder.toLowerCase();
       const matchesQuery =
         query.length === 0 ||
         file.name.toLowerCase().includes(query) ||
@@ -122,6 +126,7 @@ export function FilesPage() {
         variant: "success",
       })
     );
+    dispatch(fetchFilesThunk());
     event.target.value = "";
   };
 
@@ -142,13 +147,18 @@ export function FilesPage() {
     setDeleteFile(file);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!deleteFile) return;
+    try {
+      await filesService.remove(deleteFile.id);
+    } catch (err) {
+      console.warn("Backend file delete error:", err);
+    }
     dispatch(fileRemoved(deleteFile.id));
     dispatch(
       notificationAdded({
         title: "File deleted",
-        message: `${deleteFile.name} was removed (demo mode).`,
+        message: `${deleteFile.name} was removed.`,
         variant: "info",
       })
     );

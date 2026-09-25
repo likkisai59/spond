@@ -7,7 +7,7 @@ def new_otp_document(
     email: str,
     otp_hash: str,
     purpose: str,
-    expires_minutes: int = 5,
+    expires_seconds: int = 60,
 ) -> dict:
     now = datetime.now(timezone.utc)
     return {
@@ -16,7 +16,7 @@ def new_otp_document(
         "purpose": purpose,
         "attempts": 0,
         "verified": False,
-        "expires_at": now + timedelta(minutes=expires_minutes),
+        "expires_at": now + timedelta(seconds=expires_seconds),
         "created_at": now,
         "updated_at": now,
     }

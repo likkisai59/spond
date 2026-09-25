@@ -1,8 +1,6 @@
 import {
-  BarChart3,
   CalendarDays,
   CreditCard,
-  FileText,
   Guitar,
   MapPin,
   MessageSquare,
@@ -24,8 +22,6 @@ const features: readonly FeatureItem[] = [
   { label: "Sports Events", icon: CalendarDays },
   { label: "Payments", icon: CreditCard },
   { label: "Messaging", icon: MessageSquare },
-  { label: "Polls", icon: BarChart3 },
-  { label: "Files", icon: FileText },
   { label: "Artists", icon: Mic },
   { label: "Bands", icon: Guitar },
   { label: "Venues", icon: MapPin },
@@ -38,13 +34,12 @@ export function FeaturesSection() {
     <section id="features" className="scroll-mt-24">
       <PageContainer className="py-16 lg:py-24">
         <SectionHeading
-          eyebrow="Everything included"
           title="Packed with modules you'll love"
           description="From scheduling training sessions to booking the next gig — every tool lives under one roof."
           className="animate-fade-in-up"
         />
 
-        <ul className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 lg:gap-5">
+        <ul className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
           {features.map((feature, index) => (
             <li key={feature.label} className="animate-fade-in-up" style={{ animationDelay: `${index * 60}ms` }}>
               <Card

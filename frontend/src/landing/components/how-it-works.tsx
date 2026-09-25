@@ -39,7 +39,6 @@ export function HowItWorks() {
     <section id="how-it-works" className="scroll-mt-24 border-t border-border/70 bg-card/60">
       <PageContainer className="py-16 lg:py-24">
         <SectionHeading
-          eyebrow="How it works"
           title="Up and running in three steps"
           description="No complexity, no clutter — a guided start that gets you productive on day one."
           className="animate-fade-in-up"

@@ -13,6 +13,7 @@ import { CreditCard, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function OwnerPaymentsPage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalRevenue, setTotalRevenue] = useState(0);
@@ -25,6 +26,7 @@ export function OwnerPaymentsPage() {
         
         const rev = items
           .filter((b) => b.bookingStatus === "CONFIRMED")
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .reduce((sum: number, b: any) => sum + (b.amount || 0), 0);
         setTotalRevenue(rev);
         

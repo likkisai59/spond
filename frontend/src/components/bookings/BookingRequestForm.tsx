@@ -42,7 +42,6 @@ export function BookingRequestForm({
   const [summary, setSummary] = useState<string>("");
   const [artists, setArtists] = useState<Artist[]>([]);
   const [venues, setVenues] = useState<Venue[]>([]);
-  const [loadingProviders, setLoadingProviders] = useState<boolean>(true);
 
   const {
     register,
@@ -76,7 +75,6 @@ export function BookingRequestForm({
   useEffect(() => {
     async function loadProviders() {
       try {
-        setLoadingProviders(true);
         const [aList, vList] = await Promise.all([
           bandService.getArtists().catch(() => []),
           bandService.getVenues().catch(() => []),
@@ -85,8 +83,6 @@ export function BookingRequestForm({
         setVenues(vList);
       } catch {
         // Fallback gracefully
-      } finally {
-        setLoadingProviders(false);
       }
     }
     loadProviders();
@@ -194,14 +190,14 @@ export function BookingRequestForm({
   };
 
   return (
-    <Card className="bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl w-full max-w-2xl mx-auto overflow-hidden text-white">
-      <CardHeader className="border-b border-zinc-800 bg-zinc-950/70 p-6 flex flex-row items-start justify-between gap-4">
+    <Card className="bg-card border border-border rounded-3xl shadow-2xl w-full max-w-2xl mx-auto overflow-hidden text-card-foreground">
+      <CardHeader className="border-b border-border bg-muted/20 p-6 flex flex-row items-start justify-between gap-4">
         <div className="space-y-1 flex-1">
-          <CardTitle className="text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+          <CardTitle className="text-xl font-extrabold tracking-tight flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-accent" />
             {isArtistBookingVenue ? "Book a Venue" : "Create Booking Request"}
           </CardTitle>
-          <p className="text-xs text-zinc-300">
+          <p className="text-xs text-muted-foreground">
             {isArtistBookingVenue
               ? "Search for and reserve a venue for your performance"
               : artistName && venueName
@@ -218,7 +214,7 @@ export function BookingRequestForm({
           <button
             type="button"
             onClick={onCancel}
-            className="text-zinc-400 hover:text-white p-1.5 rounded-full hover:bg-zinc-800 transition-colors"
+            className="text-muted-foreground hover:text-foreground p-1.5 rounded-full hover:bg-muted transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
@@ -228,48 +224,59 @@ export function BookingRequestForm({
       <CardContent className="p-6">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Section 0: Select Provider / Venue from Marketplace */}
-          <div className="space-y-4 p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800">
-            <h3 className="text-xs font-extrabold text-primary uppercase tracking-wider flex items-center gap-1.5">
-              <Music className="h-4 w-4" />
-              <span>Select Performer & Venue</span>
+          <div className="space-y-4 p-4 rounded-2xl bg-muted/10 border border-border">
+            <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider flex items-center gap-1.5">
+              {isArtistBookingVenue ? (
+                <>
+                  <Building className="h-4 w-4 text-accent" />
+                  <span>Select Venue</span>
+                </>
+              ) : (
+                <>
+                  <Music className="h-4 w-4 text-accent" />
+                  <span>Select Performer & Venue</span>
+                </>
+              )}
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Artist / Performer Select */}
-              <div className="space-y-1.5">
-                <Label htmlFor="artist_profile_id" className="text-xs font-semibold text-zinc-200">
-                  Performer / Band {artistName ? `(Selected: ${artistName})` : ""}
-                </Label>
-                <select
-                  id="artist_profile_id"
-                  className="w-full h-9 rounded-xl border border-zinc-700 bg-zinc-900 text-white text-xs px-3 focus:outline-none focus:ring-1 focus:ring-primary"
-                  {...register("artist_profile_id", {
-                    onChange: (e) => {
-                      const selected = artists.find((a) => a.id === e.target.value);
-                      const price = selected?.packages?.[0]?.price;
-                      if (price) {
-                        setValue("proposed_price", price);
-                      }
-                    },
-                  })}
-                >
-                  <option value="">-- Choose Performer / Band from Marketplace --</option>
-                  {artists.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} ({Array.isArray(a.genre) ? a.genre.join(", ") : a.genre || "Live Music"} - ₹{(a.packages?.[0]?.price || 15000).toLocaleString()})
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className={`grid grid-cols-1 ${!isArtistBookingVenue ? "sm:grid-cols-2" : ""} gap-4`}>
+              {/* Artist / Performer Select — hidden when artist is booking a venue (Bug 12 fix) */}
+              {!isArtistBookingVenue && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="artist_profile_id" className="text-xs font-semibold text-foreground">
+                    Performer / Band {artistName ? `(Selected: ${artistName})` : ""}
+                  </Label>
+                  <select
+                    id="artist_profile_id"
+                    className="w-full h-9 rounded-xl border border-border bg-background text-foreground text-xs px-3 focus:outline-none focus:ring-1 focus:ring-accent"
+                    {...register("artist_profile_id", {
+                      onChange: (e) => {
+                        const selected = artists.find((a) => a.id === e.target.value);
+                        const price = selected?.packages?.[0]?.price;
+                        if (price) {
+                          setValue("proposed_price", price);
+                        }
+                      },
+                    })}
+                  >
+                    <option value="">-- Choose Performer / Band from Marketplace --</option>
+                    {artists.map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name} ({Array.isArray(a.genre) ? a.genre.join(", ") : a.genre || "Live Music"} - ₹{(a.packages?.[0]?.price || 15000).toLocaleString()})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Venue Select */}
               <div className="space-y-1.5">
-                <Label htmlFor="venue_id" className="text-xs font-semibold text-zinc-200">
+                <Label htmlFor="venue_id" className="text-xs font-semibold text-foreground">
                   Venue {venueName ? `(Selected: ${venueName})` : ""}
                 </Label>
                 <select
                   id="venue_id"
-                  className="w-full h-9 rounded-xl border border-zinc-700 bg-zinc-900 text-white text-xs px-3 focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full h-9 rounded-xl border border-border bg-background text-foreground text-xs px-3 focus:outline-none focus:ring-1 focus:ring-accent"
                   {...register("venue_id", {
                     onChange: (e) => {
                       const selected = venues.find((v) => v.id === e.target.value);
@@ -293,7 +300,7 @@ export function BookingRequestForm({
 
           {/* Section 1: Event Details */}
           <div className="space-y-4">
-            <h3 className="text-sm font-bold text-primary uppercase tracking-wider">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
               Event Parameters
             </h3>
 
@@ -304,10 +311,25 @@ export function BookingRequestForm({
                   <Input
                     id="event_title"
                     placeholder="e.g. Annual Tech Summit Afterparty"
-                    className="text-white text-xs bg-zinc-900 border-zinc-700 placeholder:text-zinc-500 rounded-xl"
-                    {...register("event_title")}
+                    className="text-foreground text-xs bg-background border-border placeholder:text-muted-foreground rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
+                    {...register("event_title", {
+                      onChange: (e) => {
+                        // Restrict numeric input by automatically removing numeric digits (Bug 13 fix)
+                        if (/\d/.test(e.target.value)) {
+                          e.target.value = e.target.value.replace(/\d/g, "");
+                          setValue("event_title", e.target.value, { shouldValidate: true });
+                        }
+                      },
+                    })}
+                    onKeyDown={(e) => {
+                      // Prevent typing numeric digits 0-9
+                      if (e.key >= "0" && e.key <= "9") {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                 </div>
+                <p className="text-[10px] text-muted-foreground">Letters, spaces, and punctuation only (no numbers allowed).</p>
                 {errors.event_title && (
                   <p className="text-xs text-error font-medium">{errors.event_title.message}</p>
                 )}
@@ -317,7 +339,7 @@ export function BookingRequestForm({
                 <Label htmlFor="event_type">Event Type</Label>
                 <select
                   id="event_type"
-                  className="w-full h-9 rounded-lg border border-border bg-card text-foreground text-xs px-3 focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full h-9 rounded-xl border border-border bg-background text-foreground text-xs px-3 focus:outline-none focus:ring-1 focus:ring-accent"
                   {...register("event_type")}
                 >
                   <option value="Wedding">Wedding Celebration</option>
@@ -337,14 +359,14 @@ export function BookingRequestForm({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="event_date" className="flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Calendar className="h-3.5 w-3.5 text-accent" />
                   <span>Date</span>
                 </Label>
                 <Input
                   id="event_date"
                   type="date"
                   min={new Date().toISOString().split("T")[0]}
-                  className="text-foreground text-xs bg-card border-border"
+                  className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
                   {...register("event_date")}
                 />
                 {errors.event_date && (
@@ -354,13 +376,13 @@ export function BookingRequestForm({
 
               <div className="space-y-1.5">
                 <Label htmlFor="start_time" className="flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Clock className="h-3.5 w-3.5 text-accent" />
                   <span>Start Time</span>
                 </Label>
                 <Input
                   id="start_time"
                   type="time"
-                  className="text-foreground text-xs bg-card border-border"
+                  className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
                   {...register("start_time")}
                 />
                 {errors.start_time && (
@@ -370,13 +392,13 @@ export function BookingRequestForm({
 
               <div className="space-y-1.5">
                 <Label htmlFor="end_time" className="flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Clock className="h-3.5 w-3.5 text-accent" />
                   <span>End Time</span>
                 </Label>
                 <Input
                   id="end_time"
                   type="time"
-                  className="text-foreground text-xs bg-card border-border"
+                  className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
                   {...register("end_time")}
                 />
                 {errors.end_time && (
@@ -388,14 +410,14 @@ export function BookingRequestForm({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="guest_count" className="flex items-center gap-1">
-                  <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Users className="h-3.5 w-3.5 text-accent" />
                   <span>Expected Guests</span>
                 </Label>
                 <Input
                   id="guest_count"
                   type="number"
                   placeholder="50"
-                  className="text-foreground text-xs bg-card border-border"
+                  className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
                   {...register("guest_count", { valueAsNumber: true })}
                 />
                 {errors.guest_count && (
@@ -405,14 +427,14 @@ export function BookingRequestForm({
 
               <div className="space-y-1.5">
                 <Label htmlFor="proposed_price" className="flex items-center gap-1">
-                  <IndianRupee className="h-3.5 w-3.5 text-muted-foreground" />
+                  <IndianRupee className="h-3.5 w-3.5 text-accent" />
                   <span>Proposed Budget (INR)</span>
                 </Label>
                 <Input
                   id="proposed_price"
                   type="number"
                   placeholder="15000"
-                  className="text-foreground text-xs bg-card border-border"
+                  className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
                   {...register("proposed_price", { valueAsNumber: true })}
                 />
                 {errors.proposed_price && (
@@ -424,19 +446,19 @@ export function BookingRequestForm({
 
           {/* Section 2: Location Details */}
           <div className="space-y-4 pt-4 border-t border-border">
-            <h3 className="text-sm font-bold text-primary uppercase tracking-wider">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
               Location details
             </h3>
 
             <div className="space-y-1.5">
               <Label htmlFor="location" className="flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                <MapPin className="h-3.5 w-3.5 text-accent" />
                 <span>Venue Name / Location Description</span>
               </Label>
               <Input
                 id="location"
                 placeholder="e.g. Taj West End, Grand Ballroom"
-                className="text-foreground text-xs bg-card border-border"
+                className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
                 {...register("location")}
               />
               {errors.location && (
@@ -449,7 +471,7 @@ export function BookingRequestForm({
               <Input
                 id="address"
                 placeholder="e.g. 25 Race Course Road"
-                className="text-foreground text-xs bg-card border-border"
+                className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
                 {...register("address")}
               />
               {errors.address && (
@@ -463,8 +485,22 @@ export function BookingRequestForm({
                 <Input
                   id="city"
                   placeholder="Bangalore"
-                  className="text-foreground text-xs bg-card border-border"
-                  {...register("city")}
+                  className={`text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent ${
+                    errors.city ? "border-error focus-visible:ring-error" : ""
+                  }`}
+                  {...register("city", {
+                    onChange: (e) => {
+                      if (/\d/.test(e.target.value)) {
+                        e.target.value = e.target.value.replace(/\d/g, "");
+                        setValue("city", e.target.value, { shouldValidate: true });
+                      }
+                    },
+                  })}
+                  onKeyDown={(e) => {
+                    if (e.key >= "0" && e.key <= "9") {
+                      e.preventDefault();
+                    }
+                  }}
                 />
                 {errors.city && (
                   <p className="text-xs text-error font-medium">{errors.city.message}</p>
@@ -476,8 +512,22 @@ export function BookingRequestForm({
                 <Input
                   id="state"
                   placeholder="Karnataka"
-                  className="text-foreground text-xs bg-card border-border"
-                  {...register("state")}
+                  className={`text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent ${
+                    errors.state ? "border-error focus-visible:ring-error" : ""
+                  }`}
+                  {...register("state", {
+                    onChange: (e) => {
+                      if (/\d/.test(e.target.value)) {
+                        e.target.value = e.target.value.replace(/\d/g, "");
+                        setValue("state", e.target.value, { shouldValidate: true });
+                      }
+                    },
+                  })}
+                  onKeyDown={(e) => {
+                    if (e.key >= "0" && e.key <= "9") {
+                      e.preventDefault();
+                    }
+                  }}
                 />
                 {errors.state && (
                   <p className="text-xs text-error font-medium">{errors.state.message}</p>
@@ -488,8 +538,22 @@ export function BookingRequestForm({
                 <Label htmlFor="country">Country</Label>
                 <Input
                   id="country"
-                  className="text-foreground text-xs bg-card border-border"
-                  {...register("country")}
+                  className={`text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent ${
+                    errors.country ? "border-error focus-visible:ring-error" : ""
+                  }`}
+                  {...register("country", {
+                    onChange: (e) => {
+                      if (/\d/.test(e.target.value)) {
+                        e.target.value = e.target.value.replace(/\d/g, "");
+                        setValue("country", e.target.value, { shouldValidate: true });
+                      }
+                    },
+                  })}
+                  onKeyDown={(e) => {
+                    if (e.key >= "0" && e.key <= "9") {
+                      e.preventDefault();
+                    }
+                  }}
                 />
                 {errors.country && (
                   <p className="text-xs text-error font-medium">{errors.country.message}</p>
@@ -501,22 +565,27 @@ export function BookingRequestForm({
               <Label htmlFor="google_maps_coords">Google Maps URL or Coordinates (Optional)</Label>
               <Input
                 id="google_maps_coords"
-                placeholder="e.g. https://maps.google.com/?q=..."
-                className="text-foreground text-xs bg-card border-border"
+                placeholder="e.g. https://maps.google.com/?q=... or 12.9716, 77.5946"
+                className={`text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent ${
+                  errors.google_maps_coords ? "border-error focus-visible:ring-error" : ""
+                }`}
                 {...register("google_maps_coords")}
               />
+              {errors.google_maps_coords && (
+                <p className="text-xs text-error font-medium">{errors.google_maps_coords.message}</p>
+              )}
             </div>
           </div>
 
           {/* Section 3: Notes & Special Requests */}
           <div className="space-y-4 pt-4 border-t border-border">
-            <h3 className="text-sm font-bold text-primary uppercase tracking-wider">
+            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
               Notes & Special Instructions
             </h3>
 
-            <div className="rounded-xl border border-border bg-accent/70 p-3">
-              <p className="text-[11px] font-medium text-muted-foreground">Request preview</p>
-              <p className="mt-1 text-sm text-foreground">{summary}</p>
+            <div className="rounded-xl border border-accent/20 bg-accent/80 p-3 text-white">
+              <p className="text-[11px] font-medium text-white/70">Request preview</p>
+              <p className="mt-1 text-sm font-medium">{summary}</p>
             </div>
 
             <div className="space-y-1.5">
@@ -525,7 +594,7 @@ export function BookingRequestForm({
                 id="special_requests"
                 rows={2}
                 placeholder="e.g. Wireless microphones requested, custom sound check required, specific song choice etc."
-                className="w-full rounded-lg border border-border bg-card text-foreground text-xs p-3 focus:outline-none focus:ring-1 focus:ring-primary resize-y"
+                className="w-full rounded-xl border border-border bg-background text-foreground text-xs p-3 focus:outline-none focus:ring-1 focus:ring-accent resize-y"
                 {...register("special_requests")}
               />
             </div>
@@ -536,7 +605,7 @@ export function BookingRequestForm({
                 id="notes"
                 rows={3}
                 placeholder="Share more context about the event crowd, musical preference, layout, or timeline scheduling."
-                className="w-full rounded-lg border border-border bg-card text-foreground text-xs p-3 focus:outline-none focus:ring-1 focus:ring-primary resize-y"
+                className="w-full rounded-xl border border-border bg-background text-foreground text-xs p-3 focus:outline-none focus:ring-1 focus:ring-accent resize-y"
                 {...register("notes")}
               />
             </div>
@@ -544,21 +613,19 @@ export function BookingRequestForm({
 
           {/* Action triggers */}
           <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
-            {onCancel && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onCancel}
-                disabled={isSubmitting}
-                className="font-bold text-xs h-9 px-4 cursor-pointer"
-              >
-                Cancel
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel ? onCancel : () => window.history.back()}
+              disabled={isSubmitting}
+              className="font-bold text-xs h-9 px-5 border-border bg-muted/30 hover:bg-muted text-foreground cursor-pointer rounded-xl transition-colors shadow-sm"
+            >
+              Cancel
+            </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="font-bold text-xs h-9 px-5 flex items-center gap-1.5 cursor-pointer"
+              className="font-bold text-xs h-9 px-5 flex items-center gap-1.5 cursor-pointer bg-accent hover:bg-accent/90 text-white"
             >
               {isSubmitting ? (
                 <>

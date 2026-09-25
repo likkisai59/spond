@@ -113,6 +113,7 @@ export function FilesPage() {
         selected.map((file) => ({
           name: file.name,
           type: guessFileType(file.name),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           folder: folder === "All" ? "Training" : (folder as any),
           sizeKb: Math.max(1, Math.round(file.size / 1024)),
         }))

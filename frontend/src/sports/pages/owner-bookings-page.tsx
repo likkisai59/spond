@@ -15,6 +15,7 @@ import { notificationAdded } from "@/store/slices/notification-slice";
 import { Button } from "@/components/ui/button";
 
 export function OwnerBookingsPage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const dispatch = useAppDispatch();
@@ -28,6 +29,7 @@ export function OwnerBookingsPage() {
         message: `Booking has been marked as ${status}.`,
         variant: "success"
       }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       dispatch(notificationAdded({
         title: "Error",

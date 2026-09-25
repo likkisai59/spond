@@ -25,7 +25,6 @@ import {
   selectActivePolls,
   selectPendingPayments,
   selectRecentActivity,
-  selectSportsStats,
   selectUpcomingEvents,
   selectAllGroups,
 } from "@/store/sports/selectors";
@@ -95,7 +94,7 @@ export function SportsDashboardPage() {
           paymentsDue: data.paymentsDue || 0,
           unreadMessages: data.unreadMessages || 0,
         });
-      } catch (error) {
+      } catch (_error) {
         // Silently fallback to defaults on sports dashboard
       }
     };

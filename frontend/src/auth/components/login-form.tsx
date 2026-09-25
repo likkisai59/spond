@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import toast from "react-hot-toast";
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -59,7 +60,9 @@ export function LoginForm() {
           variant: "success",
         })
       );
-      const redirectUrl = getDefaultRouteForRole(session.user.role);
+      const callbackUrl = searchParams.get("callbackUrl");
+      const redirectUrl = callbackUrl || getDefaultRouteForRole(session.user.role);
+      
       router.push(redirectUrl);
       window.location.href = redirectUrl;
     } catch (error: unknown) {

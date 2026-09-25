@@ -23,6 +23,8 @@ import {
   CheckCircle,
 } from "lucide-react";
 
+import { isEntertainmentArtist } from "@/utils/sportsFilter";
+
 // ─── Filter Constants ─────────────────────────────────────────────────────────
 
 const CITIES = [
@@ -56,7 +58,9 @@ export default function PublicArtistsListPage() {
     setError(null);
     try {
       const data = await bandService.getArtists();
-      setArtists(data || []);
+      const allArtists = Array.isArray(data) ? data : [];
+      // Bug fix: exclude sports/fitness-related performers from band marketplace
+      setArtists(allArtists.filter((a) => isEntertainmentArtist(a as Record<string, unknown>)));
     } catch (err: any) {
       setError("Failed to fetch performers. Please check your network connection.");
     } finally {

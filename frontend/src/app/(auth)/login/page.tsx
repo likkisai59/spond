@@ -5,6 +5,10 @@ export const metadata: Metadata = {
   title: "Log in",
 };
 
-export default function Page() {
-  return <LoginPage />;
+type Props = {
+  searchParams: Record<string, string | string[] | undefined>;
+};
+
+export default function Page({ searchParams }: Props) {
+  return <LoginPage searchParams={searchParams} />;
 }

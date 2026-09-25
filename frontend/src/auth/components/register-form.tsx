@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm, useWatch, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -18,11 +18,9 @@ import {
 import { AuthDivider, SocialAuthButtons } from "./social-auth-buttons";
 import { authService } from "@/services";
 import { registerSchema, type RegisterFormData } from "../schemas";
-import { ROUTES, getDefaultRouteForRole } from "@/constants";
+import { ROUTES } from "@/constants";
 import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { credentialsReceived } from "@/store/slices/auth-slice";
-import { getPasswordStrength } from "@/utils/validations";
 import { PasswordStrengthBar } from "./password-strength-bar";
 
 import toast from "react-hot-toast";
@@ -132,6 +130,7 @@ function TermsLabel() {
 // ── Register form ────────────────────────────────────────────────────────────
 export function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
 
   const form = useForm<RegisterFormData>({
@@ -184,8 +183,8 @@ export function RegisterForm() {
           variant: "success",
         })
       );
-    } catch (error: any) {
-      const msg = error?.message || (error instanceof Error ? error.message : "");
+    } catch (error: unknown) {
+      const msg = (error as any)?.message || (error instanceof Error ? error.message : "");
       const isDuplicate =
         msg.toLowerCase().includes("already exists") ||
         msg.toLowerCase().includes("conflict") ||
@@ -243,7 +242,7 @@ export function RegisterForm() {
     try {
       const { signup_token } = await authService.verifyOtp({ email: pendingData.email, otp });
       
-      const session = await authService.completeSignup({
+      await authService.completeSignup({
         signup_token,
         full_name: pendingData.name,
         password: pendingData.password,
@@ -259,7 +258,12 @@ export function RegisterForm() {
           variant: "success",
         })
       );
-      router.push(ROUTES.LOGIN);
+      let redirectUrl = ROUTES.LOGIN;
+      const callbackUrl = searchParams.get("callbackUrl");
+      if (callbackUrl) {
+        redirectUrl += `?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+      }
+      router.push(redirectUrl);
     } catch (error: unknown) {
       dispatch(
         notificationAdded({
@@ -273,8 +277,8 @@ export function RegisterForm() {
     }
   };
 
-  const onInvalid = (errors: any) => {
-    const firstError = Object.values(errors)[0] as any;
+  const onInvalid = (errors: Record<string, any>) => {
+    const firstError = Object.values(errors)[0];
     if (firstError?.message) {
       toast.error(firstError.message);
     }
@@ -350,7 +354,7 @@ export function RegisterForm() {
           <ModalHeader>
             <ModalTitle>Verify your email</ModalTitle>
             <ModalDescription>
-              We've sent a 6-digit code to {pendingData?.email}. Enter it below to complete your registration.
+              We&apos;ve sent a 6-digit code to {pendingData?.email}. Enter it below to complete your registration.
             </ModalDescription>
           </ModalHeader>
           <div className="space-y-4 py-4">
@@ -374,7 +378,7 @@ export function RegisterForm() {
                   disabled={isResending}
                   className="font-semibold text-accent hover:opacity-80 disabled:opacity-50 transition-opacity"
                 >
-                  Didn't receive the code? {isResending ? "Resending..." : "Resend OTP"}
+                  Didn&apos;t receive the code? {isResending ? "Resending..." : "Resend OTP"}
                 </button>
               )}
             </div>

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { COUNTRY_CODES } from "@/constants/countries";
 
 const personNameSchema = z
   .string()
@@ -7,12 +8,7 @@ const personNameSchema = z
   .max(100, "Name cannot exceed 100 characters")
   .regex(/^[a-zA-Z\s]+$/, "Name must contain only alphabetic characters and spaces");
 
-const optionalPersonNameSchema = z
-  .string()
-  .trim()
-  .max(100, "Name cannot exceed 100 characters")
-  .optional()
-  .default("");
+
 
 // ── Artist Profile Update ───────────────────────────────────────────────────
 export const artistProfileUpdateSchema = z.object({
@@ -20,8 +16,14 @@ export const artistProfileUpdateSchema = z.object({
     .string()
     .trim()
     .min(2, "Name must be at least 2 characters")
-    .max(100, "Name cannot exceed 100 characters"),
-  display_name: z.string().min(2, "Display name must be at least 2 characters"),
+    .max(100, "Name cannot exceed 100 characters")
+    .regex(/^[a-zA-Z\s.'\-]+$/, "Legal name must contain letters only (numbers are not allowed)"),
+  display_name: z
+    .string()
+    .trim()
+    .min(2, "Display name must be at least 2 characters")
+    .max(50, "Display name cannot exceed 50 characters")
+    .regex(/^[a-zA-Z_\-]+$/, "Display name cannot contain numbers or spaces. Use letters, hyphens, and underscores only."),
   bio: z.string().max(2000, "Bio cannot exceed 2000 characters").optional().default(""),
   years_of_experience: z.preprocess(
     (val) => (val === "" || val === null || val === undefined || isNaN(Number(val)) ? 0 : Number(val)),
@@ -29,7 +31,37 @@ export const artistProfileUpdateSchema = z.object({
   ).default(0),
   profile_image: z.string().optional().default(""),
   cover_image: z.string().optional().default(""),
-  mobile_number: z.string().min(10, "Mobile number must be at least 10 digits"),
+  mobile_number: z
+    .string()
+    .trim()
+    .min(1, "Mobile phone number is required")
+    .superRefine((val, ctx) => {
+      const match = val.match(/^(\+\d{1,4})\s*(\d*)$/);
+      if (!match) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Please enter a valid phone number with country code (e.g. +91 9876543210)",
+        });
+        return;
+      }
+      const [, code, digits] = match;
+      const country = COUNTRY_CODES.find((c) => c.code === code);
+      if (country) {
+        if (digits.length !== country.digits) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `${country.name} (${country.code}) requires exactly ${country.digits} digits (currently ${digits.length})`,
+          });
+        }
+      } else {
+        if (digits.length < 7 || digits.length > 15) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Phone number must contain between 7 and 15 digits",
+          });
+        }
+      }
+    }),
   band_type: z.string().min(1, "Performer type is required").default("Solo"),
   total_members: z.preprocess(
     (val) => (val === "" || val === null || val === undefined || isNaN(Number(val)) ? 1 : Number(val)),
@@ -72,10 +104,54 @@ export const artistProfileUpdateSchema = z.object({
   genres: z.array(z.string()).min(1, "Select at least one genre"),
   social_links: z
     .object({
-      instagram: z.string().optional().default(""),
-      facebook: z.string().optional().default(""),
-      twitter: z.string().optional().default(""),
-      website: z.string().optional().default(""),
+      instagram: z
+        .string()
+        .optional()
+        .default("")
+        .refine(
+          (val) =>
+            !val ||
+            /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{2,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/i.test(
+              val.trim(),
+            ),
+          { message: "Enter proper links" },
+        ),
+      facebook: z
+        .string()
+        .optional()
+        .default("")
+        .refine(
+          (val) =>
+            !val ||
+            /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{2,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/i.test(
+              val.trim(),
+            ),
+          { message: "Enter proper links" },
+        ),
+      twitter: z
+        .string()
+        .optional()
+        .default("")
+        .refine(
+          (val) =>
+            !val ||
+            /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{2,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/i.test(
+              val.trim(),
+            ),
+          { message: "Enter proper links" },
+        ),
+      website: z
+        .string()
+        .optional()
+        .default("")
+        .refine(
+          (val) =>
+            !val ||
+            /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{2,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/i.test(
+              val.trim(),
+            ),
+          { message: "Enter proper links" },
+        ),
     })
     .default({}),
   achievements: z.array(z.string()).default([]),
@@ -88,9 +164,29 @@ export const venueProfileUpdateSchema = z
   .object({
     owner_name: personNameSchema,
     business_name: z.string().min(2, "Business Name must be at least 2 characters"),
-    contact_person: optionalPersonNameSchema,
-    gst_number: z.string().optional().default(""),
-    pan_number: z.string().optional().default(""),
+    contact_person: z
+      .string()
+      .trim()
+      .max(100, "Name cannot exceed 100 characters")
+      .refine((val) => !val || /^[a-zA-Z\s.'-]+$/.test(val), {
+        message: "Booking Representative must contain letters only (no numbers)",
+      })
+      .optional()
+      .default(""),
+    gst_number: z
+      .string()
+      .optional()
+      .default("")
+      .refine((val) => !val || /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(val.toUpperCase()), {
+        message: "Invalid GST Number format (e.g. 22AAAAA0000A1Z5)",
+      }),
+    pan_number: z
+      .string()
+      .optional()
+      .default("")
+      .refine((val) => !val || /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(val.toUpperCase()), {
+        message: "Invalid PAN format (e.g. ABCDE1234F)",
+      }),
 
     venue_name: z
       .string()
@@ -126,15 +222,42 @@ export const venueProfileUpdateSchema = z
 
     country: z.string().min(1, "Country is required"),
     state: z.string().min(1, "State is required"),
-    district: z.string().optional().default(""),
+    district: z
+      .string()
+      .optional()
+      .default("")
+      .refine((val) => !val || !/\d/.test(val), { message: "District cannot contain numbers" }),
     city_id: z.string().uuid("City is required"),
-    area: z.string().optional().default(""),
+    area: z
+      .string()
+      .optional()
+      .default("")
+      .refine((val) => !val || /^[a-zA-Z\s,'.-]+$/.test(val), { message: "Area / Suburb should contain letters and spaces only" }),
     address: z.string().min(5, "Address must be at least 5 characters"),
-    landmark: z.string().optional().default(""),
-    pincode: z.string().min(6, "Pincode must be at least 6 digits"),
+    landmark: z
+      .string()
+      .optional()
+      .default("")
+      .refine((val) => !val || !/^\d+$/.test(val), { message: "Landmark cannot be purely numeric" }),
+    pincode: z
+      .string()
+      .regex(/^\d{6}$/, "Pincode must be exactly 6 digits (numbers only)"),
     latitude: z.coerce.number().optional().nullable(),
     longitude: z.coerce.number().optional().nullable(),
-    google_map_location: z.string().optional().default(""),
+    google_map_location: z
+      .string()
+      .optional()
+      .default("")
+      .refine(
+        (val) =>
+          !val ||
+          /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{2,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/i.test(val) &&
+          (val.toLowerCase().includes("google.com/maps") ||
+            val.toLowerCase().includes("maps.google") ||
+            val.toLowerCase().includes("goo.gl/maps") ||
+            val.toLowerCase().includes("maps.app.goo.gl")),
+        { message: "Google Maps Link must be a valid Google Maps URL (e.g. https://maps.google.com/...)" }
+      ),
 
     facilities: z.array(z.string()).default([]),
     min_capacity: z.coerce.number().min(1, "Minimum capacity must be at least 1"),
@@ -169,11 +292,51 @@ export const venueProfileUpdateSchema = z
 
 export type VenueProfileUpdateFormData = z.infer<typeof venueProfileUpdateSchema>;
 
+export const isValidGoogleMapsOrCoordinates = (val: string): boolean => {
+  if (!val || !val.trim()) return true;
+  const trimmed = val.trim();
+
+  // Coordinate pattern (lat, lng) e.g., "12.9716, 77.5946"
+  const coordRegex = /^-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?$/;
+  if (coordRegex.test(trimmed)) {
+    const parts = trimmed.split(",").map((s) => parseFloat(s.trim()));
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      const [lat, lng] = parts;
+      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        return true;
+      }
+    }
+  }
+
+  // Google Maps URL pattern e.g. https://maps.google.com/..., https://maps.app.goo.gl/...
+  const urlRegex = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{2,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/i;
+  if (urlRegex.test(trimmed)) {
+    const lower = trimmed.toLowerCase();
+    if (
+      lower.includes("google.com/maps") ||
+      lower.includes("maps.google.") ||
+      lower.includes("goo.gl/maps") ||
+      lower.includes("maps.app.goo.gl")
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
 // ── Booking Request ─────────────────────────────────────────────────────────
 export const bookingRequestSchema = z.object({
   artist_profile_id: z.string().nullable().optional(),
   venue_id: z.string().nullable().optional(),
-  event_title: z.string().min(2, "Event title must be at least 2 characters"),
+  event_title: z
+    .string()
+    .trim()
+    .min(2, "Event title must be at least 2 characters")
+    .max(100, "Event title cannot exceed 100 characters")
+    .refine((val) => !/\d/.test(val), {
+      message: "Event title cannot contain numbers",
+    }),
   event_type: z.string().min(1, "Event type is required"),
   event_date: z
     .string()
@@ -195,12 +358,125 @@ export const bookingRequestSchema = z.object({
   proposed_price: z.number().min(0, "Price cannot be negative").default(0),
   location: z.string().optional().default(""),
   address: z.string().optional().default(""),
-  city: z.string().optional().default(""),
-  state: z.string().optional().default(""),
-  country: z.string().optional().default("India"),
-  google_maps_coords: z.string().optional().default(""),
+  city: z
+    .string()
+    .optional()
+    .default("")
+    .refine((val) => !val || !/\d/.test(val), {
+      message: "City must contain letters and spaces only (no numbers)",
+    }),
+  state: z
+    .string()
+    .optional()
+    .default("")
+    .refine((val) => !val || !/\d/.test(val), {
+      message: "State must contain letters and spaces only (no numbers)",
+    }),
+  country: z
+    .string()
+    .optional()
+    .default("India")
+    .refine((val) => !val || !/\d/.test(val), {
+      message: "Country must contain letters and spaces only (no numbers)",
+    }),
+  google_maps_coords: z
+    .string()
+    .optional()
+    .default("")
+    .refine((val) => isValidGoogleMapsOrCoordinates(val), {
+      message: "Enter a valid Google Maps URL or coordinates (e.g., https://maps.google.com/... or 12.9716, 77.5946)",
+    }),
   special_requests: z.string().optional().default(""),
   notes: z.string().optional().default(""),
 });
 
 export type BookingRequestFormData = z.infer<typeof bookingRequestSchema>;
+
+// ── Review Submission ─────────────────────────────────────────────────────────
+export const reviewSchema = z.object({
+  rating: z.number().min(1, "Please select a star rating").max(5),
+  review_title: z.string().optional().default(""),
+  review_text: z.string().min(10, "Review text must be at least 10 characters").max(2000, "Review text is too long"),
+});
+
+export type ReviewFormData = z.infer<typeof reviewSchema>;
+
+// ── Email ─────────────────────────────────────────────────────────────────────
+export const emailSchema = z
+  .string()
+  .trim()
+  .min(1, "Email is required")
+  .max(254, "Email address is too long")
+  .email("Enter a valid email address")
+  .refine(
+    (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
+    "Email must contain a valid domain (e.g. user@example.com)"
+  );
+
+// ── Password ──────────────────────────────────────────────────────────────────
+export const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .max(128, "Password must be at most 128 characters")
+  .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+  .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+  .regex(/[0-9]/, "Password must contain at least one number")
+  .regex(
+    /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/,
+    "Password must contain at least one special character (!@#$%...)"
+  );
+
+// ── Name ──────────────────────────────────────────────────────────────────────
+export const nameSchema = z
+  .string()
+  .trim()
+  .min(2, "Must be at least 2 characters")
+  .max(64, "Must be at most 64 characters")
+  .regex(/^[a-zA-Z\s.'-]+$/, "Full name cannot contain numbers");
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+export const requiredStringSchema = (label: string, min = 1) =>
+  z.string().trim().min(min, `${label} is required`);
+
+export const idSchema = z.string().min(1, "A valid id is required");
+
+// ── Password strength checker (for UI indicators) ─────────────────────────────
+export interface PasswordStrength {
+  score: number; // 0–5
+  label: "Very weak" | "Weak" | "Fair" | "Good" | "Strong";
+  color: string;  // tailwind colour class
+  checks: {
+    minLength: boolean;
+    uppercase: boolean;
+    lowercase: boolean;
+    number: boolean;
+    special: boolean;
+  };
+}
+
+export function getPasswordStrength(password: string): PasswordStrength {
+  const checks = {
+    minLength: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(password),
+  };
+
+  const score = Object.values(checks).filter(Boolean).length;
+
+  const label =
+    score <= 1 ? "Very weak" :
+    score === 2 ? "Weak" :
+    score === 3 ? "Fair" :
+    score === 4 ? "Good" : "Strong";
+
+  const color =
+    score <= 1 ? "bg-red-500" :
+    score === 2 ? "bg-orange-500" :
+    score === 3 ? "bg-yellow-500" :
+    score === 4 ? "bg-blue-500" : "bg-emerald-500";
+
+  return { score, label, color, checks };
+}
+

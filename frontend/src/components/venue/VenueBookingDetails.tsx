@@ -117,7 +117,7 @@ export function VenueBookingDetails({
               </div>
 
               {booking.notes && (
-                <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground leading-relaxed bg-card/40 p-2.5 rounded-lg border border-border">
+                <div className="mt-3 pt-3 text-xs text-muted-foreground leading-relaxed bg-card/40 p-2.5 rounded-lg border border-border">
                   <span className="font-bold text-foreground block mb-0.5">Special Instructions:</span>
                   {booking.notes}
                 </div>
@@ -166,7 +166,7 @@ export function VenueBookingDetails({
               Resolution Log Timeline
             </h4>
             <div className="relative pl-4 border-l border-border space-y-4 text-xs">
-              {booking.timeline?.map((step, idx) => (
+              {(Array.isArray(booking.timeline) ? booking.timeline : []).map((step, idx) => (
                 <div key={idx} className="relative">
                   <span className={`absolute -left-[21px] top-0.5 rounded-full p-0.5 border ${
                     step.status === "accepted" ? "bg-primary border-primary/20 text-primary-foreground" :

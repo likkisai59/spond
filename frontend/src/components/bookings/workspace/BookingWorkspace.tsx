@@ -187,17 +187,19 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-center flex-wrap">
-          <Button
-            onClick={() => {
-              setBookingFormType("booking");
-              setShowBookingForm(true);
-            }}
-            size="sm"
-            className="bg-white hover:bg-zinc-200 text-black font-black text-xs h-9 gap-1.5 cursor-pointer shadow-md rounded-xl"
-          >
-            <Plus className="h-4 w-4 stroke-[3]" />
-            <span>Create Booking</span>
-          </Button>
+          {role !== "artist" && (
+            <Button
+              onClick={() => {
+                setBookingFormType("booking");
+                setShowBookingForm(true);
+              }}
+              size="sm"
+              className="bg-white hover:bg-zinc-200 text-black font-black text-xs h-9 gap-1.5 cursor-pointer shadow-md rounded-xl"
+            >
+              <Plus className="h-4 w-4 stroke-[3]" />
+              <span>Create Booking</span>
+            </Button>
+          )}
 
           {role === "artist" && (
             <Button
@@ -206,7 +208,7 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
                 setShowBookingForm(true);
               }}
               size="sm"
-              className="bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs h-9 gap-1.5 cursor-pointer shadow-md rounded-xl border border-zinc-700"
+              className="bg-white hover:bg-zinc-200 text-black font-black text-xs h-9 gap-1.5 cursor-pointer shadow-md rounded-xl"
             >
               <Plus className="h-4 w-4 stroke-[3]" />
               <span>Book a Venue</span>
@@ -307,7 +309,7 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
               venueId={bookingIntent?.venueId}
               venueName={bookingIntent?.venueName}
               proposedPrice={bookingIntent?.proposedPrice}
-              isArtistBookingVenue={role === "artist" && bookingFormType === "venue"}
+              isArtistBookingVenue={role === "artist" || bookingFormType === "venue"}
               isVenueBookingTalent={role === "venue"}
               onSuccess={() => {
                 toast.success(

@@ -5,6 +5,7 @@ import * as React from "react";
 import Link from "next/link";
 import { bandService } from "@/services/band";
 import { Artist } from "@/types/band";
+import { isEntertainmentArtist } from "@/utils/sportsFilter";
 import { Loader2 } from "lucide-react";
 import { ErrorState } from "@/components/shared/error-state";
 import { Card, CardContent } from "@/components/ui/card";
@@ -66,7 +67,8 @@ export default function PublicArtistsListPage() {
       if (minRating) params.min_rating = Number(minRating.replace("+", ""));
 
       const data = await bandService.getBands();
-      setBands(data || []);
+      const allBands = Array.isArray(data) ? data : [];
+      setBands(allBands.filter((b) => isEntertainmentArtist(b as Record<string, unknown>)));
     } catch (err: any) {
       console.warn("Could not fetch performers:", err?.message || err);
       setError("Failed to fetch performers. Please check your network connection.");

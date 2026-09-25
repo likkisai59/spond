@@ -10,9 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User, Mail, ShieldCheck, Sparkles, Edit3, Save, X, Phone, CheckCircle2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { PhoneInputField } from "@/components/shared/PhoneInputField";
 
 export default function ClientProfilePage() {
-  const { user, setUser } = useAuth() as any;
+  const { user, setUser } = useAuth() as { user: Record<string, any> | null; setUser: (u: any) => void };
 
   const [editing, setEditing] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -38,7 +39,7 @@ export default function ClientProfilePage() {
     }
     setSaving(true);
     try {
-      const { data } = await api.patch<any>("/auth/me", form);
+      const { data } = await api.patch<Record<string, any>>("/auth/me", form);
       const updated = data.data;
       // Refresh auth user in store if setUser is available
       if (setUser && typeof setUser === "function") {
@@ -46,8 +47,9 @@ export default function ClientProfilePage() {
       }
       toast.success("Profile updated successfully!");
       setEditing(false);
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || err.response?.data?.message || "Failed to update profile.");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string; message?: string } } };
+      toast.error(error.response?.data?.detail || error.response?.data?.message || "Failed to update profile.");
     } finally {
       setSaving(false);
     }
@@ -131,13 +133,10 @@ export default function ClientProfilePage() {
                 <Label htmlFor="phone" className="text-xs font-bold uppercase text-muted-foreground">
                   Phone Number
                 </Label>
-                <Input
+                <PhoneInputField
                   id="phone"
                   value={form.phone}
-                  onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                  placeholder="e.g. +91 98765 43210"
-                  type="tel"
-                  className="text-sm bg-card/60"
+                  onChange={(val) => setForm((f) => ({ ...f, phone: val }))}
                 />
               </div>
 

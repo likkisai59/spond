@@ -21,9 +21,8 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { fetchGroupsThunk } from "@/store/sports/groups-slice";
 import {
-  conversationOpened,
-  messageReceived,
   messageSent,
+  conversationOpened,
   fetchConversations,
   fetchHistory,
 } from "@/store/sports/messages-slice";
@@ -39,7 +38,7 @@ import { cn } from "@/utils/cn";
 
 type ConversationFilter = "all" | "Group" | "Direct";
 
-const AUTO_REPLIES = [
+const _AUTO_REPLIES = [
   "Got it, thanks!",
   "Sounds good 👍",
   "I'll confirm shortly.",

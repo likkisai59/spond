@@ -246,24 +246,24 @@ export default function VenueProfilePage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="bg-accent border border-border p-1 rounded-xl flex flex-wrap gap-1 self-start max-w-2xl mb-4">
-          <TabsTrigger value="edit" className="flex items-center gap-1.5 text-xs py-2 px-3 rounded-lg w-[18%] justify-center">
+        <TabsList className="h-auto bg-muted/60 border border-border p-1.5 rounded-2xl grid grid-cols-2 sm:grid-cols-5 gap-2 w-full max-w-3xl mb-6">
+          <TabsTrigger value="edit" className="flex items-center gap-1.5 text-xs py-2.5 px-3 rounded-xl justify-center w-full transition-all">
             <Edit3 className="h-3.5 w-3.5" />
             <span>Venue Details</span>
           </TabsTrigger>
-          <TabsTrigger value="facilities" className="flex items-center gap-1.5 text-xs py-2 px-3 rounded-lg w-[18%] justify-center">
+          <TabsTrigger value="facilities" className="flex items-center gap-1.5 text-xs py-2.5 px-3 rounded-xl justify-center w-full transition-all">
             <Sliders className="h-3.5 w-3.5" />
             <span>Facilities</span>
           </TabsTrigger>
-          <TabsTrigger value="pricing" className="flex items-center gap-1.5 text-xs py-2 px-3 rounded-lg w-[18%] justify-center">
+          <TabsTrigger value="pricing" className="flex items-center gap-1.5 text-xs py-2.5 px-3 rounded-xl justify-center w-full transition-all">
             <DollarSign className="h-3.5 w-3.5" />
             <span>Pricing</span>
           </TabsTrigger>
-          <TabsTrigger value="media" className="flex items-center gap-1.5 text-xs py-2 px-3 rounded-lg w-[18%] justify-center">
+          <TabsTrigger value="media" className="flex items-center gap-1.5 text-xs py-2.5 px-3 rounded-xl justify-center w-full transition-all">
             <ImageIcon className="h-3.5 w-3.5" />
             <span>Gallery</span>
           </TabsTrigger>
-          <TabsTrigger value="preview" className="flex items-center gap-1.5 text-xs py-2 px-3 rounded-lg w-[18%] justify-center">
+          <TabsTrigger value="preview" className="flex items-center gap-1.5 text-xs py-2.5 px-3 rounded-xl justify-center w-full transition-all col-span-2 sm:col-span-1">
             <Eye className="h-3.5 w-3.5" />
             <span>Public Preview</span>
           </TabsTrigger>

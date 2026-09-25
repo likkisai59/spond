@@ -35,7 +35,7 @@ export function StatisticsPage() {
   const [sortBy, setSortBy] = useState<StatsSort>("goals");
   const debouncedSearch = useDebounce(search, 250);
 
-  const [rawStats, setRawStats] = useState<any[]>([]);
+  const [rawStats, setRawStats] = useState<Record<string, any>[]>([]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -73,7 +73,7 @@ export function StatisticsPage() {
             return b.goals - a.goals;
         }
       });
-  }, [debouncedSearch, sortBy]);
+  }, [debouncedSearch, sortBy, rawStats]);
 
   const topScorer = useMemo(
     () =>

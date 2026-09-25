@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Image from "next/image";
+
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -92,14 +92,36 @@ export function ProviderMediaGallery<
   const [saving, setSaving] = React.useState(false);
   const [newAlbumName, setNewAlbumName] = React.useState(albums[0] || "General");
   const [newYoutubeUrl, setNewYoutubeUrl] = React.useState("");
+  const [youtubeError, setYoutubeError] = React.useState("");
+
+  const isValidYoutubeUrl = (url: string) => {
+    if (!url || !url.trim()) return false;
+    const trimmed = url.trim();
+    const urlPattern = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{2,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/i;
+    if (!urlPattern.test(trimmed)) return false;
+    return trimmed.toLowerCase().includes("youtube.com") || trimmed.toLowerCase().includes("youtu.be");
+  };
 
   const handleSave = async () => {
+    const currentYoutubeLinks = [...youtubeLinks];
+    if (newYoutubeUrl.trim()) {
+      if (!isValidYoutubeUrl(newYoutubeUrl)) {
+        setYoutubeError("Enter proper links");
+        toast.error("Enter proper links");
+        return;
+      }
+      currentYoutubeLinks.push(newYoutubeUrl.trim());
+      setYoutubeLinks(currentYoutubeLinks);
+      setNewYoutubeUrl("");
+      setYoutubeError("");
+    }
+
     setSaving(true);
     try {
       await onSave({
         gallery,
         videos,
-        youtubeLinks,
+        youtubeLinks: currentYoutubeLinks,
         coverImage
       });
     } catch {
@@ -167,11 +189,7 @@ export function ProviderMediaGallery<
     });
   };
 
-  const handleAlbumChange = (idx: number, album: string) => {
-    setGallery(prev =>
-      prev.map((item, i) => (i === idx ? { ...item, album } : item))
-    );
-  };
+
 
   // Video File methods
   const addVideoFile = (url: string) => {
@@ -202,10 +220,12 @@ export function ProviderMediaGallery<
   // YouTube Links methods
   const addYoutube = () => {
     if (!newYoutubeUrl.trim()) return;
-    if (!newYoutubeUrl.includes("youtube.com") && !newYoutubeUrl.includes("youtu.be")) {
-      toast.error("Please enter a valid YouTube video link.");
+    if (!isValidYoutubeUrl(newYoutubeUrl)) {
+      setYoutubeError("Enter proper links");
+      toast.error("Enter proper links");
       return;
     }
+    setYoutubeError("");
     setYoutubeLinks(prev => [...prev, newYoutubeUrl.trim()]);
     setNewYoutubeUrl("");
     toast.success("YouTube link added!");
@@ -241,27 +261,11 @@ export function ProviderMediaGallery<
       {showDedicatedCover && (
         <div className="space-y-4">
           <Label className="text-sm font-bold text-foreground">Cover Banner Image</Label>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end p-4 border border-border bg-accent/15 rounded-2xl">
-            <div className="md:col-span-2">
-              {coverImage ? (
-                <div className="aspect-video w-full max-w-md relative rounded-xl overflow-hidden border border-border">
-                  <Image src={coverImage} alt="Cover Banner" fill className="object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => setCoverImage(null)}
-                    className="absolute top-2 right-2 p-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white shadow"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ) : (
-                <div className="aspect-video w-full max-w-md bg-accent/40 border border-dashed border-border rounded-xl flex items-center justify-center text-muted-foreground text-xs italic">
-                  No cover banner selected. Upload gallery photos and mark one as cover or upload below.
-                </div>
-              )}
-            </div>
+          <div className="max-w-md">
             <ImageUpload
+              value={coverImage || undefined}
               onChange={url => setCoverImage(url)}
+              onRemove={() => setCoverImage(null)}
               subfolder={`${uploadSubfolder}/covers`}
             />
           </div>
@@ -308,7 +312,8 @@ export function ProviderMediaGallery<
               className="border border-border rounded-2xl overflow-hidden bg-card/85 flex flex-col group relative"
             >
               <div className="aspect-video w-full relative bg-accent/40 flex items-center justify-center border-b border-border">
-                <Image src={item.url} alt="Gallery item" fill className="object-cover" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={item.url} alt="Gallery item" className="absolute inset-0 w-full h-full object-cover" />
                 {item.is_cover && (
                   <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-primary text-primary-foreground flex items-center gap-1 shadow-sm border border-primary-light">
                     <Star className="h-3 w-3 fill-current" /> Cover Image
@@ -325,46 +330,48 @@ export function ProviderMediaGallery<
                 </button>
               </div>
 
-              {/* Album & Order actions */}
-              <div className="p-3 space-y-3">
-                <div className="space-y-1">
-                  <span className="text-[9px] uppercase font-bold text-muted-foreground">Album Category</span>
-                  <select
-                    value={item.album}
-                    onChange={e => handleAlbumChange(idx, e.target.value)}
-                    className="w-full h-8 px-2 rounded border border-border bg-accent text-foreground text-[10px]"
-                  >
-                    {albums.map(al => (
-                      <option key={al} value={al}>
-                        {al}
-                      </option>
-                    ))}
-                  </select>
+              {/* Album — locked/read-only after upload (Bug 8 fix) */}
+              <div className="p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-[9px] uppercase font-bold text-muted-foreground">Album Category</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-semibold text-primary">
+                        {item.album}
+                      </span>
+                      <span className="text-[9px] text-muted-foreground italic">locked</span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-between pt-1 border-t border-border">
-                  <div className="flex gap-1.5">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      disabled={idx === 0}
-                      onClick={() => moveImage(idx, "left")}
-                      className="h-7 w-7"
-                    >
-                      <ChevronLeft className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      disabled={idx === gallery.length - 1}
-                      onClick={() => moveImage(idx, "right")}
-                      className="h-7 w-7"
-                    >
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                  {/* Bug 9 fix: Only show reorder arrows when there are multiple images */}
+                  {gallery.length > 1 ? (
+                    <div className="flex gap-1.5">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        disabled={idx === 0}
+                        onClick={() => moveImage(idx, "left")}
+                        className="h-7 w-7"
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        disabled={idx === gallery.length - 1}
+                        onClick={() => moveImage(idx, "right")}
+                        className="h-7 w-7"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div /> 
+                  )}
 
                   {!item.is_cover && (
                     <Button
@@ -456,19 +463,28 @@ export function ProviderMediaGallery<
             <p className="text-xs text-muted-foreground">Embed showcase links from your YouTube channel.</p>
           </div>
 
-          <div className="flex gap-2">
-            <Input
-              placeholder="https://www.youtube.com/watch?v=..."
-              value={newYoutubeUrl}
-              onChange={e => setNewYoutubeUrl(e.target.value)}
-            />
-            <Button
-              type="button"
-              onClick={addYoutube}
-              className="h-10 px-4 bg-primary text-primary-foreground shrink-0"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+          <div className="space-y-1.5">
+            <div className="flex gap-2">
+              <Input
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={newYoutubeUrl}
+                onChange={e => {
+                  setNewYoutubeUrl(e.target.value);
+                  if (youtubeError) setYoutubeError("");
+                }}
+                className={youtubeError ? "border-error focus-visible:ring-error" : ""}
+              />
+              <Button
+                type="button"
+                onClick={addYoutube}
+                className="h-10 px-4 bg-primary text-primary-foreground shrink-0"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            {youtubeError && (
+              <p className="text-xs text-error font-medium">{youtubeError}</p>
+            )}
           </div>
 
           <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">

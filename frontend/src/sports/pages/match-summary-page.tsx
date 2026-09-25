@@ -50,6 +50,7 @@ const TIMELINE_ICONS: Record<MatchTimelineKind, typeof Target> = {
 
 export function MatchSummaryPage() {
   const params = useParams<{ matchId: string }>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [match, setMatch] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -175,6 +176,7 @@ export function MatchSummaryPage() {
           <h2 className="text-lg font-extrabold tracking-tight">Timeline</h2>
           {match.timeline && match.timeline.length > 0 ? (
             <ol className="mt-5 space-y-4">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {match.timeline.map((item: any) => {
                 const Icon = TIMELINE_ICONS[item.kind as MatchTimelineKind];
                 return (
@@ -240,6 +242,7 @@ export function MatchSummaryPage() {
             </h2>
             {match.topPerformers && match.topPerformers.length > 0 ? (
               <ul className="mt-4 space-y-3">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {match.topPerformers.map((performer: any) => (
                   <li
                     key={performer.id}

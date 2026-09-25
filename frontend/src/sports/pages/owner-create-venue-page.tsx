@@ -14,7 +14,6 @@ import { Card } from "@/components/shared/card";
 import {
   Form,
   FormInput,
-  FormSelect,
   FormTextarea,
 } from "@/components/forms";
 import { useAppDispatch } from "@/store/hooks";
@@ -84,6 +83,7 @@ export function OwnerCreateVenuePage() {
         })
       );
       router.push(ROUTES.SPORTS_OWNER_VENUES);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       dispatch(
         notificationAdded({

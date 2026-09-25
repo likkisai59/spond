@@ -6,7 +6,7 @@ import {
   MEMBER_ROLES,
   SPORT_TYPES,
 } from "@/types";
-import { emailSchema, nameSchema, passwordSchema, requiredStringSchema } from "@/utils/validations";
+import { emailSchema, nameSchema, passwordSchema, requiredStringSchema } from "@/utils/validation";
 
 export const createGroupSchema = z.object({
   name: requiredStringSchema("Group name", 2),

@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   MessageSquare,
   Mic2,
-  Music,
   Settings,
   Users,
   Vote,
@@ -123,7 +122,6 @@ export const BAND_CLIENT_NAV: NavSection[] = [
     title: "Marketplace",
     items: [
       { label: "Artists", href: "/band/marketplace/artists", icon: Mic2 },
-      { label: "Bands", href: "/band/marketplace/bands", icon: Music },
       { label: "Venues", href: "/band/marketplace/venues", icon: Building2 },
     ],
   },

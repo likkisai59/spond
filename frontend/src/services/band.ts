@@ -1,12 +1,14 @@
 import { api } from "./api";
 import { Artist, Band, Venue, Booking, BookingRequest, CustomerEvent, CustomerEventCreate } from "@/types/band";
+import { isEntertainmentVenue, isEntertainmentArtist } from "@/utils/sportsFilter";
 
 export const bandService = {
   // Artists
   getArtists: async (): Promise<any[]> => {
     const { data } = await api.get<any>("/band/artists");
     // Backend wraps in { status, data: [...] }
-    return Array.isArray(data) ? data : (data?.data ?? []);
+    const items = Array.isArray(data) ? data : (data?.data ?? []);
+    return items.filter((a: any) => isEntertainmentArtist(a as Record<string, unknown>));
   },
   getArtist: async (id: string): Promise<Artist> => {
     const { data } = await api.get<any>(`/band/artists/${id}`);
@@ -16,7 +18,8 @@ export const bandService = {
   // Bands
   getBands: async (): Promise<any[]> => {
     const { data } = await api.get<any>("/band/bands");
-    return Array.isArray(data) ? data : (data?.data ?? []);
+    const items = Array.isArray(data) ? data : (data?.data ?? []);
+    return items.filter((b: any) => isEntertainmentArtist(b as Record<string, unknown>));
   },
   getBand: async (id: string): Promise<Band> => {
     const { data } = await api.get<any>(`/band/bands/${id}`);
@@ -26,7 +29,8 @@ export const bandService = {
   // Venues
   getVenues: async (): Promise<any[]> => {
     const { data } = await api.get<any>("/band/venues");
-    return Array.isArray(data) ? data : (data?.data ?? []);
+    const items = Array.isArray(data) ? data : (data?.data ?? []);
+    return items.filter((v: any) => isEntertainmentVenue(v as Record<string, unknown>));
   },
   getVenue: async (id: string): Promise<Venue> => {
     const { data } = await api.get<any>(`/band/venues/${id}`);

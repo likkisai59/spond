@@ -87,6 +87,7 @@ export function GroupDetailsPage() {
     () => files.filter((file) => file.groupId === groupId),
     [files, groupId]
   );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [customPosts, setCustomPosts] = useState<any[]>([]);
   const [newPostContent, setNewPostContent] = useState("");
   const [showNewPostInput, setShowNewPostInput] = useState(false);
@@ -171,6 +172,7 @@ export function GroupDetailsPage() {
         </div>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
           <Avatar className="h-20 w-20 rounded-3xl">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             <AvatarImage src={group.logoUrl || (group as any).logo} alt={group.name} />
             <AvatarFallback className="rounded-3xl text-xl">
               {getInitials(group.name)}

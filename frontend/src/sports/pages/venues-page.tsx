@@ -32,7 +32,7 @@ export function VenuesPage() {
   const filteredVenues = useMemo(() => {
     const query = debouncedSearch.trim().toLowerCase();
     return venues.filter((venue) => {
-      const matchesSurface = surface === "All" || venue.surface === surface;
+      const matchesSurface = surface === "All" || venue.surface === surface || venue.sport_type?.includes(surface) || (!venue.surface && !venue.sport_type);
       const matchesQuery =
         query.length === 0 ||
         venue.name?.toLowerCase().includes(query) ||

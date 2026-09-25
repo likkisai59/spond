@@ -6,7 +6,6 @@ import {
 } from "@reduxjs/toolkit";
 import type { ChatMessage, Conversation, SportsGroup } from "@/types";
 import { messagesService } from "@/services/sports";
-import { MOCK_CONVERSATIONS } from "@/sports/mocks/messages.mock";
 import { fetchGroupsThunk } from "./groups-slice";
 
 export interface MessagesState {

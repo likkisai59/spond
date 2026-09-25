@@ -3,4 +3,4 @@ export * from "./constants";
 export * from "./date";
 export * from "./helpers";
 export { storage } from "./storage";
-export * from "./validations";
+export * from "./validation";

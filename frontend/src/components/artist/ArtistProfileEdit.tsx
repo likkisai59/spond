@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm, Path } from "react-hook-form";
+import { useForm, Controller, Path } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { artistProfileUpdateSchema, ArtistProfileUpdateFormData } from "@/utils/validation";
 import { ArtistProfile } from "@/types/artist";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUpload } from "@/components/shared/ImageUpload";
+import { PhoneInputField } from "@/components/shared/PhoneInputField";
 import { Plus, Trash2, Save } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -70,6 +71,7 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
     setValue,
     watch,
     reset,
+    control,
     formState: { errors, isSubmitting }
   } = useForm<ArtistProfileUpdateFormData>({
     resolver: zodResolver(artistProfileUpdateSchema),
@@ -88,6 +90,15 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
   const watchedAchievements = watch("achievements") || [];
   const watchedProfileImg = watch("profile_image");
   const watchedCoverImg = watch("cover_image");
+  const watchedBandType = watch("band_type") || "Solo";
+
+  // Bug 7: Auto-sync total_members based on performer type
+  React.useEffect(() => {
+    if (watchedBandType === "Solo") setValue("total_members", 1);
+    else if (watchedBandType === "Duo") setValue("total_members", 2);
+    else if (watchedBandType === "Trio") setValue("total_members", 3);
+    // Band → leave editable
+  }, [watchedBandType, setValue]);
 
   const toggleLanguage = (lang: string) => {
     const current = [...watchedLanguages];
@@ -155,20 +166,40 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="name">Band / Performer Legal Name</Label>
-            <Input id="name" {...register("name")} />
+            <Input
+              id="name"
+              placeholder="e.g. Rockstar Band"
+              {...register("name")}
+            />
+            <p className="text-[10px] text-muted-foreground">Letters and spaces only — no numbers</p>
             {errors.name && <p className="text-xs text-error">{errors.name.message}</p>}
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="display_name">Display Name (Unique handle)</Label>
-            <Input id="display_name" {...register("display_name")} />
+            <Input
+              id="display_name"
+              placeholder="e.g. rockstar-band or rockstar_band"
+              {...register("display_name")}
+            />
+            <p className="text-[10px] text-muted-foreground">Letters, hyphens & underscores only — no numbers or spaces</p>
             {errors.display_name && <p className="text-xs text-error">{errors.display_name.message}</p>}
           </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="mobile_number">Mobile / Booking Phone</Label>
-            <Input id="mobile_number" {...register("mobile_number")} />
-            {errors.mobile_number && <p className="text-xs text-error">{errors.mobile_number.message}</p>}
+            <Controller
+              name="mobile_number"
+              control={control}
+              render={({ field }) => (
+                <PhoneInputField
+                  id="mobile_number"
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.mobile_number?.message}
+                />
+              )}
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -262,24 +293,55 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label htmlFor="band_type">Performer Type</Label>
-            <select 
+            <select
               id="band_type"
               className="w-full h-10 px-3 rounded-lg border border-border bg-card text-foreground text-xs"
               {...register("band_type")}
             >
-              <option value="Solo">Solo</option>
-              <option value="Band">Band</option>
-              <option value="Duo">Duo</option>
-              <option value="Trio">Trio</option>
+              <option value="Solo">Solo (1 member)</option>
+              <option value="Duo">Duo (2 members)</option>
+              <option value="Trio">Trio (3 members)</option>
+              <option value="Band">Band (4+ members)</option>
             </select>
             {errors.band_type && <p className="text-xs text-error mt-1">{errors.band_type.message}</p>}
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="total_members">Total Members</Label>
-            <Input id="total_members" type="number" {...register("total_members", { valueAsNumber: true })} />
-            {errors.total_members && <p className="text-xs text-error mt-1">{errors.total_members.message}</p>}
-          </div>
+          {/* Total Members: hidden for Solo, locked for Duo/Trio, editable for Band */}
+          {watchedBandType !== "Solo" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="total_members">Total Members</Label>
+              <div className="relative">
+                <Input
+                  id="total_members"
+                  type="number"
+                  min={watchedBandType === "Duo" ? 2 : watchedBandType === "Trio" ? 3 : 4}
+                  readOnly={watchedBandType === "Duo" || watchedBandType === "Trio"}
+                  {...register("total_members", { valueAsNumber: true })}
+                  className={watchedBandType !== "Band" ? "bg-muted/40 cursor-not-allowed" : ""}
+                />
+                {(watchedBandType === "Duo" || watchedBandType === "Trio") && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-muted-foreground">
+                    Auto-set
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                {watchedBandType === "Duo" ? "Locked at 2 for Duo" :
+                 watchedBandType === "Trio" ? "Locked at 3 for Trio" :
+                 "Enter total band member count (min 4)"}
+              </p>
+              {errors.total_members && <p className="text-xs text-error mt-1">{errors.total_members.message}</p>}
+            </div>
+          )}
+          {watchedBandType === "Solo" && (
+            <div className="space-y-1.5">
+              <Label>Total Members</Label>
+              <div className="h-10 px-3 rounded-lg border border-border bg-muted/40 flex items-center text-xs text-muted-foreground">
+                1 — Solo performer
+              </div>
+              <p className="text-[10px] text-muted-foreground">Automatically set to 1 for Solo</p>
+            </div>
+          )}
         </div>
       </div>
 

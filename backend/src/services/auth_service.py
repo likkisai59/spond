@@ -121,7 +121,7 @@ class AuthService:
         
         from datetime import datetime, timezone
         if doc["expires_at"].replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
-            raise UnauthorizedError("OTP has expired. Please request a new one.")
+            raise UnauthorizedError("OTP has expired. Please request a new code")
             
         if doc.get("attempts", 0) >= 3:
             raise UnauthorizedError("Maximum attempts reached. Please request a new OTP.")

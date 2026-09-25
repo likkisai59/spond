@@ -157,6 +157,7 @@ export function RegisterForm() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const [isResending, setIsResending] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -213,6 +214,8 @@ export function RegisterForm() {
     setIsResending(true);
     try {
       await authService.requestOtp({ email: pendingData.email });
+      setOtp("");
+      setOtpError(null);
       setCountdown(60);
       dispatch(
         notificationAdded({
@@ -265,6 +268,12 @@ export function RegisterForm() {
       }
       router.push(redirectUrl);
     } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : "";
+      if (errorMsg.toLowerCase().includes("expired")) {
+        setOtpError("OTP has expired. Please request a new code");
+      } else {
+        setOtpError("enter correct otp");
+      }
       dispatch(
         notificationAdded({
           title: "Verification failed",
@@ -365,8 +374,15 @@ export function RegisterForm() {
                 placeholder="000000" 
                 maxLength={6} 
                 value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => {
+                  setOtp(e.target.value.replace(/\D/g, ""));
+                  if (otpError) setOtpError(null);
+                }}
+                className={otpError ? "border-destructive focus-visible:ring-destructive" : ""}
               />
+              {otpError && (
+                <p className="text-xs font-medium text-destructive">{otpError}</p>
+              )}
             </div>
             <div className="text-sm text-muted-foreground pt-2">
               {countdown > 0 ? (

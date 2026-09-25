@@ -40,7 +40,6 @@ export function TestimonialsSection() {
     <section id="testimonials" className="scroll-mt-24">
       <PageContainer className="py-16 lg:py-24">
         <SectionHeading
-          eyebrow="Loved by teams"
           title="What our early users say"
           description="Clubs, venues, artists and managers are already building their worlds on Unify."
           className="animate-fade-in-up"

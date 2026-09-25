@@ -99,7 +99,12 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
     const apiError = toApiRequestError(error);
 
-    if (apiError.isUnauthorized && originalRequest && !originalRequest._retry) {
+    const isAuthUrl =
+      originalRequest?.url?.includes("/auth/verify-otp") ||
+      originalRequest?.url?.includes("/auth/login") ||
+      originalRequest?.url?.includes("/auth/request-otp");
+
+    if (apiError.isUnauthorized && originalRequest && !originalRequest._retry && !isAuthUrl) {
       originalRequest._retry = true;
       const refreshToken = storage.get<string>(STORAGE_KEYS.REFRESH_TOKEN);
 
@@ -127,7 +132,7 @@ apiClient.interceptors.response.use(
       // Step 4: Final Logout
       storage.remove(STORAGE_KEYS.ACCESS_TOKEN);
       storage.remove(STORAGE_KEYS.REFRESH_TOKEN);
-      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+      if (typeof window !== "undefined" && window.location.pathname !== "/login" && window.location.pathname !== "/register") {
         window.location.href = "/login";
       }
     }

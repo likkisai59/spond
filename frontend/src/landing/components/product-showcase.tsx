@@ -7,7 +7,7 @@ const productFeatures = {
   sports: [
     "Teams & rosters",
     "Events & scheduling",
-    "Polls & messaging",
+    "Team messaging",
     "Payments & invoicing",
   ],
   band: [

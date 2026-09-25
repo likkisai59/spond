@@ -8,7 +8,7 @@ import { ProductCard } from "../components/product-card";
 const sportsFeatures = [
   "Manage teams",
   "Events",
-  "Polls",
+  "Group management",
   "Messaging",
   "Payments",
 ] as const;

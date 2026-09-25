@@ -282,7 +282,18 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <Label htmlFor="owner_name">Owner Legal Name</Label>
-            <Input id="owner_name" {...register("owner_name")} />
+            <Input
+              id="owner_name"
+              {...register("owner_name")}
+              onKeyDown={(e) => {
+                if (
+                  !/^[a-zA-Z\s]$/.test(e.key) &&
+                  !["Backspace", "Tab", "ArrowLeft", "ArrowRight", "Delete"].includes(e.key)
+                ) {
+                  e.preventDefault();
+                }
+              }}
+            />
             {errors.owner_name && <p className="text-xs text-error">{errors.owner_name.message}</p>}
           </div>
 

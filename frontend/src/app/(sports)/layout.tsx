@@ -13,7 +13,7 @@ export default function SportsRouteLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ProtectedRoute allowedRoles={["user", "admin"]}>
+    <ProtectedRoute allowedRoles={["user", "admin", "member", "sports_venue_owner"]}>
       <SportsDashboardLayout>{children}</SportsDashboardLayout>
     </ProtectedRoute>
   );

@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Loader as Spinner } from "@/components/ui/loader";
 
 
-type Role = "client" | "artist" | "venue_owner" | "admin" | "super-admin" | "user" | "band";
+type Role = "client" | "artist" | "venue_owner" | "admin" | "super-admin" | "user" | "band" | "member" | "sports_venue_owner";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

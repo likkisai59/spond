@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
@@ -11,6 +13,8 @@ import { ROUTES } from "@/constants";
 import { venuesService, bookingsService } from "@/services/sports";
 
 export function OwnerDashboardPage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [venuesCount, setVenuesCount] = useState(0);
   const [bookingStats, setBookingStats] = useState({
     total: 0,
@@ -19,6 +23,11 @@ export function OwnerDashboardPage() {
   });
 
   useEffect(() => {
+    if (user?.role === "member" || user?.role === "user") {
+      router.replace(ROUTES.SPORTS_DASHBOARD);
+      return;
+    }
+
     venuesService.listOwnerVenues().then((res) => {
       setVenuesCount(res.data?.items?.length || 0);
     });
@@ -39,7 +48,11 @@ export function OwnerDashboardPage() {
         confirmed,
       });
     });
-  }, []);
+  }, [user, router]);
+
+  if (user?.role === "member" || user?.role === "user") {
+    return null;
+  }
 
   return (
     <PageContainer as="main">

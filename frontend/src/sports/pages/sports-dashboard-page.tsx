@@ -27,6 +27,7 @@ import {
   selectRecentActivity,
   selectUpcomingEvents,
   selectAllGroups,
+  selectSportsStats,
 } from "@/store/sports/selectors";
 import { MOCK_ATTENDANCE_TREND, MOCK_PAYMENT_TREND } from "@/data";
 import {

@@ -5,10 +5,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1
 
 WORKDIR /build
+
 COPY requirements.txt .
+
 RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install --upgrade pip \
     && /opt/venv/bin/pip install -r requirements.txt
+
 
 # ---------- runtime ----------
 FROM python:3.12-slim
@@ -20,10 +23,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 COPY --from=builder /opt/venv /opt/venv
+
 WORKDIR /app
+
 COPY . .
 
 USER appuser
+
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

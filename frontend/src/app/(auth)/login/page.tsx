@@ -6,9 +6,10 @@ export const metadata: Metadata = {
 };
 
 type Props = {
-  searchParams: Record<string, string | string[] | undefined>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default function Page({ searchParams }: Props) {
-  return <LoginPage searchParams={searchParams} />;
+export default async function Page({ searchParams }: Props) {
+  const resolvedParams = await searchParams;
+  return <LoginPage searchParams={resolvedParams} />;
 }

@@ -27,6 +27,7 @@ import { formatDate } from "@/utils/date";
 import { ROUTES } from "@/constants";
 import type { AttendanceResponse } from "@/types";
 import { cn } from "@/utils/cn";
+import toast from "react-hot-toast";
 
 const RESPONSE_FILTERS: AttendanceResponse[] = [
   "Present",
@@ -66,6 +67,7 @@ export function AttendancePage() {
   const [historyEventRecords, setHistoryEventRecords] = useState<Record<string, any[]>>({});
   const [loadingHistoryId, setLoadingHistoryId] = useState<string | null>(null);
   const [eventsWithSavedAttendance, setEventsWithSavedAttendance] = useState<Set<string>>(new Set());
+  const [isUnlocked, setIsUnlocked] = useState(false);
 
   useEffect(() => {
     dispatch(fetchEventsThunk());
@@ -88,6 +90,7 @@ export function AttendancePage() {
 
   useEffect(() => {
     setOverrides({});
+    setIsUnlocked(false);
     if (!selectedEventId) return;
     const fetchSaved = async () => {
       try {
@@ -120,13 +123,15 @@ export function AttendancePage() {
     ? groups.find((g) => g.id === selectedEvent.groupId)
     : undefined;
 
-  const isAttendanceFinalized = useMemo(() => {
+  const isRecorded = useMemo(() => {
     if (!selectedEvent) return false;
     return (
       Object.keys(savedDbResponses).length > 0 ||
       eventsWithSavedAttendance.has(selectedEvent.id)
     );
   }, [selectedEvent, savedDbResponses, eventsWithSavedAttendance]);
+
+  const isAttendanceFinalized = isRecorded && !isUnlocked;
 
   const records: AttendanceRecord[] = useMemo(() => {
     if (!selectedEvent) return [];
@@ -213,6 +218,7 @@ export function AttendancePage() {
           })
         );
         setOverrides({});
+        setIsUnlocked(false);
       } catch (error: any) {
         dispatch(
           notificationAdded({
@@ -383,36 +389,66 @@ export function AttendancePage() {
                             variant="outline"
                             size="sm"
                             className="rounded-full"
-                            onClick={() => setOverrides({})}
-                            disabled={isAttendanceFinalized || Object.keys(overrides).length === 0}
+                            onClick={() => {
+                              setIsUnlocked(true);
+                              setOverrides({});
+                              toast.success("Attendance unlocked. You can now modify and re-save records.");
+                            }}
+                            disabled={!isRecorded && Object.keys(overrides).length === 0}
                           >
                             <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
                             Reset
                           </Button>
-                          <Button
-                            variant={isAttendanceFinalized ? "secondary" : "accent"}
-                            size="sm"
-                            className="rounded-full"
-                            onClick={handleSave}
-                            disabled={isAttendanceFinalized || Object.keys(overrides).length === 0}
-                          >
-                            {isAttendanceFinalized ? (
-                              <>
-                                <Lock className="mr-1.5 h-3.5 w-3.5" /> Finalized
-                              </>
-                            ) : (
-                              <>
-                                <Save className="mr-1.5 h-3.5 w-3.5" /> Save
-                              </>
-                            )}
-                          </Button>
+                          {isAttendanceFinalized ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="rounded-full border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
+                              onClick={() => {
+                                setIsUnlocked(true);
+                                toast.success("Attendance unlocked for editing.");
+                              }}
+                              title="Click to unlock and edit attendance"
+                            >
+                              <Lock className="mr-1.5 h-3.5 w-3.5" /> Finalized (Unlock & Edit)
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="accent"
+                              size="sm"
+                              className="rounded-full"
+                              onClick={handleSave}
+                              disabled={Object.keys(overrides).length === 0}
+                            >
+                              <Save className="mr-1.5 h-3.5 w-3.5" /> Save
+                            </Button>
+                          )}
                         </div>
                       </div>
 
                       {isAttendanceFinalized && (
-                        <div className="mt-4 flex items-center gap-2 rounded-xl border border-border/80 bg-muted/50 px-3.5 py-2.5 text-xs font-semibold text-muted-foreground animate-fade-in-up">
-                          <Lock className="h-4 w-4 shrink-0 text-amber-500" />
-                          <span>Attendance has been recorded and finalized for this session. Editing is locked.</span>
+                        <div className="mt-4 flex items-center justify-between gap-2 rounded-xl border border-border/80 bg-muted/50 px-3.5 py-2.5 text-xs font-semibold text-muted-foreground animate-fade-in-up">
+                          <div className="flex items-center gap-2">
+                            <Lock className="h-4 w-4 shrink-0 text-amber-500" />
+                            <span>Attendance has been recorded and finalized for this session. Editing is locked.</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsUnlocked(true);
+                              toast.success("Attendance unlocked for editing.");
+                            }}
+                            className="text-xs font-bold text-accent underline hover:opacity-80"
+                          >
+                            Unlock & Edit
+                          </button>
+                        </div>
+                      )}
+
+                      {isRecorded && isUnlocked && (
+                        <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-2.5 text-xs font-semibold text-emerald-400 animate-fade-in-up">
+                          <Check className="h-4 w-4 shrink-0" />
+                          <span>Session unlocked. You can now modify attendance marks and click Save to update.</span>
                         </div>
                       )}
 

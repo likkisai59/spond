@@ -16,7 +16,7 @@ import { ROUTES } from "@/constants";
 import { cn } from "@/utils/cn";
 
 const DEMO_CHAPTERS = [
-  { time: "00:00", title: "Welcome to Unify" },
+  { time: "00:00", title: "Welcome to Mukijo" },
   { time: "01:20", title: "Manage your sports club" },
   { time: "03:05", title: "Discover artists & venues" },
   { time: "04:40", title: "Payments made simple" },

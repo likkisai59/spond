@@ -2,8 +2,8 @@ import { Trophy, Music } from "lucide-react";
 import { ROUTES } from "./routes";
 import type { ProductConfig, ProductKey } from "@/types";
 
-export const APP_NAME = "Unify";
-export const APP_SHORT_NAME = "Unify";
+export const APP_NAME = "Mukijo";
+export const APP_SHORT_NAME = "Mukijo";
 export const APP_DESCRIPTION =
   "One platform, two products — a sports management platform and the EventHub marketplace with a unified administration panel.";
 export const APP_TAGLINE = "One platform. Two products. Infinite flow.";

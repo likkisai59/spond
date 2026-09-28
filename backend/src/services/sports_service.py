@@ -725,10 +725,26 @@ class SportsService:
         }
         return await self.polls.insert(poll_doc)
 
-    async def list_polls(self, group_id: str | None = None) -> list[dict]:
+    async def list_polls(self, group_id: str | None = None, user_id: str | None = None) -> list[dict]:
         query = {}
         if group_id:
             query["group_id"] = group_id
+            if user_id:
+                user_groups = await self.list_groups(user_id)
+                user_group_ids = [str(g["id"]) for g in user_groups if "id" in g]
+                if group_id not in user_group_ids:
+                    return []
+        elif user_id:
+            user_groups = await self.list_groups(user_id)
+            user_group_ids = [str(g["id"]) for g in user_groups if "id" in g]
+            query = {
+                "$or": [
+                    {"user_id": user_id},
+                    {"group_id": {"$in": user_group_ids}}
+                ]
+            }
+        else:
+            return []
         return await self.polls.find_many(query, sort=[("created_at", -1)])
 
     async def get_poll(self, poll_id: str) -> dict:

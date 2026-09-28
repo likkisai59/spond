@@ -175,6 +175,7 @@ export function CreateEventPage() {
                 label="Date"
                 type="date"
                 min={new Date().toISOString().split("T")[0]}
+                max={`${new Date().getFullYear() + 10}-12-31`}
               />
               <FormInput
                 control={control}

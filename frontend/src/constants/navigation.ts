@@ -65,7 +65,6 @@ export const SPORTS_NAV: NavSection[] = [
         label: "Messages",
         href: ROUTES.SPORTS_MESSAGES,
         icon: MessageSquare,
-        badge: 3,
       },
       { label: "Files", href: ROUTES.SPORTS_FILES, icon: FolderOpen },
       {

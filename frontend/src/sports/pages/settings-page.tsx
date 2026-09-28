@@ -29,6 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { MOCK_LOGIN_ACTIVITY, MOCK_SESSIONS } from "@/data";
+import { authService } from "@/services";
 import { formatDate } from "@/utils/date";
 import { cn } from "@/utils/cn";
 import {
@@ -178,15 +179,33 @@ function SecurityTab() {
     },
   });
 
-  const onSubmit: SubmitHandler<SecuritySettingsFormData> = () => {
-    dispatch(
-      notificationAdded({
-        title: "Password updated",
-        message: "Your password was changed (demo mode).",
-        variant: "success",
-      })
-    );
-    form.reset();
+  const onSubmit: SubmitHandler<SecuritySettingsFormData> = async (data) => {
+    try {
+      await authService.changePassword({
+        current_password: data.currentPassword,
+        new_password: data.newPassword,
+      });
+      dispatch(
+        notificationAdded({
+          title: "Password updated",
+          message: "Your password has been changed successfully.",
+          variant: "success",
+        })
+      );
+      form.reset();
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        "Failed to update password. Please check your current password.";
+      dispatch(
+        notificationAdded({
+          title: "Error",
+          message,
+          variant: "error",
+        })
+      );
+    }
   };
 
   const handleSignOutSession = (device: string) => {

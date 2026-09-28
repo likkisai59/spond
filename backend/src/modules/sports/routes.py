@@ -327,8 +327,8 @@ async def create_poll(data: PollCreateRequest, user: dict = Depends(get_current_
     return {"status": "success", "data": poll}
 
 @router.get("/polls")
-async def list_polls(group_id: str = None, _: dict = Depends(get_current_user)) -> dict:
-    polls = await service.list_polls(group_id)
+async def list_polls(group_id: str = None, user: dict = Depends(get_current_user)) -> dict:
+    polls = await service.list_polls(group_id, user_id=user["id"])
     return {"status": "success", "data": {"items": polls}}
 
 @router.get("/polls/{id}")

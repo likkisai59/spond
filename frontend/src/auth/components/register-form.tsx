@@ -142,7 +142,7 @@ export function RegisterForm() {
       password: "",
       confirmPassword: "",
       role: "client",
-      terms: true,
+      terms: false,
     },
   });
 
@@ -190,7 +190,7 @@ export function RegisterForm() {
         msg.toLowerCase().includes("already exists") ||
         msg.toLowerCase().includes("conflict") ||
         msg.toLowerCase().includes("account with this email") ||
-        error?.status === 409;
+        (error as any)?.status === 409;
 
       if (isDuplicate) {
         form.setError("email", {

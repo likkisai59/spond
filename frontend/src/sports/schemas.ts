@@ -117,7 +117,11 @@ export const profileSettingsSchema = z.object({
   phone: z
     .string()
     .trim()
-    .regex(/^[0-9+\-\s]{8,15}$/, "Enter a valid phone number")
+    .regex(/^[0-9+\-\s]{10,16}$/, "Phone number must be at least 10 characters")
+    .refine(
+      (val) => !val || val.replace(/\D/g, "").length >= 10,
+      { message: "Phone number must contain at least 10 digits" }
+    )
     .or(z.literal("")),
 });
 export type ProfileSettingsFormData = z.infer<typeof profileSettingsSchema>;

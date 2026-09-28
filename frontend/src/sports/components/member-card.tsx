@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/shared/card";
 import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { memberRemoved, addMemberThunk } from "@/store/sports/groups-slice";
+import { removeMemberThunk, addMemberThunk } from "@/store/sports/groups-slice";
 import { StatusBadge } from "./status-badge";
 import { getInitials } from "@/utils/helpers";
 import type { GroupMember } from "@/types";
@@ -80,15 +80,25 @@ export function MemberCard({
     }
   };
 
-  const handleRemove = () => {
-    dispatch(memberRemoved({ groupId, memberId: member.id }));
-    dispatch(
-      notificationAdded({
-        title: "Member removed",
-        message: `${member.name} was removed from the group.`,
-        variant: "warning",
-      })
-    );
+  const handleRemove = async () => {
+    try {
+      await dispatch(removeMemberThunk({ groupId, memberId: member.id })).unwrap();
+      dispatch(
+        notificationAdded({
+          title: "Member removed",
+          message: `${member.name} was removed from the group.`,
+          variant: "warning",
+        })
+      );
+    } catch (error: any) {
+      dispatch(
+        notificationAdded({
+          title: "Error removing member",
+          message: error?.message || "Failed to remove member",
+          variant: "error",
+        })
+      );
+    }
   };
 
   return (

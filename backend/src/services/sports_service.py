@@ -281,7 +281,13 @@ class SportsService:
             raise AppException(400, "Invalid action. Must be 'accept' or 'reject'")
 
     async def remove_member(self, group_id: str, member_id: str) -> None:
-        deleted = await self.members.collection.delete_one({"group_id": group_id, "user_id": member_id})
+        from src.database.base_repository import to_object_id
+        or_conditions: list[dict] = [{"user_id": member_id}]
+        try:
+            or_conditions.append({"_id": to_object_id(member_id)})
+        except Exception:
+            pass
+        deleted = await self.members.collection.delete_one({"group_id": group_id, "$or": or_conditions})
         if deleted.deleted_count == 0:
             raise NotFoundError("Member not found in group")
 

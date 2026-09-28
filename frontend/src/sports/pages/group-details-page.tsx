@@ -25,7 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDebounce } from "@/hooks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { memberRemoved, fetchGroupsThunk } from "@/store/sports/groups-slice";
+import { removeMemberThunk, fetchGroupsThunk } from "@/store/sports/groups-slice";
 import { fetchPaymentsThunk } from "@/store/sports/payments-slice";
 import { fetchEventsThunk } from "@/store/sports/events-slice";
 import {
@@ -36,6 +36,7 @@ import {
   selectUpcomingEvents,
 } from "@/store/sports/selectors";
 import {
+  AddMemberModal,
   EventCard,
   FileCard,
   MemberCard,
@@ -58,6 +59,7 @@ export function GroupDetailsPage() {
   const polls = useAppSelector(selectAllPolls);
   const payments = useAppSelector(selectAllPayments);
   const files = useAppSelector(selectAllFiles);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   useEffect(() => {
     dispatch(fetchPaymentsThunk(groupId));
@@ -138,17 +140,21 @@ export function GroupDetailsPage() {
   }
 
   const handleInvite = () => {
-    dispatch(
-      notificationAdded({
-        title: "Invite members",
-        message: "Member invitations will be wired to the messaging service.",
-        variant: "info",
-      })
-    );
+    setInviteOpen(true);
   };
 
-  const handleRemoveMember = (memberId: string) => {
-    dispatch(memberRemoved({ groupId, memberId }));
+  const handleRemoveMember = async (memberId: string) => {
+    try {
+      await dispatch(removeMemberThunk({ groupId, memberId })).unwrap();
+    } catch (error: any) {
+      dispatch(
+        notificationAdded({
+          title: "Error removing member",
+          message: error?.message || "Failed to remove member from group",
+          variant: "error",
+        })
+      );
+    }
   };
 
   return (
@@ -524,6 +530,15 @@ export function GroupDetailsPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {group && (
+        <AddMemberModal
+          open={inviteOpen}
+          onOpenChange={setInviteOpen}
+          groupId={groupId}
+          groupName={group.name}
+        />
+      )}
     </PageContainer>
   );
 }

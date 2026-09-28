@@ -145,3 +145,21 @@ async def reset_password(payload: ResetPasswordRequest) -> dict:
         token=payload.token, new_password=payload.new_password
     )
     return _ok(MessageResponse(message="Password has been reset").model_dump())
+
+
+@router.get("/sessions", summary="List active sessions for current user")
+async def get_sessions(user: dict = Depends(get_current_user)) -> dict:
+    sessions = await AuthService().get_active_sessions(user_id=user["id"])
+    return _ok(sessions)
+
+
+@router.delete("/sessions/{sessionId}", summary="Revoke a specific session")
+async def revoke_session(sessionId: str, user: dict = Depends(get_current_user)) -> dict:
+    await AuthService().revoke_session(user_id=user["id"], session_id=sessionId)
+    return _ok(MessageResponse(message="Session revoked").model_dump())
+
+
+@router.get("/activity", summary="List login activity logs for current user")
+async def get_activity(user: dict = Depends(get_current_user)) -> dict:
+    activity = await AuthService().get_login_activity(user_id=user["id"])
+    return _ok(activity)

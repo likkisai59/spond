@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { RegisterPage } from "@/auth";
 
 export const metadata: Metadata = {
@@ -6,5 +7,9 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <RegisterPage />;
+  return (
+    <Suspense fallback={null}>
+      <RegisterPage />
+    </Suspense>
+  );
 }

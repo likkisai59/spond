@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { SportsDashboardLayout } from "@/sports/layout/sports-dashboard-layout";
 
 export const metadata: Metadata = {
@@ -13,8 +14,10 @@ export default function SportsRouteLayout({
   children: React.ReactNode;
 }) {
   return (
+  <Suspense fallback={null}>
     <ProtectedRoute allowedRoles={["user", "admin", "member", "sports_venue_owner"]}>
       <SportsDashboardLayout>{children}</SportsDashboardLayout>
     </ProtectedRoute>
-  );
+  </Suspense>
+ );
 }

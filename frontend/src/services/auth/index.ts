@@ -1,4 +1,5 @@
 import { apiClient } from "@/services/api-client";
+import type { DeviceSession, LoginActivityItem } from "@/data";
 import type { AuthSession, User } from "@/types";
 
 export interface LoginPayload {
@@ -61,6 +62,9 @@ export interface AuthService {
   resetPassword(payload: ResetPasswordPayload): Promise<{ message: string }>;
   refreshToken(payload: RefreshTokenPayload): Promise<AuthSession>;
   getCurrentUser(): Promise<User>;
+  getSessions(): Promise<DeviceSession[]>;
+  revokeSession(sessionId: string): Promise<void>;
+  getLoginActivity(): Promise<LoginActivityItem[]>;
 }
 
 export const authService: AuthService = {
@@ -152,6 +156,17 @@ export const authService: AuthService = {
   },
   getCurrentUser: async () => {
     const { data } = await apiClient.get<{ status: string; data: User }>("/api/v1/auth/me");
+    return data.data;
+  },
+  getSessions: async () => {
+    const { data } = await apiClient.get<{ status: string; data: DeviceSession[] }>("/api/v1/auth/sessions");
+    return data.data;
+  },
+  revokeSession: async (sessionId: string) => {
+    await apiClient.delete(`/api/v1/auth/sessions/${sessionId}`);
+  },
+  getLoginActivity: async () => {
+    const { data } = await apiClient.get<{ status: string; data: LoginActivityItem[] }>("/api/v1/auth/activity");
     return data.data;
   },
 };

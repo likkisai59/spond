@@ -35,11 +35,11 @@ export function FormInput<TFieldValues extends FieldValues = FieldValues>({
     <FormField
       control={control}
       name={name}
-      render={({ field }) => (
+      render={({ field, fieldState }) => (
         <FormItem>
           {label ? <FormLabel>{label}</FormLabel> : null}
           <FormControl>
-            <Input className={className} {...field} {...props} />
+            <Input className={className} invalid={!!fieldState.error} {...field} {...props} />
           </FormControl>
           {description ? <FormDescription>{description}</FormDescription> : null}
           <FormMessage />

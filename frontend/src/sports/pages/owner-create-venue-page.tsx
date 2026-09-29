@@ -30,6 +30,7 @@ export function OwnerCreateVenuePage() {
 
   const form = useForm<CreateVenueFormData>({
     resolver: zodResolver(createVenueSchema),
+    mode: "onChange",
     defaultValues: {
       name: "",
       description: "",
@@ -211,7 +212,7 @@ export function OwnerCreateVenuePage() {
               <Button
                 type="submit"
                 variant="accent"
-                disabled={formState.isSubmitting}
+                disabled={formState.isSubmitting || !formState.isValid}
                 loading={formState.isSubmitting}
               >
                 {formState.isSubmitting ? "Creating..." : "Create venue"}

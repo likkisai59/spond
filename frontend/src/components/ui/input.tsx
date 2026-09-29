@@ -13,6 +13,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         className={cn(
           "flex h-10 w-full rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 file:border-0 file:bg-transparent file:text-sm file:font-medium",
           invalid && "border-destructive focus-visible:ring-destructive",
+          "aria-[invalid=true]:border-destructive aria-[invalid=true]:focus-visible:ring-destructive",
           className
         )}
         ref={ref}

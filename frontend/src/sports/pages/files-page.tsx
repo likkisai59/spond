@@ -135,7 +135,7 @@ export function FilesPage() {
     dispatch(
       notificationAdded({
         title: "Download started",
-        message: `${file.name} is downloading (demo export).`,
+        message: `${file.name} is downloading.`,
         variant: "success",
       })
     );

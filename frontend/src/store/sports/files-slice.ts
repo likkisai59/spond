@@ -50,6 +50,7 @@ export const fetchFilesThunk = createAsyncThunk(
         uploadedBy: item.uploadedBy || item.uploaded_by || "You",
         createdAt,
         updatedAt: item.updatedAt || item.updated_at || createdAt,
+        fileUrl: item.fileUrl || item.file_url || "",
       };
     });
   }

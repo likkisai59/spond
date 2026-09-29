@@ -9,8 +9,7 @@ import { bookingsService } from "@/services/sports";
 import { ROUTES } from "@/constants";
 import { formatCurrency } from "@/utils/helpers";
 import { formatDate } from "@/utils/date";
-import { CreditCard, Download } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CreditCard } from "lucide-react";
 
 export function OwnerPaymentsPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -49,12 +48,6 @@ export function OwnerPaymentsPage() {
       <PageHeader
         title="Payments & Revenue"
         description="Track incoming payments from your venue bookings."
-        actions={
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export CSV
-          </Button>
-        }
       />
 
       <div className="mt-8 grid gap-6">

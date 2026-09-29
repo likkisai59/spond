@@ -31,11 +31,11 @@ export function FormTextarea<
     <FormField
       control={control}
       name={name}
-      render={({ field }) => (
+      render={({ field, fieldState }) => (
         <FormItem>
           {label ? <FormLabel>{label}</FormLabel> : null}
           <FormControl>
-            <Textarea className={className} {...field} {...props} />
+            <Textarea className={className} invalid={!!fieldState.error} {...field} {...props} />
           </FormControl>
           {description ? <FormDescription>{description}</FormDescription> : null}
           <FormMessage />

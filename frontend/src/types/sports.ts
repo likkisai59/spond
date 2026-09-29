@@ -192,6 +192,7 @@ export interface SportsFile extends BaseEntity {
   folder: string;
   uploadedBy: string;
   groupId?: string;
+  fileUrl?: string;
 }
 
 export type ActivityKind =

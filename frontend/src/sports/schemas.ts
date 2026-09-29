@@ -188,11 +188,29 @@ export const createVenueSchema = z.object({
   city: requiredStringSchema("City", 2).regex(/^[a-zA-Z\s,.-]+$/, "City cannot contain numbers"),
   state: z.string().optional(),
   country: z.string().optional(),
-  contactName: z.string().regex(/^[a-zA-Z\s]*$/, "Contact name must contain only alphabetic characters and spaces").optional().or(z.literal("")),
-  contactPhone: z.string().regex(/^[0-9+\s\-()]*$/, "Phone number cannot contain alphabets").optional().or(z.literal("")),
-  openingTime: z.string().optional(),
-  closingTime: z.string().optional(),
-});
+  contactName: requiredStringSchema("Contact name", 2)
+    .regex(/^[a-zA-Z\s]*$/, "Contact name must contain only alphabetic characters and spaces"),
+  contactPhone: z
+    .string()
+    .trim()
+    .min(1, "Phone number is required")
+    .regex(/^[0-9+\s\-()]*$/, "Phone number cannot contain alphabets")
+    .refine(
+      (val) => val.replace(/\D/g, "").length >= 10,
+      { message: "Phone number must contain at least 10 digits" }
+    ),
+  openingTime: requiredStringSchema("Opening time"),
+  closingTime: requiredStringSchema("Closing time"),
+}).refine(
+  (data) => {
+    if (!data.openingTime || !data.closingTime) return true;
+    return data.closingTime > data.openingTime;
+  },
+  {
+    message: "Closing time must be strictly after opening time",
+    path: ["closingTime"],
+  }
+);
 export type CreateVenueFormData = z.infer<typeof createVenueSchema>;
 
 export const createSlotSchema = z.object({

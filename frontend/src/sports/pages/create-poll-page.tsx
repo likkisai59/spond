@@ -166,6 +166,7 @@ export function CreatePollPage() {
                 label="Expiry date"
                 type="date"
                 min={new Date().toISOString().split("T")[0]}
+                max={`${new Date().getFullYear() + 5}-12-31`}
               />
               <div className="flex items-end pb-1">
                 <FormCheckbox

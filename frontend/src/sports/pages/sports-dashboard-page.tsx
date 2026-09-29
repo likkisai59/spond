@@ -29,7 +29,12 @@ import {
   selectAllGroups,
   selectSportsStats,
 } from "@/store/sports/selectors";
-import { MOCK_ATTENDANCE_TREND, MOCK_PAYMENT_TREND } from "@/data";
+import {
+  type AttendanceTrendPoint,
+  type PaymentTrendPoint,
+  MOCK_ATTENDANCE_TREND,
+  MOCK_PAYMENT_TREND,
+} from "@/data";
 import {
   ActivityFeed,
   AttendanceChart,
@@ -62,6 +67,8 @@ export function SportsDashboardPage() {
     paymentsDue: 0,
     unreadMessages: 0,
   });
+  const [attendanceTrend, setAttendanceTrend] = useState<AttendanceTrendPoint[]>(MOCK_ATTENDANCE_TREND);
+  const [paymentTrend, setPaymentTrend] = useState<PaymentTrendPoint[]>(MOCK_PAYMENT_TREND);
 
   useEffect(() => {
     if (user?.role === "client") {
@@ -95,6 +102,12 @@ export function SportsDashboardPage() {
           paymentsDue: data.paymentsDue || 0,
           unreadMessages: data.unreadMessages || 0,
         });
+        if (data.attendanceTrend && Array.isArray(data.attendanceTrend) && data.attendanceTrend.length > 0) {
+          setAttendanceTrend(data.attendanceTrend);
+        }
+        if (data.paymentTrend && Array.isArray(data.paymentTrend) && data.paymentTrend.length > 0) {
+          setPaymentTrend(data.paymentTrend);
+        }
       } catch (_error) {
         // Silently fallback to defaults on sports dashboard
       }
@@ -189,7 +202,7 @@ export function SportsDashboardPage() {
           <p className="text-sm text-muted-foreground">
             Turnout across your groups, last 8 weeks.
           </p>
-          <AttendanceChart data={MOCK_ATTENDANCE_TREND} className="mt-5" />
+          <AttendanceChart data={attendanceTrend} className="mt-5" />
         </Card>
         <Card className="animate-fade-in-up p-6 [animation-delay:80ms]">
           <h2 className="text-lg font-extrabold tracking-tight">
@@ -198,7 +211,7 @@ export function SportsDashboardPage() {
           <p className="text-sm text-muted-foreground">
             Collected vs pending amounts, last 6 months.
           </p>
-          <PaymentTrendChart data={MOCK_PAYMENT_TREND} className="mt-5" />
+          <PaymentTrendChart data={paymentTrend} className="mt-5" />
         </Card>
       </div>
 

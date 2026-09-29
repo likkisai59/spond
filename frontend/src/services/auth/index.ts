@@ -62,6 +62,7 @@ export interface AuthService {
   resetPassword(payload: ResetPasswordPayload): Promise<{ message: string }>;
   refreshToken(payload: RefreshTokenPayload): Promise<AuthSession>;
   getCurrentUser(): Promise<User>;
+  changePassword(payload: { current_password: string; new_password: string }): Promise<{ message: string }>;
   getSessions(): Promise<DeviceSession[]>;
   revokeSession(sessionId: string): Promise<void>;
   getLoginActivity(): Promise<LoginActivityItem[]>;
@@ -156,6 +157,13 @@ export const authService: AuthService = {
   },
   getCurrentUser: async () => {
     const { data } = await apiClient.get<{ status: string; data: User }>("/api/v1/auth/me");
+    return data.data;
+  },
+  changePassword: async (payload: { current_password: string; new_password: string }) => {
+    const { data } = await apiClient.post<{ status: string; data: { message: string } }>(
+      "/api/v1/auth/change-password",
+      payload
+    );
     return data.data;
   },
   getSessions: async () => {

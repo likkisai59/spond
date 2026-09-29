@@ -1,10 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { BAND_CLIENT_NAV, BAND_ARTIST_NAV, BAND_VENUE_NAV, PRODUCT_CONFIGS, SPORTS_NAV, OWNER_NAV } from "@/constants";
+import { BAND_CLIENT_NAV, BAND_ARTIST_NAV, BAND_VENUE_NAV, PRODUCT_CONFIGS, SPORTS_NAV, OWNER_NAV, ROUTES } from "@/constants";
 import { useSidebar } from "@/hooks";
 import { usePathname } from "next/navigation";
-import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { selectUnreadMessagesCount } from "@/store/sports/selectors";
+import { fetchConversations } from "@/store/sports/messages-slice";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { Sidebar, SidebarNav } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
@@ -28,14 +30,30 @@ export function DashboardLayout({
   const { isCollapsed, toggle, isMobileOpen, openMobile, closeMobile } =
     useSidebar();
 
+  const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
+  const unreadMessagesCount = useAppSelector(selectUnreadMessagesCount);
   const pathname = usePathname();
 
   React.useEffect(() => {
     setMounted(true);
-  }, []);
+    if (product === "sports") {
+      dispatch(fetchConversations());
+    }
+  }, [dispatch, product]);
 
   const effectiveRole = user?.role || (pathname?.includes("/band/artist") || pathname?.includes("/band/bands") ? "artist" : pathname?.includes("/band/venue") ? "venue_owner" : "client");
+
+  const sportsNav = React.useMemo(() => {
+    return SPORTS_NAV.map((section) => ({
+      ...section,
+      items: section.items.map((item) =>
+        item.href === ROUTES.SPORTS_MESSAGES
+          ? { ...item, badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined }
+          : item
+      ),
+    }));
+  }, [unreadMessagesCount]);
 
   const sections =
     !mounted
@@ -43,7 +61,7 @@ export function DashboardLayout({
       : product === "sports"
       ? (user?.role === "venue_owner" || user?.role === "sports_venue_owner")
         ? OWNER_NAV
-        : SPORTS_NAV
+        : sportsNav
       : effectiveRole === "artist" || effectiveRole === "band"
         ? BAND_ARTIST_NAV
         : effectiveRole === "venue_owner"

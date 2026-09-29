@@ -37,7 +37,18 @@ export const createEventSchema = z
     groupId: z.string().min(1, "Select a group"),
     type: z.enum(EVENT_TYPES, { message: "Select an event type" }),
     name: requiredStringSchema("Event name", 2),
-    date: requiredStringSchema("Date"),
+    date: requiredStringSchema("Date")
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Please enter a valid date")
+      .refine((val) => {
+        const [year] = val.split("-").map(Number);
+        const currentYear = new Date().getFullYear();
+        return year >= currentYear && year <= currentYear + 10;
+      }, "Please enter a valid year.")
+      .refine((val) => {
+        const now = new Date();
+        const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        return val >= today;
+      }, "Date cannot be in the past."),
     startTime: requiredStringSchema("Start time"),
     endTime: requiredStringSchema("End time"),
     location: requiredStringSchema("Location", 2),
@@ -56,7 +67,7 @@ export const createEventSchema = z
       return true;
     },
     {
-      message: "Start time must be after the current time",
+      message: "Start time must be in the future.",
       path: ["startTime"],
     }
   )
@@ -82,7 +93,7 @@ export const createEventSchema = z
       return data.endTime > data.startTime;
     },
     {
-      message: "End time should be greater than the start time",
+      message: "End time must be after start time.",
       path: ["endTime"],
     }
   );
@@ -96,7 +107,18 @@ export const createPollSchema = z.object({
     .min(2, "Add at least two options")
     .max(6, "Maximum six options"),
   multipleChoice: z.boolean(),
-  expiresAt: requiredStringSchema("Expiry date"),
+  expiresAt: requiredStringSchema("Expiry date")
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Please enter a valid date")
+    .refine((val) => {
+      const [year] = val.split("-").map(Number);
+      const currentYear = new Date().getFullYear();
+      return year >= currentYear && year <= currentYear + 5;
+    }, "Please enter a valid year.")
+    .refine((val) => {
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      return val >= today;
+    }, "Expiry date cannot be in the past."),
 });
 export type CreatePollFormData = z.infer<typeof createPollSchema>;
 

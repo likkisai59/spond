@@ -86,6 +86,8 @@ async def lifespan(app: FastAPI):
             ConversationRepository, MessageRepository
         )
         from src.repositories.eventhub import EventHubEventRepository
+        from src.repositories.reviews import ReviewRepository
+        from src.repositories.favorites import FavoriteRepository
 
         for repo in (
             RoleRepository(), TokenRepository(), AuditRepository(),
@@ -96,7 +98,7 @@ async def lifespan(app: FastAPI):
             FileRepository(), FolderRepository(), NotificationRepository(), NotificationLogRepository(),
             MatchRepository(), MatchSummaryRepository(), PlayerStatsRepository(),
             DashboardAnalyticsRepository(),
-            ConversationRepository(), MessageRepository()
+            ConversationRepository(), MessageRepository(), ReviewRepository(), FavoriteRepository()
         ):
             await repo.ensure_indexes()
         await RoleService().seed_roles()

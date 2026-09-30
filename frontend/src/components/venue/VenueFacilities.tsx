@@ -299,6 +299,12 @@ export function VenueFacilities({ data, onSave }: VenueFacilitiesProps) {
       return;
     }
     const cleanName = customName.trim();
+
+    if (!/^[a-zA-Z\s]+$/.test(cleanName)) {
+      toast.error("Custom facility name must contain only letters and spaces.");
+      return;
+    }
+
     if (customFacList.some(c => c.name.toLowerCase() === cleanName.toLowerCase())) {
       toast.error("Custom facility already exists.");
       return;
@@ -540,8 +546,17 @@ export function VenueFacilities({ data, onSave }: VenueFacilitiesProps) {
                 placeholder="e.g. Swimming Pool" 
                 value={customName}
                 onChange={e => setCustomName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (
+                    !/^[a-zA-Z\s]$/.test(e.key) &&
+                    !["Backspace", "Tab", "ArrowLeft", "ArrowRight", "Delete"].includes(e.key)
+                  ) {
+                    e.preventDefault();
+                  }
+                }}
                 className="h-9.5 text-xs"
               />
+              <p className="text-[10px] text-muted-foreground">Letters and spaces only</p>
             </div>
             <div className="space-y-1.5 md:col-span-1">
               <Label htmlFor="custom_desc">Description / Capacity</Label>

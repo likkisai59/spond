@@ -37,6 +37,17 @@ export default function ClientProfilePage() {
       toast.error("Name cannot be empty.");
       return;
     }
+    if (/\d/.test(form.full_name)) {
+      toast.error("Name cannot contain numbers.");
+      return;
+    }
+    
+    // Extract raw digits for phone validation (ignoring country code spaces/plus)
+    const phoneDigits = form.phone.replace(/^\+\d+\s*/, "").replace(/\D/g, "");
+    if (form.phone && phoneDigits.length !== 10) {
+      toast.error("Phone number must be exactly 10 digits.");
+      return;
+    }
     setSaving(true);
     try {
       const { data } = await api.patch<Record<string, any>>("/auth/me", form);
@@ -111,7 +122,11 @@ export default function ClientProfilePage() {
                 <Input
                   id="full-name"
                   value={form.full_name}
-                  onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+                  onChange={(e) => {
+                    // Restrict numbers from being typed
+                    const value = e.target.value.replace(/[0-9]/g, "");
+                    setForm((f) => ({ ...f, full_name: value }));
+                  }}
                   placeholder="Enter your name"
                   className="text-sm bg-card/60"
                 />

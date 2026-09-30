@@ -27,15 +27,19 @@ import toast from "react-hot-toast";
 
 const resolveDocUrl = (url?: string) => {
   if (!url) return "#";
-  if (
-    url.startsWith("http://") ||
-    url.startsWith("https://") ||
-    url.startsWith("data:") ||
-    url.startsWith("blob:")
-  ) {
+  if (url.startsWith("blob:") || url.startsWith("data:")) {
     return url;
   }
-  return `${siteConfig.apiUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+  
+  const apiBase = siteConfig.apiUrl.replace(/\/$/, "");
+  
+  // If it's a raw S3 URL or external URL, proxy it to get a pre-signed URL redirect
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return `${apiBase}/files/redirect?url=${encodeURIComponent(url)}`;
+  }
+
+  // Internal relative path
+  return `${apiBase}/${url.replace(/^\//, "")}`;
 };
 
 interface VenueProfileEditProps {
@@ -227,9 +231,19 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
 
 
 
+  const onFormError = (formErrors: any) => {
+    console.error("[VenueProfileEdit] Form validation error:", formErrors);
+    const errorKeys = Object.keys(formErrors);
+    if (errorKeys.length > 0) {
+      const firstError = formErrors[errorKeys[0]];
+      const message = firstError?.message || `Please check the ${errorKeys[0]} field.`;
+      toast.error(message);
+    }
+  };
+
   return (
     <form 
-      onSubmit={handleSubmit(onSuccess)}
+      onSubmit={handleSubmit(onSuccess, onFormError)}
       className="space-y-8 bg-card/45 backdrop-blur-md border border-border p-6 md:p-8 rounded-3xl shadow-xl"
     >
       <div className="border-b border-border pb-4">
@@ -330,7 +344,19 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
 
           <div className="space-y-1.5">
             <Label htmlFor="business_name">Business/Firm Name</Label>
-            <Input id="business_name" {...register("business_name")} />
+            <Input
+              id="business_name"
+              {...register("business_name")}
+              onKeyDown={(e) => {
+                if (
+                  !/^[a-zA-Z\s]$/.test(e.key) &&
+                  !["Backspace", "Tab", "ArrowLeft", "ArrowRight", "Delete"].includes(e.key)
+                ) {
+                  e.preventDefault();
+                }
+              }}
+            />
+            <p className="text-[10px] text-muted-foreground">Letters and spaces only — no numbers</p>
             {errors.business_name && <p className="text-xs text-error">{errors.business_name.message}</p>}
           </div>
 

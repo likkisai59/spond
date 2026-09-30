@@ -8,7 +8,7 @@ export const bandService = {
     const { data } = await api.get<any>("/band/artists");
     // Backend wraps in { status, data: [...] }
     const items = Array.isArray(data) ? data : (data?.data ?? []);
-    return items.filter((a: any) => isEntertainmentArtist(a as Record<string, unknown>));
+    return items;
   },
   getArtist: async (id: string): Promise<Artist> => {
     const { data } = await api.get<any>(`/band/artists/${id}`);
@@ -19,7 +19,7 @@ export const bandService = {
   getBands: async (): Promise<any[]> => {
     const { data } = await api.get<any>("/band/bands");
     const items = Array.isArray(data) ? data : (data?.data ?? []);
-    return items.filter((b: any) => isEntertainmentArtist(b as Record<string, unknown>));
+    return items;
   },
   getBand: async (id: string): Promise<Band> => {
     const { data } = await api.get<any>(`/band/bands/${id}`);
@@ -30,7 +30,7 @@ export const bandService = {
   getVenues: async (): Promise<any[]> => {
     const { data } = await api.get<any>("/band/venues");
     const items = Array.isArray(data) ? data : (data?.data ?? []);
-    return items.filter((v: any) => isEntertainmentVenue(v as Record<string, unknown>));
+    return items;
   },
   getVenue: async (id: string): Promise<Venue> => {
     const { data } = await api.get<any>(`/band/venues/${id}`);

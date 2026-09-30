@@ -11,6 +11,7 @@ import { ReviewFormData } from "@/utils/validation";
 import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function ReviewsPage() {
   const [reviews, setReviews] = React.useState<Review[]>([]);
@@ -20,6 +21,9 @@ export default function ReviewsPage() {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [editingReview, setEditingReview] = React.useState<Review | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  
+  const { user } = useAuth();
+  const currentUserId = user?.id || "";
 
   const fetchReviews = async () => {
     setLoading(true);
@@ -109,7 +113,7 @@ export default function ReviewsPage() {
           onRefresh={fetchReviews}
           onEdit={handleEdit}
           onDelete={handleDelete}
-          currentUserId="client-current" // Must match the mock user ID we inserted
+          currentUserId={currentUserId}
           emptyTitle="No reviews yet"
           emptyMessage="You haven't written any reviews yet. Complete bookings to leave feedback!"
         />

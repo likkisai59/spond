@@ -5,6 +5,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bell, RefreshCw, Save } from "lucide-react";
 import toast from "react-hot-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { api } from "@/services/api";
 
 export function NotificationPreferencesCard() {
   const [loading, setLoading] = React.useState(false);
@@ -16,6 +18,13 @@ export function NotificationPreferencesCard() {
     system_enabled: true,
     realtime_enabled: true,
   });
+  const { user } = useAuth();
+
+  React.useEffect(() => {
+    if (user?.notification_preferences) {
+      setLocalPrefs((prev) => ({ ...prev, ...user.notification_preferences }));
+    }
+  }, [user]);
 
   const handleToggle = (key: keyof typeof localPrefs) => {
     setLocalPrefs((prev) => ({
@@ -39,7 +48,9 @@ export function NotificationPreferencesCard() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await api.patch("/auth/me", {
+        notification_preferences: localPrefs,
+      });
       toast.success("Notification preferences updated successfully");
     } catch {
       toast.error("Failed to save notification preferences");

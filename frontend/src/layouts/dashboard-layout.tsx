@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectUnreadMessagesCount } from "@/store/sports/selectors";
 import { fetchConversations } from "@/store/sports/messages-slice";
+import { fetchNotifications, notificationAdded } from "@/store/slices/notification-slice";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { Sidebar, SidebarNav } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
@@ -14,6 +15,7 @@ import { LogoMark } from "@/components/shared/brand";
 import { pathToBreadcrumbs } from "@/utils/helpers";
 import type { ProductKey } from "@/types";
 import { cn } from "@/utils/cn";
+import { notificationWs } from "@/features/notifications/websocket";
 
 export interface DashboardLayoutProps {
   product: ProductKey;
@@ -32,15 +34,40 @@ export function DashboardLayout({
 
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.auth.user);
+  const accessToken = useAppSelector((state) => state.auth.accessToken);
   const unreadMessagesCount = useAppSelector(selectUnreadMessagesCount);
   const pathname = usePathname();
 
   React.useEffect(() => {
     setMounted(true);
+    dispatch(fetchNotifications());
     if (product === "sports") {
       dispatch(fetchConversations());
     }
   }, [dispatch, product]);
+  
+  React.useEffect(() => {
+    if (accessToken) {
+      notificationWs.connect(accessToken);
+    }
+    
+    const unsubscribe = notificationWs.onNotification((notification) => {
+      // Notification is already an object from backend, dispatch to add it to state
+      dispatch(notificationAdded({
+        title: notification.title,
+        message: notification.message,
+        variant: "info"
+      }));
+      // Optional: Show a toast here if you have a toast system
+    });
+    
+    return () => {
+      unsubscribe();
+      if (accessToken) {
+        notificationWs.disconnect();
+      }
+    };
+  }, [accessToken, dispatch]);
 
   const effectiveRole = user?.role || (pathname?.includes("/band/artist") || pathname?.includes("/band/bands") ? "artist" : pathname?.includes("/band/venue") ? "venue_owner" : "client");
 

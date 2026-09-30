@@ -9,22 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import toast from "react-hot-toast";
 
-export interface FavoriteItem {
-  id: string;
-  name: string;
-  type: "artist" | "venue";
-  category: string;
-  location: string;
-  rating: number;
-  reviewCount: number;
-  priceStartingAt: number;
-  image: string;
-  savedAt: string;
-}
-
-const DEFAULT_FAVORITES: FavoriteItem[] = [];
-
-const STORAGE_KEY = "eventhub_client_favorites";
+import { favoritesService, FavoriteItem } from "@/services/favoritesService";
 
 export default function ClientFavoritesPage() {
   const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
@@ -32,30 +17,27 @@ export default function ClientFavoritesPage() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setFavorites(JSON.parse(stored));
-      } else {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_FAVORITES));
-        setFavorites(DEFAULT_FAVORITES);
+    const fetchFavorites = async () => {
+      try {
+        const data = await favoritesService.getFavorites();
+        setFavorites(data);
+      } catch (err) {
+        toast.error("Failed to load favorites");
+      } finally {
+        setIsLoaded(true);
       }
-    } catch {
-      setFavorites(DEFAULT_FAVORITES);
-    } finally {
-      setIsLoaded(true);
-    }
+    };
+    fetchFavorites();
   }, []);
 
-  const removeFavorite = (id: string, name: string) => {
-    const updated = favorites.filter((item) => item.id !== id);
-    setFavorites(updated);
+  const removeFavorite = async (id: string, name: string) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    } catch {
-      // storage unavailable
+      await favoritesService.removeFavorite(id);
+      setFavorites((prev) => prev.filter((item) => item.id !== id));
+      toast.success(`Removed "${name}" from your favorites`);
+    } catch (err) {
+      toast.error(`Failed to remove "${name}"`);
     }
-    toast.success(`Removed "${name}" from your favorites`);
   };
 
   const filteredFavorites = favorites.filter((item) => {

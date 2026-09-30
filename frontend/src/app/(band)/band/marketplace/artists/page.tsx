@@ -24,12 +24,11 @@ import {
 } from "lucide-react";
 
 import { isEntertainmentArtist } from "@/utils/sportsFilter";
+import { INDIA_STATES_DATA } from "@/utils/indiaStates";
 
 // ─── Filter Constants ─────────────────────────────────────────────────────────
 
-const CITIES = [
-  "Chennai", "Bengaluru", "Hyderabad", "Mumbai", "Delhi", "Pune", "Kolkata", "Ahmedabad",
-];
+const CITIES = Array.from(new Set(INDIA_STATES_DATA.states.flatMap(s => s.districts))).sort();
 const BAND_TYPES = ["Solo", "Duo", "3-4 Members", "5+ Members"];
 const GENRES = [
   "Bollywood", "Carnatic", "Hindustani", "Jazz", "Rock", "Pop",
@@ -151,10 +150,18 @@ export default function PublicArtistsListPage() {
 
         {showFilters && (
           <div className="mt-4 pt-4 border-t border-border/40 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            <select className="text-xs border border-border/60 rounded-lg px-3 py-2 bg-card text-foreground" value={city} onChange={(e) => setCity(e.target.value)}>
-              <option value="">All Cities</option>
-              {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <div className="relative">
+              <input 
+                list="cities-list" 
+                placeholder="Search City..." 
+                className="w-full text-xs border border-border/60 rounded-lg px-3 py-2 h-9 bg-card text-foreground focus:outline-none focus:border-primary/50" 
+                value={city} 
+                onChange={(e) => setCity(e.target.value)} 
+              />
+              <datalist id="cities-list">
+                {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </datalist>
+            </div>
             <select className="text-xs border border-border/60 rounded-lg px-3 py-2 bg-card text-foreground" value={bandType} onChange={(e) => setBandType(e.target.value)}>
               <option value="">All Types</option>
               {BAND_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}

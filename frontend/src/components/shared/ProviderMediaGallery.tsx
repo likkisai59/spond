@@ -309,7 +309,7 @@ export function ProviderMediaGallery<
           {gallery.map((item, idx) => (
             <div
               key={idx}
-              className="border border-border rounded-2xl overflow-hidden bg-card/85 flex flex-col group relative"
+              className="border border-border rounded-2xl overflow-hidden bg-card/85 flex flex-col group relative min-w-0"
             >
               <div className="aspect-video w-full relative bg-accent/40 flex items-center justify-center border-b border-border">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -421,10 +421,10 @@ export function ProviderMediaGallery<
           {videos.map((v, idx) => (
             <div
               key={idx}
-              className="border border-border rounded-2xl overflow-hidden bg-card/85 flex flex-col group relative"
+              className="border border-border rounded-2xl overflow-hidden bg-card/85 flex flex-col group relative min-w-0"
             >
               <div className="aspect-video w-full relative bg-accent/40 border-b border-border flex items-center justify-center">
-                <video src={v.url} controls className="w-full h-full object-cover" />
+                <video src={v.url} controls className="absolute inset-0 w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={() => removeVideoFile(idx)}

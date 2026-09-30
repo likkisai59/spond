@@ -187,7 +187,7 @@ export function StatisticsPage() {
             description="Try a different name or group."
           />
         ) : (
-          <PlayerStatsTable players={players} />
+          <PlayerStatsTable players={players as any} />
         )}
       </div>
     </PageContainer>

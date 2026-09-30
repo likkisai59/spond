@@ -1,58 +1,25 @@
+import { api } from "@/services/api";
 import { Review, CreateReviewPayload, UpdateReviewPayload } from "@/types/review";
-
-// Mock initial data
-let mockReviews: Review[] = [];
 
 export const reviewService = {
   getReviews: async (params?: any): Promise<{ data: Review[] }> => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return { data: [...mockReviews] };
+    const res = await api.get("/reviews", { params });
+    return res.data;
   },
 
   createReview: async (payload: CreateReviewPayload): Promise<{ data: Review }> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const newReview: Review = {
-      id: `rev-${Date.now()}`,
-      rating: payload.rating,
-      review_title: payload.review_title,
-      review_text: payload.review_text,
-      comment: payload.review_text,
-      is_public: payload.is_public ?? true,
-      images: payload.images || [],
-      videos: payload.videos || [],
-      booking_id: payload.booking_id,
-      client_id: "client-current",
-      reviewer_id: "client-current",
-      reviewer_role: "client",
-      reviewer: { id: "client-current", name: "You" },
-      client: { id: "client-current", name: "You" },
-      created_at: new Date().toISOString(),
-    };
-    mockReviews = [newReview, ...mockReviews];
-    return { data: newReview };
+    const res = await api.post("/reviews", payload);
+    return res.data;
   },
 
   updateReview: async (id: string, payload: UpdateReviewPayload): Promise<{ data: Review }> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const index = mockReviews.findIndex(r => r.id === id);
-    if (index === -1) throw new Error("Review not found");
-    
-    const updatedReview = { 
-      ...mockReviews[index], 
-      ...payload,
-      review_text: payload.review_text || payload.comment || mockReviews[index].review_text,
-      comment: payload.review_text || payload.comment || mockReviews[index].comment,
-      updated_at: new Date().toISOString() 
-    };
-    mockReviews[index] = updatedReview;
-    return { data: updatedReview };
+    const res = await api.put(`/reviews/${id}`, payload);
+    return res.data;
   },
 
   deleteReview: async (id: string): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    mockReviews = mockReviews.filter(r => r.id !== id);
+    await api.delete(`/reviews/${id}`);
   },
 
-  getPublicVenueReviews: async () => ({ data: [] })
+  getPublicVenueReviews: async () => ({ data: [] }) // To be implemented if needed
 };

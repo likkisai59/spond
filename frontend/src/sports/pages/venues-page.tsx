@@ -12,8 +12,10 @@ import { VenueCard } from "../components/venue-card";
 import { venuesService } from "@/services/sports";
 import { ROUTES } from "@/constants";
 import { cn } from "@/utils/cn";
+import { INDIA_STATES_DATA } from "@/utils/indiaStates";
 
 const SURFACE_FILTERS = ["All", "Turf", "Grass", "Indoor"] as const;
+const CITIES = Array.from(new Set(INDIA_STATES_DATA.states.flatMap(s => s.districts))).sort();
 
 export function VenuesPage() {
   const [venues, setVenues] = useState<any[]>([]);
@@ -62,12 +64,16 @@ export function VenuesPage() {
         <div className="relative w-full lg:max-w-xs">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            list="sports-cities-list"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search venues, cities, sports…"
             className="pl-9"
             aria-label="Search venues"
           />
+          <datalist id="sports-cities-list">
+             {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </datalist>
         </div>
         <div
           className="flex gap-2 overflow-x-auto pb-1 lg:pb-0"

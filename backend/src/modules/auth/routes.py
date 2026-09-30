@@ -116,6 +116,7 @@ async def update_me(
         user_id=user["id"],
         full_name=payload.get("full_name"),
         phone=payload.get("phone"),
+        notification_preferences=payload.get("notification_preferences"),
     )
     return _ok(updated)
 

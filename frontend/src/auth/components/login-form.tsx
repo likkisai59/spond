@@ -64,7 +64,6 @@ export function LoginForm() {
       const redirectUrl = callbackUrl || getDefaultRouteForRole(session.user.role);
       
       router.push(redirectUrl);
-      window.location.href = redirectUrl;
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Invalid email or password";
       setErrorMessage(msg);

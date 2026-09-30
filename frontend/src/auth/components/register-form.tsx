@@ -185,12 +185,13 @@ export function RegisterForm() {
         })
       );
     } catch (error: unknown) {
-      const msg = (error as any)?.message || (error instanceof Error ? error.message : "");
+      const errorObj = error as { message?: string; status?: number };
+      const msg = errorObj?.message || (error instanceof Error ? error.message : "");
       const isDuplicate =
         msg.toLowerCase().includes("already exists") ||
         msg.toLowerCase().includes("conflict") ||
         msg.toLowerCase().includes("account with this email") ||
-        (error as any)?.status === 409;
+        errorObj?.status === 409;
 
       if (isDuplicate) {
         form.setError("email", {
@@ -286,8 +287,8 @@ export function RegisterForm() {
     }
   };
 
-  const onInvalid = (errors: Record<string, any>) => {
-    const firstError = Object.values(errors)[0];
+  const onInvalid = (errors: Record<string, unknown>) => {
+    const firstError = Object.values(errors)[0] as { message?: string };
     if (firstError?.message) {
       toast.error(firstError.message);
     }
@@ -336,10 +337,9 @@ export function RegisterForm() {
           options={[
             { label: "Club Owner", value: "member" },
             { label: "Sports Venue Owner (Courts & Grounds)", value: "sports_venue_owner" },
-            { label: "Band Venue Owner (Halls & Auditoriums)", value: "venue_owner" },
-            { label: "Solo Artist", value: "artist" },
-            { label: "Band", value: "band" },
-            { label: "Client (Hire Artists & Venues)", value: "client" },
+            { label: "Venue Owner (Band)", value: "venue_owner" },
+            { label: "Artist", value: "artist" },
+            { label: "Customer (Book Artists & Venues)", value: "client" },
           ]}
         />
         <FormCheckbox control={control} name="terms" label={<TermsLabel />} />

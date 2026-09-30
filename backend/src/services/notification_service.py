@@ -4,13 +4,35 @@ from src.repositories.system import NotificationRepository, NotificationLogRepos
 from src.exceptions.handlers import NotFoundError
 
 from src.database.base_repository import to_object_id
+from src.repositories import UserRepository
 
 class NotificationService:
     def __init__(self):
         self.notifications = NotificationRepository()
         self.logs = NotificationLogRepository()
+        self.users = UserRepository()
 
     async def create_notification(self, user_id: str, title: str, message: str, notification_type: str, module: str) -> dict:
+        user = await self.users.find_by_id(user_id)
+        if user:
+            prefs = user.get("notification_preferences", {})
+            pref_key_map = {
+                "BOOKING_REQUEST": "booking_enabled",
+                "BOOKING_STATUS": "booking_enabled",
+                "BOOKING_UPDATE": "booking_enabled",
+                "PAYMENT": "payment_enabled",
+                "PAYMENT_CONFIRMATION": "payment_enabled",
+                "NEW_REVIEW": "review_enabled",
+                "REVIEW_REPLY": "review_enabled",
+                "CHAT_CREATED": "message_enabled",
+                "NEW_MESSAGE": "message_enabled",
+                "SYSTEM": "system_enabled",
+            }
+            toggle_key = pref_key_map.get(notification_type)
+            if toggle_key and prefs.get(toggle_key) is False:
+                # User disabled this category
+                return {"id": "skipped", "status": "skipped", "reason": "preference_disabled"}
+
         doc = {
             "user_id": user_id,
             "title": title,
@@ -23,7 +45,20 @@ class NotificationService:
         notif_doc = await self.notifications.insert(doc)
         notif_id = notif_doc["id"]
         
-        # In a real app we might trigger push notifications or websockets here
+        # Broadcast real-time notification
+        from src.services.websocket_manager import manager
+        # MongoDB datetime is not JSON serializable by default, so convert created_at
+        ws_notif = notif_doc.copy()
+        if "created_at" in ws_notif and hasattr(ws_notif["created_at"], "isoformat"):
+            ws_notif["created_at"] = ws_notif["created_at"].isoformat()
+        if "_id" in ws_notif:
+            del ws_notif["_id"]
+            
+        await manager.send_personal_message(
+            {"type": "notification", "data": ws_notif},
+            user_id
+        )
+
         await self.logs.insert({
             "notification_id": notif_id,
             "status": "DELIVERED",

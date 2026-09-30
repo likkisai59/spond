@@ -138,6 +138,28 @@ class FileService:
         except Exception:
             return str(f["file_url"])
 
+    async def generate_presigned_url_from_url(self, file_url: str) -> str:
+        if not self.bucket or "amazonaws.com" not in file_url:
+            return file_url
+            
+        try:
+            # Extract key from url
+            from urllib.parse import urlparse
+            import urllib.parse
+            parsed = urlparse(file_url)
+            # path is like /band/general/doc.pdf
+            key = urllib.parse.unquote(parsed.path.lstrip('/'))
+            
+            async with self.session.client("s3") as s3:  # pyright: ignore
+                url = await s3.generate_presigned_url(
+                    'get_object',
+                    Params={'Bucket': self.bucket, 'Key': key},
+                    ExpiresIn=3600
+                )
+                return str(url)
+        except Exception:
+            return file_url
+
     async def create_folder(self, folder_name: str, module: str, parent_folder_id: str | None = None) -> dict[str, Any]:
         doc = {
             "folder_name": folder_name,

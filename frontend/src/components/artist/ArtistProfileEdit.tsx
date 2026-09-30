@@ -214,8 +214,14 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
             <Label>Avatar Photo</Label>
             <ImageUpload 
               value={watchedProfileImg} 
-              onChange={(url) => setValue("profile_image", url)}
-              onRemove={() => setValue("profile_image", "")}
+              onChange={(url) => {
+                setValue("profile_image", url, { shouldValidate: true, shouldDirty: true });
+                handleSubmit(onFormSubmit)();
+              }}
+              onRemove={() => {
+                setValue("profile_image", "", { shouldValidate: true, shouldDirty: true });
+                handleSubmit(onFormSubmit)();
+              }}
               subfolder="artists/avatars"
             />
             {errors.profile_image && <p className="text-xs text-error">{errors.profile_image.message}</p>}
@@ -225,8 +231,14 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
             <Label>Cover Banner</Label>
             <ImageUpload 
               value={watchedCoverImg} 
-              onChange={(url) => setValue("cover_image", url)}
-              onRemove={() => setValue("cover_image", "")}
+              onChange={(url) => {
+                setValue("cover_image", url, { shouldValidate: true, shouldDirty: true });
+                handleSubmit(onFormSubmit)();
+              }}
+              onRemove={() => {
+                setValue("cover_image", "", { shouldValidate: true, shouldDirty: true });
+                handleSubmit(onFormSubmit)();
+              }}
               subfolder="artists/covers"
             />
             {errors.cover_image && <p className="text-xs text-error">{errors.cover_image.message}</p>}

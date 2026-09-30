@@ -149,42 +149,39 @@ export function BookingRequestForm({
       };
 
       let createdId = "";
-      try {
-        const providerId = targetArtistId || targetVenueId || "";
-        const providerType = targetArtistId ? "artist" : "venue";
-        if (providerId) {
-          const bandRes = await bandService.createBooking({
-            provider_id: providerId,
-            provider_type: providerType,
-            package_id: "pkg-custom",
-            event_date: data.event_date,
-            event_time: data.start_time,
-            message: data.notes || data.special_requests || data.event_title,
-            proposed_price: Number(data.proposed_price),
-          });
-          createdId = bandRes.id;
-        } else {
-          const res = isArtistBookingVenue
-            ? await bookingService.createArtistVenueBooking(apiPayload)
-            : isVenueBookingTalent
-              ? await bookingService.createVenueTalentBooking(apiPayload)
-              : await bookingService.createBooking(apiPayload);
-          createdId = res.id;
-        }
-      } catch {
-        const res = isArtistBookingVenue
-          ? await bookingService.createArtistVenueBooking(apiPayload)
-          : isVenueBookingTalent
-            ? await bookingService.createVenueTalentBooking(apiPayload)
-            : await bookingService.createBooking(apiPayload);
+      const providerId = targetArtistId || targetVenueId || "";
+      const providerType = targetArtistId ? "artist" : "venue";
+      
+      // Use the strict BookingRequest schema matching the backend
+      const strictPayload = {
+        provider_id: providerId,
+        provider_type: providerType,
+        package_id: "pkg-custom",
+        event_date: data.event_date,
+        event_time: data.start_time,
+        message: data.notes || data.special_requests || data.event_title,
+        proposed_price: Number(data.proposed_price),
+      };
+
+      if (isArtistBookingVenue && providerId) {
+        const res = await bookingService.createArtistVenueBooking(strictPayload as Record<string, unknown>);
         createdId = res.id;
+      } else if (isVenueBookingTalent && providerId) {
+        const res = await bookingService.createVenueTalentBooking(strictPayload as Record<string, unknown>);
+        createdId = res.id;
+      } else if (providerId) {
+        const bandRes = await bandService.createBooking(strictPayload as any);
+        createdId = bandRes.id;
+      } else {
+        // If no provider selected, this is a generic request (fallback)
+        throw new Error("A performer or venue must be selected.");
       }
 
       toast.success("Booking request submitted successfully!");
       if (onSuccess) onSuccess(createdId);
     } catch (err) {
-      const error = err as { response?: { data?: { error?: { message?: string } } } };
-      const msg = error.response?.data?.error?.message || "Failed to submit booking request.";
+      const error = err as { response?: { data?: { error?: { message?: string } } }, message?: string };
+      const msg = error.response?.data?.error?.message || error.message || "Failed to submit booking request.";
       toast.error(msg);
     }
   };
@@ -240,8 +237,8 @@ export function BookingRequestForm({
             </h3>
 
             <div className={`grid grid-cols-1 ${!isArtistBookingVenue ? "sm:grid-cols-2" : ""} gap-4`}>
-              {/* Artist / Performer Select — hidden when artist is booking a venue (Bug 12 fix) */}
-              {!isArtistBookingVenue && (
+              {/* Artist / Performer Select — hidden when artist is booking a venue (Bug 12 fix) or artist is pre-selected (Bug 13) */}
+              {!isArtistBookingVenue && !artistProfileId && (
                 <div className="space-y-1.5">
                   <Label htmlFor="artist_profile_id" className="text-xs font-semibold text-foreground">
                     Performer / Band {artistName ? `(Selected: ${artistName})` : ""}

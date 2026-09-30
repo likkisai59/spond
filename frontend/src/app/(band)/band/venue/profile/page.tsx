@@ -45,7 +45,7 @@ export default function VenueProfilePage() {
 
   const handleTabChange = (val: string) => {
     setActiveTab(val);
-    router.push(`/band/venue/profile?tab=${val}`, { scroll: false });
+    window.history.replaceState(null, '', `?tab=${val}`);
   };
 
   const fetchProfile = React.useCallback(async () => {
@@ -269,23 +269,23 @@ export default function VenueProfilePage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="edit">
+        <TabsContent value="edit" forceMount={true} hidden={activeTab !== "edit"}>
           <VenueProfileEdit profile={profile} onSuccess={handleUpdateSuccess} />
         </TabsContent>
 
-        <TabsContent value="facilities">
+        <TabsContent value="facilities" forceMount={true} hidden={activeTab !== "facilities"}>
           <VenueFacilities data={componentFacilitiesData} onSave={handleFacilitiesSave} />
         </TabsContent>
 
-        <TabsContent value="pricing">
+        <TabsContent value="pricing" forceMount={true} hidden={activeTab !== "pricing"}>
           <VenuePricing data={componentPricingData} onSave={handlePricingSave} />
         </TabsContent>
 
-        <TabsContent value="media">
+        <TabsContent value="media" forceMount={true} hidden={activeTab !== "media"}>
           <VenueMediaGallery media={componentMediaData} onSave={handleMediaSave} />
         </TabsContent>
 
-        <TabsContent value="preview">
+        <TabsContent value="preview" forceMount={true} hidden={activeTab !== "preview"}>
           <VenueProfilePreview profile={profile} />
         </TabsContent>
       </Tabs>

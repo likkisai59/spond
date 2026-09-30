@@ -5,6 +5,7 @@ export interface User {
   roles?: { id: string; name: string; description?: string }[];
   name: string;
   full_name?: string;
+  notification_preferences?: Record<string, boolean>;
 }
 
 export interface UserProfile {
@@ -16,6 +17,7 @@ export interface UserProfile {
   is_active: boolean;
   is_verified: boolean;
   created_at: string;
+  notification_preferences?: Record<string, boolean>;
 }
 
 export interface TokenPayload {

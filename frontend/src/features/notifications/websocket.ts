@@ -42,7 +42,7 @@ class NotificationWebSocket {
     const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     // Replace http/https with ws/wss protocol
     const wsBase = apiBase.replace(/^http/, "ws");
-    return `${wsBase}/api/v1/ws/notifications?token=${encodeURIComponent(token)}`;
+    return `${wsBase}/api/v1/notifications/ws?token=${encodeURIComponent(token)}`;
   }
 
   public connect(token: string): void {

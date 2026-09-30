@@ -163,7 +163,10 @@ export type ArtistProfileUpdateFormData = z.infer<typeof artistProfileUpdateSche
 export const venueProfileUpdateSchema = z
   .object({
     owner_name: personNameSchema,
-    business_name: z.string().min(2, "Business Name must be at least 2 characters"),
+    business_name: z
+      .string()
+      .min(2, "Business Name must be at least 2 characters")
+      .regex(/^[a-zA-Z\s]+$/, "Business Name must contain only alphabetic characters and spaces"),
     contact_person: z
       .string()
       .trim()

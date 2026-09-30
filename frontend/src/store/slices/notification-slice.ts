@@ -1,10 +1,11 @@
 import {
   createSlice,
+  createAsyncThunk,
   nanoid,
   type PayloadAction,
 } from "@reduxjs/toolkit";
 import type { AppNotification, NotificationVariant } from "@/types";
-// Removed MOCK_NOTIFICATIONS import
+import { notificationsService } from "@/services/system/notifications.service";
 
 export interface NotificationInput {
   title: string;
@@ -21,6 +22,30 @@ const MAX_NOTIFICATIONS = 50;
 const initialState: NotificationState = {
   notifications: [],
 };
+
+export const fetchNotifications = createAsyncThunk(
+  "notifications/fetchAll",
+  async () => {
+    const res = await notificationsService.list();
+    return res.items.map((n: any) => ({
+      id: n.id || n._id,
+      title: n.title,
+      message: n.message,
+      variant: n.variant || "info",
+      read: n.is_read,
+      createdAt: n.created_at,
+      module: n.module,
+    })) as AppNotification[];
+  }
+);
+
+export const markNotificationsAsRead = createAsyncThunk(
+  "notifications/markAllRead",
+  async (_, { dispatch }) => {
+    await notificationsService.markAllRead();
+    dispatch(notificationsMarkedAllAsRead());
+  }
+);
 
 const notificationSlice = createSlice({
   name: "notifications",
@@ -71,6 +96,11 @@ const notificationSlice = createSlice({
     notificationsSet(state, action: PayloadAction<AppNotification[]>) {
       state.notifications = action.payload;
     },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(fetchNotifications.fulfilled, (state, action) => {
+      state.notifications = action.payload;
+    });
   },
 });
 

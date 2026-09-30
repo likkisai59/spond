@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Form, BackgroundTasks
+from fastapi.responses import RedirectResponse
 from typing import Optional
 from src.dependencies.auth import get_current_user
 from src.services.file_service import FileService
@@ -48,6 +49,11 @@ async def delete_file(id: str, user: dict = Depends(get_current_user)) -> dict:
 async def download_file(id: str, _: dict = Depends(get_current_user)) -> dict:
     url = await service.download_file_url(id)
     return {"status": "success", "data": {"download_url": url}}
+
+@router.get("/redirect")
+async def redirect_file(url: str):
+    presigned_url = await service.generate_presigned_url_from_url(url)
+    return RedirectResponse(url=presigned_url)
 
 @router.post("/folder")
 async def create_folder(data: FolderCreateRequest, _: dict = Depends(get_current_user)) -> dict:

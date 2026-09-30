@@ -35,6 +35,7 @@ export interface User extends BaseEntity {
   role: Role;
   status: UserStatus;
   emailVerified: boolean;
+  notification_preferences?: Record<string, boolean>;
 }
 
 export interface AuthSession {

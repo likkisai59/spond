@@ -281,7 +281,7 @@ class AuthService:
         await self.tokens.revoke_all_for_user(user["id"])
         await self.audit.log(user_id=user["id"], action="reset_password", module="auth")
 
-    async def update_profile(self, *, user_id: str, full_name: str | None = None, phone: str | None = None) -> dict:
+    async def update_profile(self, *, user_id: str, full_name: str | None = None, phone: str | None = None, notification_preferences: dict | None = None) -> dict:
         """Update the authenticated user's own profile fields."""
         from datetime import datetime, timezone
         user = await self.users.find_by_id(user_id)
@@ -292,6 +292,8 @@ class AuthService:
             updates["full_name"] = full_name.strip()
         if phone is not None:
             updates["phone"] = phone.strip()
+        if notification_preferences is not None:
+            updates["notification_preferences"] = notification_preferences
         await self.users.update_by_id(user_id, updates)
         updated_user = await self.users.find_by_id(user_id)
         if updated_user is None:

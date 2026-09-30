@@ -38,3 +38,37 @@ async def delete_notification(id: str, user: dict = Depends(get_current_user)) -
 async def clear_all_notifications(user: dict = Depends(get_current_user)) -> dict:
     await service.clear_all(user["id"])
     return {"status": "success"}
+
+from fastapi import WebSocket, WebSocketDisconnect
+from src.services.websocket_manager import manager
+from src.core import security
+
+@router.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket, token: str):
+    try:
+        # Decode and verify the token
+        payload = security.decode_token(token, security.TOKEN_TYPE_ACCESS)
+        user_id = payload["sub"]
+    except Exception as e:
+        await websocket.close(code=1008)
+        return
+
+    # Accept connection and register user
+    await manager.connect(websocket, user_id)
+    
+    # Send an initial connection success message
+    await websocket.send_json({"type": "connected", "user_id": user_id})
+    
+    try:
+        while True:
+            # Wait for any message from the client (e.g., ping/pong heartbeats)
+            data = await websocket.receive_text()
+            try:
+                import json
+                message = json.loads(data)
+                if message.get("type") == "pong":
+                    pass # Keep-alive received
+            except json.JSONDecodeError:
+                pass
+    except WebSocketDisconnect:
+        manager.disconnect(websocket, user_id)

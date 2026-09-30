@@ -20,7 +20,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { useAuth, useSidebar } from "@/hooks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { notificationsCleared, notificationsMarkedAllAsRead } from "@/store/slices/notification-slice";
+import { notificationsCleared, markNotificationsAsRead } from "@/store/slices/notification-slice";
 import {
   selectNotifications,
   selectUnreadNotificationsCount,
@@ -42,7 +42,7 @@ function NotificationsMenu() {
   const unreadCount = useAppSelector(selectUnreadNotificationsCount);
 
   return (
-    <DropdownMenu onOpenChange={(open) => { if (open) dispatch(notificationsMarkedAllAsRead()); }}>
+    <DropdownMenu onOpenChange={(open) => { if (open && unreadCount > 0) dispatch(markNotificationsAsRead()); }}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -111,6 +111,16 @@ function NotificationsMenu() {
             </DropdownMenuItem>
           ))
         )}
+        <DropdownMenuSeparator />
+        <div className="flex p-2 gap-2 justify-center">
+          <Button variant="link" size="sm" asChild className="h-auto p-0">
+            <Link href="/band/artist/bookings">Bookings</Link>
+          </Button>
+          <span className="text-muted-foreground">|</span>
+          <Button variant="link" size="sm" asChild className="h-auto p-0">
+            <Link href="/band/artist/messages">Messages</Link>
+          </Button>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

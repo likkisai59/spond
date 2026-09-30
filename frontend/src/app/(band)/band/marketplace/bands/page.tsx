@@ -25,11 +25,11 @@ import {
   CheckCircle,
 } from "lucide-react";
 
+import { INDIA_STATES_DATA } from "@/utils/indiaStates";
+
 // ─── Filter Constants ─────────────────────────────────────────────────────────
 
-const CITIES = [
-  "Chennai", "Bengaluru", "Hyderabad", "Mumbai", "Delhi", "Pune", "Kolkata", "Ahmedabad",
-];
+const CITIES = Array.from(new Set(INDIA_STATES_DATA.states.flatMap(s => s.districts))).sort();
 const BAND_TYPES = ["Solo", "Duo", "3-4 Members", "5+ Members"];
 const GENRES = [
   "Bollywood", "Carnatic", "Hindustani", "Jazz", "Rock", "Pop",
@@ -164,15 +164,17 @@ export default function PublicArtistsListPage() {
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
                 City
               </label>
-              <select
+              <input
                 id="artist-city-filter"
+                list="artist-cities-list"
+                placeholder="Search City..."
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 className="w-full h-10 rounded-lg border border-border/80 bg-card text-foreground text-xs px-3 focus:outline-none focus:ring-1 focus:ring-primary"
-              >
-                <option value="">All Cities</option>
+              />
+              <datalist id="artist-cities-list">
                 {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+              </datalist>
             </div>
 
             {/* Band Size */}

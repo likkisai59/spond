@@ -36,9 +36,9 @@ const VENUE_TYPES = [
   "Auditorium",
 ];
 
-const CITIES = [
-  "Chennai", "Bengaluru", "Hyderabad", "Mumbai", "Delhi", "Pune", "Kolkata", "Ahmedabad",
-];
+import { INDIA_STATES_DATA } from "@/utils/indiaStates";
+
+const CITIES = Array.from(new Set(INDIA_STATES_DATA.states.flatMap(s => s.districts))).sort();
 
 const CAPACITY_OPTIONS = [
   { label: "Up to 100", value: "100" },
@@ -212,15 +212,17 @@ export default function VenuesMarketplacePage() {
               <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1.5">
                 City
               </label>
-              <select
+              <input
                 id="venue-city-filter"
+                list="venue-cities-list"
+                placeholder="Search City..."
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
                 className="w-full h-10 rounded-lg border border-border/80 bg-card text-foreground text-xs px-3 focus:outline-none focus:ring-1 focus:ring-secondary"
-              >
-                <option value="">All Cities</option>
+              />
+              <datalist id="venue-cities-list">
                 {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+              </datalist>
             </div>
 
             {/* Min Capacity */}

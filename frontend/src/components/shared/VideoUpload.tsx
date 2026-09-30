@@ -53,7 +53,7 @@ export function VideoUpload({ value, onChange, onRemove, subfolder: _subfolder =
     <div className="flex flex-col items-center justify-center gap-4">
       {value ? (
         <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-border bg-bg-card flex items-center justify-center">
-          <video src={value} controls className="w-full h-full object-cover" />
+          <video src={value} controls className="absolute inset-0 w-full h-full object-cover" />
           <Button
             variant="destructive"
             size="icon"

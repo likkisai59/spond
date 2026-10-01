@@ -116,6 +116,35 @@ function NotificationsMenu() {
   );
 }
 
+function SettingsButton() {
+  const router = useRouter();
+  const { user } = useAuth();
+  if (!user) return null;
+
+  const role = user.role || "";
+  let settingsLink = "/sports/settings";
+
+  if (role === "artist" || role === "band") {
+    settingsLink = "/band/artist/settings";
+  } else if (role === "venue_owner") {
+    settingsLink = "/band/venue/settings";
+  } else if (role === "client" || role === "user") {
+    settingsLink = "/band/client/settings";
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="rounded-full"
+      aria-label="Settings"
+      onClick={() => router.push(settingsLink)}
+    >
+      <Settings className="h-4 w-4" />
+    </Button>
+  );
+}
+
 function UserMenu() {
   const router = useRouter();
   const { user, logout } = useAuth();
@@ -137,17 +166,6 @@ function UserMenu() {
     router.push(ROUTES.LOGIN);
   };
 
-  const role = user?.role || "";
-  let settingsLink = "/sports/settings";
-
-  if (role === "artist" || role === "band") {
-    settingsLink = "/band/artist/settings";
-  } else if (role === "venue_owner") {
-    settingsLink = "/band/venue/settings";
-  } else if (role === "client" || role === "user") {
-    settingsLink = "/band/client/settings";
-  }
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -168,12 +186,6 @@ function UserMenu() {
             {user?.email ?? "Not signed in"}
           </p>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        
-        <DropdownMenuItem onClick={() => router.push(settingsLink)}>
-          <Settings className="h-4 w-4" />
-          Settings
-        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut />
@@ -223,6 +235,7 @@ export function Topbar({
       {breadcrumbs?.length ? <Breadcrumb items={breadcrumbs} /> : null}
 
       <div className="ml-auto flex items-center gap-1.5">
+        <SettingsButton />
         <ThemeToggle />
         <AuthButtons />
       </div>

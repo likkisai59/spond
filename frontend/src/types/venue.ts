@@ -153,6 +153,7 @@ export interface VenueVideoItem {
 
 export interface VenueMediaData {
   cover_image: string | null;
+  logo?: string | null;
   gallery: VenueGalleryItem[];
   videos: VenueVideoItem[];
   youtube_links: string[];

@@ -12,6 +12,8 @@ import toast from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { bookingService } from "@/services/band/bookings.service";
+import { BookingRequestDetail } from "@/types/booking";
 
 export default function ReviewsPage() {
   const [reviews, setReviews] = React.useState<Review[]>([]);
@@ -21,6 +23,7 @@ export default function ReviewsPage() {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [editingReview, setEditingReview] = React.useState<Review | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [eligibleBookings, setEligibleBookings] = React.useState<BookingRequestDetail[]>([]);
   
   const { user } = useAuth();
   const currentUserId = user?.id || "";
@@ -38,8 +41,21 @@ export default function ReviewsPage() {
     }
   };
 
+  const fetchBookings = async () => {
+    try {
+      const response = await bookingService.getClientBookings({ limit: 100 });
+      const completed = (response.bookings || []).filter((b: BookingRequestDetail) => 
+        (b.status as string) === "completed" || (b.status as string) === "EVENT_COMPLETED" || b.status === "confirmed"
+      );
+      setEligibleBookings(completed);
+    } catch (err: unknown) {
+      console.error("Failed to load eligible bookings for review:", err);
+    }
+  };
+
   React.useEffect(() => {
     fetchReviews();
+    fetchBookings();
   }, []);
 
   const handleEdit = (review: Review) => {
@@ -70,11 +86,14 @@ export default function ReviewsPage() {
         });
         toast.success("Review updated successfully!");
       } else {
+        if (!data.booking_id) {
+          throw new Error("Please select a booking to review");
+        }
         await reviewService.createReview({
           rating: data.rating,
           review_title: data.review_title,
           review_text: data.review_text,
-          booking_id: "bk-test", // Example booking ID
+          booking_id: data.booking_id,
         });
         toast.success("Review submitted successfully!");
       }
@@ -125,6 +144,7 @@ export default function ReviewsPage() {
         onSubmit={handleSubmit}
         initialData={editingReview}
         isLoading={isSubmitting}
+        eligibleBookings={eligibleBookings}
       />
     </PageContainer>
   );

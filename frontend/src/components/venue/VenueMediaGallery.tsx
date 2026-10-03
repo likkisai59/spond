@@ -31,12 +31,15 @@ export function VenueMediaGallery({ media, onSave }: VenueMediaGalleryProps) {
       videoUploadHint="Choose a walkthrough clip showing the space decor configurations. Max size: 20MB. MP4 format preferred."
       showDedicatedCover={true}
       initialCoverImage={media.cover_image || null}
+      showDedicatedAvatar={true}
+      initialAvatar={media.logo || null}
       initialGallery={media.gallery || []}
       initialVideos={media.videos || []}
       initialYoutubeLinks={media.youtube_links || []}
-      onSave={async ({ gallery, videos, youtubeLinks, coverImage }) => {
+      onSave={async ({ gallery, videos, youtubeLinks, coverImage, avatar }) => {
         await onSave({
           cover_image: coverImage || null,
+          logo: avatar || null,
           gallery,
           videos,
           youtube_links: youtubeLinks,

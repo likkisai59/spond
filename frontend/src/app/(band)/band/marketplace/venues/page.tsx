@@ -11,7 +11,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { isEntertainmentVenue } from "@/utils/sportsFilter";
+import { formatImageUrl } from "@/utils/helpers";
 import {
+  ArrowLeft,
   Search,
   MapPin,
   Users,
@@ -22,6 +24,7 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
+import { FavoriteButton } from "@/components/shared/FavoriteButton";
 
 // ─── Filter Constants ─────────────────────────────────────────────────────────
 
@@ -126,6 +129,17 @@ export default function VenuesMarketplacePage() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-secondary/5 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
+      </div>
+
+      {/* Back to Home Button */}
+      <div className="absolute top-6 left-6 z-20">
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-card/50 hover:text-foreground border border-transparent hover:border-border/50"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Home
+        </Link>
       </div>
 
       {/* Hero Header */}
@@ -360,13 +374,14 @@ export default function VenuesMarketplacePage() {
                 (typeof venue.gallery?.[0] === "string" ? venue.gallery[0] : (venue.gallery?.[0] as any)?.url) ||
                 (Array.isArray(venue.images) && venue.images[0]) ||
                 "https://images.unsplash.com/photo-1519167758481-83f550bb49b3";
+              const venueLogo = venue.metadata_fields?.logo || venue.logo || null;
               return (
                 <Link key={venue.id} href={`/band/marketplace/venues/${venue.id}`}>
                   <Card className="bg-card/45 backdrop-blur-md border border-border/70 overflow-hidden hover:border-primary/45 transition-all duration-300 group h-full flex flex-col">
                     {/* Image */}
                     <div className="relative h-52 w-full overflow-hidden">
                       <img
-                        src={coverImage}
+                        src={formatImageUrl(coverImage)}
                         alt={venueDisplayName}
                         className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500 brightness-90"
                       />
@@ -381,14 +396,41 @@ export default function VenuesMarketplacePage() {
                           </span>
                         )}
                       </div>
-                      <div className="absolute top-3 right-3">
+                      <div className="absolute top-3 right-3 flex flex-col gap-2">
+                        <FavoriteButton 
+                          className="h-8 w-8 z-20" 
+                          item={{
+                            id: venue.id,
+                            name: venueDisplayName,
+                            type: "venue",
+                            category: venue.venue_type || "Venue",
+                            location: venueLocation,
+                            rating: typeof venue.rating === "number" ? venue.rating : 5.0,
+                            reviewCount: venue.review_count || 0,
+                            priceStartingAt: venuePrice || 0,
+                            image: formatImageUrl(coverImage)
+                          }}
+                        />
                         <Badge className="bg-secondary/90 hover:bg-secondary text-white font-bold text-[9px] uppercase px-2 py-0.5">
                           {venue.venue_type || "Venue"}
                         </Badge>
                       </div>
+
+                      {/* Avatar Overlay */}
+                      {venueLogo && (
+                        <div className="absolute -bottom-6 left-5">
+                          <div className="h-16 w-16 rounded-xl border-4 border-card overflow-hidden bg-white shadow-lg">
+                            <img
+                              src={formatImageUrl(venueLogo)}
+                              alt={`${venueDisplayName} logo`}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <CardContent className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                    <CardContent className={`p-5 flex-1 flex flex-col justify-between space-y-4 ${venueLogo ? "pt-8" : ""}`}>
                       <div className="space-y-2">
                         <h3 className="text-base font-extrabold text-foreground group-hover:text-primary transition-colors truncate">
                           {venueDisplayName}

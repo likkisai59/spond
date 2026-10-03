@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Sparkles, Music, Star, ShieldCheck, Zap, Globe, ArrowRight } from "lucide-react";
+import { Sparkles, Music, Star, ShieldCheck, Zap, Globe, ArrowRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroSection } from "@/components/shared/HeroSection";
 import { AnimatedCard } from "@/components/shared/AnimatedCard";
@@ -23,6 +23,17 @@ export default function LandingPage() {
         colors={["#ffc3a0", "transparent"]}
         intensity="low"
       />
+
+      {/* Back to Home Button */}
+      <div className="absolute top-6 left-6 z-20">
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-card/50 hover:text-foreground border border-transparent hover:border-border/50"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Home
+        </Link>
+      </div>
 
       {/* Hero Section with Animated Content */}
       <HeroSection

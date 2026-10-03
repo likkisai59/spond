@@ -4,6 +4,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { bandService } from "@/services/band";
+import { formatImageUrl } from "@/utils/helpers";
 import { Artist } from "@/types/band";
 import { isEntertainmentArtist } from "@/utils/sportsFilter";
 import { Loader2 } from "lucide-react";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
+  ArrowLeft,
   Search,
   MapPin,
   Star,
@@ -96,6 +98,17 @@ export default function PublicArtistsListPage() {
     <div className="relative min-h-screen pb-16 pt-24 px-6 max-w-7xl mx-auto">
       {/* Background ambient glow */}
       <div className="absolute inset-0 glow-overlay pointer-events-none" />
+
+      {/* Back to Home Button */}
+      <div className="absolute top-6 left-6 z-20">
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-card/50 hover:text-foreground border border-transparent hover:border-border/50"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Home
+        </Link>
+      </div>
 
       {/* Hero Header */}
       <div className="relative z-10 text-center max-w-3xl mx-auto mb-12 space-y-4">
@@ -327,7 +340,7 @@ export default function PublicArtistsListPage() {
                     {/* Image */}
                     <div className="relative h-52 w-full overflow-hidden">
                       <img
-                        src={coverImage}
+                        src={formatImageUrl(coverImage)}
                         alt={artist.display_name || "Performer"}
                         className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500 brightness-90"
                       />

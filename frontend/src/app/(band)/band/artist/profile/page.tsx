@@ -211,19 +211,19 @@ export default function ArtistProfilePage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="edit">
+        <TabsContent value="edit" forceMount hidden={activeTab !== "edit"}>
           <ArtistProfileEdit profile={profile} onSuccess={handleUpdateSuccess} />
         </TabsContent>
 
-        <TabsContent value="media">
+        <TabsContent value="media" forceMount hidden={activeTab !== "media"}>
           <ArtistMediaGallery media={profile} onSave={handleMediaSave} />
         </TabsContent>
 
-        <TabsContent value="pricing">
+        <TabsContent value="pricing" forceMount hidden={activeTab !== "pricing"}>
           <ArtistPricing pricing={componentPricingData} onSave={handlePricingSave} />
         </TabsContent>
 
-        <TabsContent value="preview">
+        <TabsContent value="preview" forceMount hidden={activeTab !== "preview"}>
           <ArtistProfilePreview profile={profile} />
         </TabsContent>
       </Tabs>

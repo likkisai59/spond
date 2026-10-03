@@ -24,24 +24,7 @@ import {
 import { bandService } from "@/services/band";
 import { siteConfig } from "@/config/site";
 import toast from "react-hot-toast";
-
-const resolveDocUrl = (url?: string) => {
-  if (!url) return "#";
-  if (url.startsWith("blob:") || url.startsWith("data:")) {
-    return url;
-  }
-  
-  const apiBase = siteConfig.apiUrl.replace(/\/$/, "");
-  
-  // If it's a raw S3 URL or external URL, proxy it to get a pre-signed URL redirect
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    return `${apiBase}/files/redirect?url=${encodeURIComponent(url)}`;
-  }
-
-  // Internal relative path
-  return `${apiBase}/${url.replace(/^\//, "")}`;
-};
-
+import { formatImageUrl } from "@/utils/helpers";
 interface VenueProfileEditProps {
   profile: VenueResponseData;
   onSuccess: (updated: VenueProfileUpdateFormData) => void;
@@ -705,7 +688,7 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
                 disabled={uploadingDoc.doc_pan}
               />
               {watchedDocPan && (
-                <a href={resolveDocUrl(watchedDocPan)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
+                <a href={formatImageUrl(watchedDocPan)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
                   View Upload
                 </a>
               )}
@@ -722,7 +705,7 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
                 disabled={uploadingDoc.doc_gst}
               />
               {watchedDocGst && (
-                <a href={resolveDocUrl(watchedDocGst)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
+                <a href={formatImageUrl(watchedDocGst)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
                   View Upload
                 </a>
               )}
@@ -739,7 +722,7 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
                 disabled={uploadingDoc.doc_ownership_proof}
               />
               {watchedDocOwnershipProof && (
-                <a href={resolveDocUrl(watchedDocOwnershipProof)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
+                <a href={formatImageUrl(watchedDocOwnershipProof)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
                   View Upload
                 </a>
               )}
@@ -756,7 +739,7 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
                 disabled={uploadingDoc.doc_government_id}
               />
               {watchedDocGovId && (
-                <a href={resolveDocUrl(watchedDocGovId)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
+                <a href={formatImageUrl(watchedDocGovId)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
                   View Upload
                 </a>
               )}
@@ -773,7 +756,7 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
                 disabled={uploadingDoc.doc_business_license}
               />
               {watchedDocLicense && (
-                <a href={resolveDocUrl(watchedDocLicense)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
+                <a href={formatImageUrl(watchedDocLicense)} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-bold hover:underline shrink-0">
                   View Upload
                 </a>
               )}

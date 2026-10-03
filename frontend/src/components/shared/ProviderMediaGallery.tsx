@@ -283,7 +283,7 @@ export function ProviderMediaGallery<
         </div>
 
         {/* Upload layout widget */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end p-4 border border-border bg-accent/15 rounded-2xl">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center p-4 border border-border bg-accent/15 rounded-2xl">
           <div className="space-y-1.5 md:col-span-2">
             <Label>Select Album to upload into</Label>
             <select
@@ -423,8 +423,8 @@ export function ProviderMediaGallery<
               key={idx}
               className="border border-border rounded-2xl overflow-hidden bg-card/85 flex flex-col group relative min-w-0"
             >
-              <div className="aspect-video w-full relative bg-accent/40 border-b border-border flex items-center justify-center">
-                <video src={v.url} controls className="absolute inset-0 w-full h-full object-cover" />
+              <div className="aspect-video w-full relative bg-black/90 border-b border-border flex items-center justify-center">
+                <video src={v.url} controls className="absolute inset-0 w-full h-full object-contain" />
                 <button
                   type="button"
                   onClick={() => removeVideoFile(idx)}

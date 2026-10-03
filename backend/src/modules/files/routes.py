@@ -35,6 +35,11 @@ async def list_files(module: str, module_id: str = None, _: dict = Depends(get_c
     files = await service.list_files(module, module_id)
     return {"status": "success", "data": {"items": files}}
 
+@router.get("/redirect")
+async def redirect_file(url: str):
+    presigned_url = await service.generate_presigned_url_from_url(url)
+    return RedirectResponse(url=presigned_url)
+
 @router.get("/{id}")
 async def get_file(id: str, _: dict = Depends(get_current_user)) -> dict:
     f = await service.get_file(id)
@@ -50,10 +55,7 @@ async def download_file(id: str, _: dict = Depends(get_current_user)) -> dict:
     url = await service.download_file_url(id)
     return {"status": "success", "data": {"download_url": url}}
 
-@router.get("/redirect")
-async def redirect_file(url: str):
-    presigned_url = await service.generate_presigned_url_from_url(url)
-    return RedirectResponse(url=presigned_url)
+
 
 @router.post("/folder")
 async def create_folder(data: FolderCreateRequest, _: dict = Depends(get_current_user)) -> dict:

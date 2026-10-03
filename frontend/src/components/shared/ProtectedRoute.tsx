@@ -2,11 +2,21 @@
 
 /**
  * ProtectedRoute — client-side authentication and RBAC guard.
+ *
+ * isPending stays true while:
+ *  - the component hasn't mounted yet (SSR/hydration)
+ *  - the auth store is actively loading (token refresh etc.)
+ *  - the auth status is still "idle" with no user (store just created, pre-hydration)
+ *
+ * This prevents spurious unauthenticated redirects in the brief window between
+ * router.push() completing and the Redux store being fully populated.
  */
 
 import * as React from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { useAppSelector } from "@/store/hooks";
+import { selectAuthStatus } from "@/store/selectors";
 import { Loader as Spinner } from "@/components/ui/loader";
 
 
@@ -19,6 +29,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { user, isLoading: authLoading } = useAuth();
+  const authStatus = useAppSelector(selectAuthStatus);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -28,7 +39,11 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     setMounted(true);
   }, []);
 
-  const isPending = authLoading || !mounted;
+  // Treat "idle with no user" as pending — this covers the window between
+  // a successful login dispatch and the route component fully re-rendering,
+  // preventing a false "unauthenticated" redirect.
+  const isAuthPending = authLoading || (authStatus === "idle" && !user);
+  const isPending = isAuthPending || !mounted;
 
   React.useEffect(() => {
     if (isPending) return;

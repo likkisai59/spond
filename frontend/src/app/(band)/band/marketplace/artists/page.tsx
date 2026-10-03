@@ -4,6 +4,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { bandService } from "@/services/band";
+import { formatImageUrl } from "@/utils/helpers";
 import { Loader2 } from "lucide-react";
 import { ErrorState } from "@/components/shared/error-state";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
+  ArrowLeft,
   Search,
   MapPin,
   Star,
@@ -25,6 +27,7 @@ import {
 
 import { isEntertainmentArtist } from "@/utils/sportsFilter";
 import { INDIA_STATES_DATA } from "@/utils/indiaStates";
+import { FavoriteButton } from "@/components/shared/FavoriteButton";
 
 // ─── Filter Constants ─────────────────────────────────────────────────────────
 
@@ -103,6 +106,17 @@ export default function PublicArtistsListPage() {
     <div className="relative min-h-screen pb-16 pt-24 px-6 max-w-7xl mx-auto">
       {/* Background ambient glow */}
       <div className="absolute inset-0 glow-overlay pointer-events-none" />
+
+      {/* Back to Home Button */}
+      <div className="absolute top-6 left-6 z-20">
+        <Link 
+          href="/" 
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-card/50 hover:text-foreground border border-transparent hover:border-border/50"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Home
+        </Link>
+      </div>
 
       {/* Hero Header */}
       <div className="relative z-10 text-center max-w-3xl mx-auto mb-12 space-y-4">
@@ -208,10 +222,6 @@ export default function PublicArtistsListPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((artist: any) => {
-              const coverImage =
-                artist.profile_image ||
-                (typeof artist.gallery?.[0] === "string" ? artist.gallery[0] : (artist.gallery?.[0] as any)?.url) ||
-                "https://images.unsplash.com/photo-1501386761578-eac5c94b800a";
               const displayName = artist.display_name || artist.name || artist?.user?.name || "Performer";
               const genreList: string[] = (
                 Array.isArray(artist.genres)
@@ -220,13 +230,21 @@ export default function PublicArtistsListPage() {
               ).filter(Boolean);
               const price = artist.base_rate ?? artist.packages?.[0]?.price ?? null;
 
+              const coverImage =
+                artist.metadata_fields?.cover_image ||
+                artist.cover_image ||
+                artist.profile_image ||
+                (typeof artist.gallery?.[0] === "string" ? artist.gallery[0] : (artist.gallery?.[0] as any)?.url) ||
+                "https://images.unsplash.com/photo-1516280440502-6c2e8c26bbec";
+              const artistAvatar = artist.metadata_fields?.avatar || artist.avatar || artist.profile_image || null;
+
               return (
                 <Link key={artist.id} href={`/band/marketplace/artists/${artist.id}`}>
                   <Card className="bg-card/45 backdrop-blur-md border border-border/70 overflow-hidden hover:border-primary/45 transition-all duration-300 group h-full flex flex-col">
                     {/* Image */}
                     <div className="relative h-52 w-full overflow-hidden">
                       <img
-                        src={coverImage}
+                        src={formatImageUrl(coverImage)}
                         alt={displayName}
                         className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500 brightness-90"
                       />
@@ -245,14 +263,41 @@ export default function PublicArtistsListPage() {
                           </span>
                         )}
                       </div>
-                      <div className="absolute top-3 right-3">
+                      <div className="absolute top-3 right-3 flex flex-col gap-2">
+                        <FavoriteButton 
+                          className="h-8 w-8 z-20" 
+                          item={{
+                            id: artist.id,
+                            name: displayName,
+                            type: "artist",
+                            category: artist.band_type || "Artist",
+                            location: artist.city || artist.state || "Not specified",
+                            rating: typeof artist.rating === "number" ? artist.rating : 5.0,
+                            reviewCount: artist.review_count || 0,
+                            priceStartingAt: price || 0,
+                            image: formatImageUrl(coverImage)
+                          }}
+                        />
                         <Badge className="bg-primary hover:bg-primary text-white font-bold text-[9px] uppercase px-2 py-0.5">
                           {artist.band_type || "Artist"}
                         </Badge>
                       </div>
+
+                      {/* Avatar Overlay */}
+                      {artistAvatar && (
+                        <div className="absolute -bottom-6 left-5">
+                          <div className="h-16 w-16 rounded-full border-4 border-card overflow-hidden bg-white shadow-lg">
+                            <img
+                              src={formatImageUrl(artistAvatar)}
+                              alt={`${displayName} avatar`}
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <CardContent className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                    <CardContent className={`p-5 flex-1 flex flex-col justify-between space-y-4 ${artistAvatar ? "pt-8" : ""}`}>
                       <div className="space-y-2">
                         <h3 className="text-base font-extrabold text-foreground group-hover:text-primary transition-colors truncate">
                           {displayName}

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @next/next/no-img-element */
 "use client";
 
 import * as React from "react";
@@ -15,9 +16,13 @@ import {
   Navigation, 
   Volume2, 
   Trophy,
-  Sparkles
+  Sparkles,
+  Image as ImageIcon,
+  Video
 } from "lucide-react";
 import { formatCurrency } from "@/utils/format-currency";
+import { formatImageUrl } from "@/utils/helpers";
+import { FavoriteButton } from "@/components/shared/FavoriteButton";
 
 interface ArtistProfilePreviewProps {
   profile: ArtistProfile;
@@ -34,20 +39,36 @@ export function ArtistProfilePreview({ profile }: ArtistProfilePreviewProps) {
         {/* Cover Banner */}
         <div className="h-44 sm:h-60 bg-gradient-to-r from-primary/30 to-purple-600/30 relative">
           {profile.cover_image ? (
-            <Image src={profile.cover_image} alt="Cover Banner" fill className="object-cover" priority />
+            <Image unoptimized src={formatImageUrl(profile.cover_image)} alt="Cover Banner" fill className="object-cover" priority />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs italic">
               No cover image uploaded
             </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-bg-card via-transparent to-transparent" />
+          <div className="absolute top-4 right-4 z-10">
+            <FavoriteButton 
+              className="bg-black/40 hover:bg-black/60 border-none text-white shadow-xl"
+              item={{
+                id: profile.id || (profile as any)._id,
+                name: (profile as unknown as Record<string, { name?: string }>).user?.name || (profile as unknown as Record<string, string>).name || profile.display_name || "Performer",
+                type: "artist",
+                category: profile.band_type || "Artist",
+                location: profile.city || profile.state || "Not specified",
+                rating: typeof (profile as any).rating === "number" ? (profile as any).rating : 5.0,
+                reviewCount: (profile as any).review_count || 0,
+                priceStartingAt: profile.base_rate || 0,
+                image: formatImageUrl(profile.cover_image || profile.profile_image || "https://images.unsplash.com/photo-1516280440502-6c2e8c26bbec")
+              }}
+            />
+          </div>
         </div>
 
         {/* Profile Info Overlay */}
         <CardContent className="p-6 relative pt-0 flex flex-col sm:flex-row items-center sm:items-end gap-5 -mt-16 sm:-mt-20">
           <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-bg-card overflow-hidden bg-accent/80 shadow-lg shrink-0 relative">
             {profile.profile_image ? (
-              <Image src={profile.profile_image} alt="Avatar" fill className="object-cover" />
+              <Image unoptimized src={formatImageUrl(profile.profile_image)} alt="Avatar" fill className="object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs font-semibold">
                 No avatar
@@ -154,6 +175,89 @@ export function ArtistProfilePreview({ profile }: ArtistProfilePreviewProps) {
               </div>
             </CardContent>
           </Card>
+
+          {/* Gallery Widget */}
+          {profile.gallery && profile.gallery.length > 0 && (
+            <Card className="bg-card/45 backdrop-blur-md border border-border rounded-2xl shadow-xl">
+              <CardContent className="p-5 space-y-4">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4 text-primary" />
+                  Media Gallery
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {profile.gallery.map((item: any, idx: number) => {
+                    const imgUrl = typeof item === "string" ? item : item.url;
+                    if (!imgUrl) return null;
+                    return (
+                      <div key={idx} className="relative aspect-square rounded-xl overflow-hidden group border border-border/50">
+                        <img 
+                          src={formatImageUrl(imgUrl)} 
+                          alt={`Gallery image ${idx + 1}`} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Youtube Links Widget */}
+          {profile.youtube_links && profile.youtube_links.length > 0 && (
+            <Card className="bg-card/45 backdrop-blur-md border border-border rounded-2xl shadow-xl">
+              <CardContent className="p-5 space-y-4">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
+                  <Video className="h-4 w-4 text-red-500" />
+                  YouTube Videos
+                </h3>
+                <div className="space-y-3">
+                  {profile.youtube_links.map((link: string, idx: number) => {
+                    const videoId = link.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/)?.[1];
+                    if (!videoId) return null;
+                    return (
+                      <div key={idx} className="relative aspect-video rounded-xl overflow-hidden border border-border/50 shadow-sm">
+                        <iframe 
+                          src={`https://www.youtube.com/embed/${videoId}`} 
+                          title={`YouTube video ${idx + 1}`} 
+                          className="w-full h-full absolute top-0 left-0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                          allowFullScreen
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Direct Videos Widget */}
+          {profile.videos && profile.videos.length > 0 && (
+            <Card className="bg-card/45 backdrop-blur-md border border-border rounded-2xl shadow-xl">
+              <CardContent className="p-5 space-y-4">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
+                  <Video className="h-4 w-4 text-primary" />
+                  Videos
+                </h3>
+                <div className="space-y-3">
+                  {profile.videos.map((video: any, idx: number) => {
+                    const videoUrl = typeof video === "string" ? video : video.url;
+                    if (!videoUrl) return null;
+                    return (
+                      <div key={idx} className="relative aspect-video rounded-xl overflow-hidden border border-border/50 shadow-sm">
+                        <video 
+                          src={formatImageUrl(videoUrl)} 
+                          controls
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
         </div>
 

@@ -398,6 +398,7 @@ export type BookingRequestFormData = z.infer<typeof bookingRequestSchema>;
 // ── Review Submission ─────────────────────────────────────────────────────────
 export const reviewSchema = z.object({
   rating: z.number().min(1, "Please select a star rating").max(5),
+  booking_id: z.string().optional(),
   review_title: z.string().optional().default(""),
   review_text: z.string().min(10, "Review text must be at least 10 characters").max(2000, "Review text is too long"),
 });

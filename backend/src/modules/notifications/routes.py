@@ -44,16 +44,26 @@ from src.services.websocket_manager import manager
 from src.core import security
 
 @router.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket, token: str):
+async def websocket_endpoint(websocket: WebSocket, token: str = None):
+    # Accept the connection first
+    await websocket.accept()
+    if not token:
+        print("WebSocket auth failed: No token provided")
+        await websocket.send_json({"type": "error", "message": "No token provided"})
+        await websocket.close(code=1008)
+        return
+        
     try:
         # Decode and verify the token
         payload = security.decode_token(token, security.TOKEN_TYPE_ACCESS)
         user_id = payload["sub"]
     except Exception as e:
+        print(f"WebSocket auth failed for token {token[:10]}...: {type(e).__name__} - {e}")
+        await websocket.send_json({"type": "error", "message": f"Auth failed: {str(e)}"})
         await websocket.close(code=1008)
         return
 
-    # Accept connection and register user
+    # Register user with the manager
     await manager.connect(websocket, user_id)
     
     # Send an initial connection success message

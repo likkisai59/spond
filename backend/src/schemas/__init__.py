@@ -8,7 +8,7 @@ from src.constants.roles import ALL_MODULES
 
 ModuleKey = Literal["sports", "band"]
 
-from .messages import ChatMessageResponse, ConversationResponse, MessageCreateRequest
+from .messages import ConversationResponse
 
 
 # ---------- auth ----------
@@ -163,7 +163,5 @@ __all__ = [
     "UserListResponse",
     "RoleResponse",
     "RoleListResponse",
-    "ChatMessageResponse",
     "ConversationResponse",
-    "MessageCreateRequest",
 ]

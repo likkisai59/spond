@@ -11,11 +11,16 @@ export interface AuthState {
   error: string | null;
 }
 
+const _storedUser = typeof window !== "undefined" ? storage.get<User>(STORAGE_KEYS.USER_DATA) : null;
+const _storedToken = typeof window !== "undefined" ? storage.get<string>(STORAGE_KEYS.ACCESS_TOKEN) : null;
+
 const initialState: AuthState = {
-  user: typeof window !== "undefined" ? storage.get<User>(STORAGE_KEYS.USER_DATA) : null,
-  accessToken: typeof window !== "undefined" ? storage.get<string>(STORAGE_KEYS.ACCESS_TOKEN) : null,
+  user: _storedUser,
+  accessToken: _storedToken,
   refreshToken: typeof window !== "undefined" ? storage.get<string>(STORAGE_KEYS.REFRESH_TOKEN) : null,
-  status: "idle",
+  // If we already have a valid session from storage, mark as "succeeded" so
+  // ProtectedRoute never briefly treats a stored session as unauthenticated.
+  status: _storedUser && _storedToken ? "succeeded" : "idle",
   error: null,
 };
 

@@ -52,8 +52,8 @@ export function VideoUpload({ value, onChange, onRemove, subfolder: _subfolder =
   return (
     <div className="flex flex-col items-center justify-center gap-4">
       {value ? (
-        <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-border bg-bg-card flex items-center justify-center">
-          <video src={value} controls className="absolute inset-0 w-full h-full object-cover" />
+        <div className="relative w-full max-w-sm aspect-video rounded-xl overflow-hidden border border-border bg-black/90 flex items-center justify-center">
+          <video src={value} controls className="absolute inset-0 w-full h-full object-contain" />
           <Button
             variant="destructive"
             size="icon"
@@ -65,7 +65,7 @@ export function VideoUpload({ value, onChange, onRemove, subfolder: _subfolder =
         </div>
       ) : (
         <div
-          className="w-full max-w-sm aspect-video rounded-xl border-2 border-dashed border-border hover:border-primary/50 bg-bg-card/40 flex flex-col items-center justify-center gap-3 cursor-pointer group transition-all"
+          className="w-full max-w-sm aspect-video rounded-xl border-2 border-dashed border-border hover:border-primary/50 bg-card/40 flex flex-col items-center justify-center gap-3 cursor-pointer group transition-all"
           onClick={triggerSelect}
         >
           <input
@@ -80,11 +80,11 @@ export function VideoUpload({ value, onChange, onRemove, subfolder: _subfolder =
             <Spinner />
           ) : (
             <>
-              <div className="p-3 bg-bg-elevated rounded-full border border-border group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <VideoIcon className="h-5 w-5 text-text-secondary group-hover:text-text-primary" />
+              <div className="p-3 bg-accent rounded-full border border-border group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <VideoIcon className="h-5 w-5 text-muted-foreground group-hover:text-primary-foreground" />
               </div>
-              <p className="text-sm font-semibold text-text-primary">Click to upload demo video</p>
-              <p className="text-xs text-text-muted">Supports MP4, WebM (Max 20MB)</p>
+              <p className="text-sm font-semibold text-foreground">Click to upload demo video</p>
+              <p className="text-xs text-muted-foreground">Supports MP4, WebM (Max 20MB)</p>
             </>
           )}
         </div>

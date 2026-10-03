@@ -45,7 +45,7 @@ export default function VenueProfilePage() {
 
   const handleTabChange = (val: string) => {
     setActiveTab(val);
-    window.history.replaceState(null, '', `?tab=${val}`);
+    router.replace(`?tab=${val}`, { scroll: false });
   };
 
   const fetchProfile = React.useCallback(async () => {
@@ -89,6 +89,7 @@ export default function VenueProfilePage() {
           metadata_fields: {
             ...profile.metadata_fields,
             cover_image: updatedMedia.cover_image,
+            logo: updatedMedia.logo,
             youtube_links: updatedMedia.youtube_links,
             virtual_tour: updatedMedia.virtual_tour
           }
@@ -208,6 +209,7 @@ export default function VenueProfilePage() {
 
   const componentMediaData: VenueMediaData = {
     cover_image: profile.metadata_fields?.cover_image || null,
+    logo: profile.metadata_fields?.logo || null,
     gallery: galleryImages,
     videos: galleryVideos,
     youtube_links: profile.metadata_fields?.youtube_links || [],

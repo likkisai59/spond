@@ -4,6 +4,7 @@
  */
 
 import { NotificationItem } from "./types";
+import { siteConfig } from "@/config/site";
 
 type NotificationCallback = (notification: NotificationItem) => void;
 
@@ -39,7 +40,7 @@ class NotificationWebSocket {
   }
 
   private getWsUrl(token: string): string {
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    const apiBase = siteConfig.apiUrl;
     // Replace http/https with ws/wss protocol
     const wsBase = apiBase.replace(/^http/, "ws");
     return `${wsBase}/api/v1/notifications/ws?token=${encodeURIComponent(token)}`;
@@ -52,7 +53,12 @@ class NotificationWebSocket {
     this.isIntentionalDisconnect = false;
 
     if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) {
-      return;
+      if (this.token !== token) {
+        // If token changed while connected, reconnect with new token
+        this.disconnect();
+      } else {
+        return;
+      }
     }
 
     try {
@@ -80,14 +86,23 @@ class NotificationWebSocket {
             this.notifyMessagingCallbacks(message);
           } else if (message.type === "connected") {
             wsLogger.log("[WS] Logged in user:", message.user_id);
+          } else if (message.type === "error") {
+            if (message.message?.includes("Auth failed")) {
+              wsLogger.warn("[WS] Server warning:", message.message);
+              this.disconnect(); // Stop reconnecting if auth is invalid; Redux token refresh will trigger a reconnect
+            } else {
+              wsLogger.error("[WS] Server error:", message.message);
+            }
           }
         } catch (err) {
           wsLogger.error("[WS] Failed to parse message:", err);
         }
       };
 
-      this.ws.onerror = (error) => {
-        wsLogger.error("[WS] Socket error:", error);
+      this.ws.onerror = (_error: Event) => {
+        // Browser doesn't provide detail in Event objects. 
+        // We silence this because it gets triggered harmlessly when the server restarts or during natural network drops,
+        // and onclose will handle any necessary reconnect logic.
       };
 
       this.ws.onclose = (event) => {

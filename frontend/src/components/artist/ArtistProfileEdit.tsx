@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm, Controller, Path } from "react-hook-form";
+import { useForm, Controller, Path, FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { artistProfileUpdateSchema, ArtistProfileUpdateFormData } from "@/utils/validation";
 import { ArtistProfile } from "@/types/artist";
@@ -27,14 +27,14 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
 
   const getFormValuesFromProfile = React.useCallback(
     (p: ArtistProfile): ArtistProfileUpdateFormData => ({
-      name: (p as any)?.name || "",
+      name: ((p as unknown as Record<string, unknown>)?.name as string) || "",
       display_name: p.display_name || "",
       bio: p.bio || "",
       years_of_experience: p.years_of_experience ?? 0,
       profile_image: p.profile_image || "",
       cover_image: p.cover_image || "",
       mobile_number: p.mobile_number || "",
-      band_type: (p.band_type as any) || "Solo",
+      band_type: (p.band_type as string) || "Solo",
       total_members: p.total_members ?? 1,
       base_rate: p.base_rate ?? 0,
       currency: p.currency || "INR",
@@ -52,8 +52,8 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
         lighting: !!p.equipment?.lighting,
         dj_console: !!p.equipment?.dj_console,
       },
-      languages: p.languages?.map((l: any) => (typeof l === "string" ? l : l?.name)).filter(Boolean) || [],
-      genres: p.genres?.map((g: any) => (typeof g === "string" ? g : g?.name)).filter(Boolean) || [],
+      languages: p.languages?.map((l: unknown) => (typeof l === "string" ? l : (l as Record<string, string>)?.name)).filter(Boolean) || [],
+      genres: p.genres?.map((g: unknown) => (typeof g === "string" ? g : (g as Record<string, string>)?.name)).filter(Boolean) || [],
       social_links: {
         instagram: p.social_links?.instagram || "",
         facebook: p.social_links?.facebook || "",
@@ -141,11 +141,11 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
     onSuccess(data);
   };
 
-  const onFormError = (formErrors: any) => {
+  const onFormError = (formErrors: FieldErrors<ArtistProfileUpdateFormData>) => {
     console.error("[ArtistProfileEdit] Form validation error:", formErrors);
     const errorKeys = Object.keys(formErrors);
     if (errorKeys.length > 0) {
-      const firstError = formErrors[errorKeys[0]];
+      const firstError = formErrors[errorKeys[0] as keyof typeof formErrors];
       const message = firstError?.message || `Please check the ${errorKeys[0]} field.`;
       toast.error(message);
     }
@@ -216,11 +216,9 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
               value={watchedProfileImg} 
               onChange={(url) => {
                 setValue("profile_image", url, { shouldValidate: true, shouldDirty: true });
-                handleSubmit(onFormSubmit)();
               }}
               onRemove={() => {
                 setValue("profile_image", "", { shouldValidate: true, shouldDirty: true });
-                handleSubmit(onFormSubmit)();
               }}
               subfolder="artists/avatars"
             />
@@ -233,11 +231,9 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
               value={watchedCoverImg} 
               onChange={(url) => {
                 setValue("cover_image", url, { shouldValidate: true, shouldDirty: true });
-                handleSubmit(onFormSubmit)();
               }}
               onRemove={() => {
                 setValue("cover_image", "", { shouldValidate: true, shouldDirty: true });
-                handleSubmit(onFormSubmit)();
               }}
               subfolder="artists/covers"
             />

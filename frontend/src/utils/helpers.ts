@@ -70,3 +70,18 @@ export function formatTime(value: string): string {
   return `${hour12}:${String(minutes).padStart(2, "0")} ${suffix}`;
 }
 
+export function formatImageUrl(url?: string | null): string {
+  if (!url) return "";
+  if (url.startsWith("blob:") || url.startsWith("data:")) return url;
+  
+  // If it's a raw S3 URL, we MUST proxy it through the backend to get a presigned URL
+  if (url.includes("amazonaws.com")) {
+    return `/api/v1/files/redirect?url=${encodeURIComponent(url)}`;
+  }
+  
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  return `${apiBase.replace(/\/$/, "")}/${url.replace(/^\//, "")}`;
+}
+

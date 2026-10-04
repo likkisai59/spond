@@ -413,7 +413,11 @@ export const emailSchema = z
   .max(254, "Email address is too long")
   .email("enter valid email")
   .refine(
-    (val) => /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(val.trim()),
+    (val) => {
+      const email = val.trim().toLowerCase();
+      const domain = email.split("@")[1];
+      return domain !== "hotmail.com" && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email);
+    },
     { message: "enter valid email" }
   );
 

@@ -1,18 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Laptop,
-  LogOut,
-  ShieldCheck,
-  Smartphone,
-} from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/shared/card";
 import {
@@ -24,7 +17,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import type { DeviceSession } from "@/data";
+import { useAuth } from "@/hooks";
+import { apiClient } from "@/services/api-client";
 import { authService } from "@/services";
 import {
   notificationSettingsSchema,
@@ -38,23 +32,58 @@ import { ROUTES } from "@/constants";
 
 function ProfileTab() {
   const dispatch = useAppDispatch();
+  const { user, setUser } = useAuth();
+
   const form = useForm<ProfileSettingsFormData>({
     resolver: zodResolver(profileSettingsSchema),
     defaultValues: {
-      name: "Arjun Mehta",
-      email: "arjun@strikersfc.in",
-      phone: "9820012345",
+      name: user?.fullName || user?.full_name || user?.name || "",
+      email: user?.email || "",
+      phone: user?.phone || "",
     },
   });
 
-  const onSubmit: SubmitHandler<ProfileSettingsFormData> = () => {
-    dispatch(
-      notificationAdded({
-        title: "Profile saved",
-        message: "Your profile details were updated (demo mode).",
-        variant: "success",
-      })
-    );
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        name: user.fullName || user.full_name || user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+      });
+    }
+  }, [user, form]);
+
+  const onSubmit: SubmitHandler<ProfileSettingsFormData> = async (data) => {
+    try {
+      await apiClient.patch("/api/v1/auth/me", {
+        full_name: data.name,
+        phone: data.phone,
+      });
+      if (user) {
+        setUser({
+          ...user,
+          name: data.name,
+          fullName: data.name,
+          full_name: data.name,
+          phone: data.phone,
+        });
+      }
+      dispatch(
+        notificationAdded({
+          title: "Profile saved",
+          message: "Your profile details were updated successfully.",
+          variant: "success",
+        })
+      );
+    } catch (error: any) {
+      dispatch(
+        notificationAdded({
+          title: "Error updating profile",
+          message: error?.message || "Failed to update profile",
+          variant: "error",
+        })
+      );
+    }
   };
 
   return (
@@ -165,6 +194,7 @@ function SecurityTab() {
   const dispatch = useAppDispatch();
   const form = useForm<SecuritySettingsFormData>({
     resolver: zodResolver(securitySettingsSchema),
+    mode: "onChange",
     defaultValues: {
       currentPassword: "",
       newPassword: "",
@@ -195,36 +225,6 @@ function SecurityTab() {
         notificationAdded({
           title: "Error",
           message,
-          variant: "error",
-        })
-      );
-    }
-  };
-
-  const [sessions, setSessions] = useState<DeviceSession[]>([]);
-
-  useEffect(() => {
-    authService.getSessions().then((data) => {
-      if (Array.isArray(data)) setSessions(data);
-    }).catch(() => {});
-  }, []);
-
-  const handleSignOutSession = async (sessionId: string, deviceName: string) => {
-    try {
-      await authService.revokeSession(sessionId);
-      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-      dispatch(
-        notificationAdded({
-          title: "Session signed out",
-          message: `${deviceName} was signed out.`,
-          variant: "success",
-        })
-      );
-    } catch {
-      dispatch(
-        notificationAdded({
-          title: "Error",
-          message: "Failed to sign out session.",
           variant: "error",
         })
       );
@@ -262,61 +262,6 @@ function SecurityTab() {
             </div>
           </form>
         </Form>
-      </Card>
-
-      <Card className="p-6 sm:p-8">
-        <div className="flex items-center justify-between">
-          <h3 className="flex items-center gap-2 text-lg font-extrabold tracking-tight">
-            <ShieldCheck className="h-4 w-4 text-accent" />
-            Active sessions
-          </h3>
-          <Badge variant="secondary">{sessions.length} devices</Badge>
-        </div>
-        <ul className="mt-4 divide-y divide-border/70">
-          {sessions.map((session) => (
-            <li
-              key={session.id}
-              className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-gradient-soft">
-                  {session.device?.includes("iPhone") ? (
-                    <Smartphone className="h-5 w-5 text-accent" />
-                  ) : (
-                    <Laptop className="h-5 w-5 text-accent" />
-                  )}
-                </span>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 text-sm font-bold">
-                    {session.device}
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      {session.browser}
-                    </span>
-                    {session.current ? (
-                      <Badge variant="gradient" className="text-[10px]">
-                        This device
-                      </Badge>
-                    ) : null}
-                  </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    {session.location} · {session.lastActive}
-                  </p>
-                </div>
-              </div>
-              {!session.current ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => handleSignOutSession(session.id, session.device)}
-                >
-                  <LogOut />
-                  Sign out
-                </Button>
-              ) : null}
-            </li>
-          ))}
-        </ul>
       </Card>
     </div>
   );

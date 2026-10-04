@@ -186,7 +186,12 @@ export function OwnerCreateVenuePage() {
                 control={control}
                 name="contactPhone"
                 label="Contact Phone"
-                placeholder="Phone number"
+                placeholder="10-digit mobile number"
+                maxLength={10}
+                onChange={(e) => {
+                  const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  form.setValue("contactPhone", digitsOnly, { shouldValidate: true });
+                }}
               />
             </div>
 

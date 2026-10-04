@@ -410,10 +410,10 @@ export const emailSchema = z
   .trim()
   .min(1, "Email is required")
   .max(254, "Email address is too long")
-  .email("Enter a valid email address")
+  .email("enter valid email")
   .refine(
-    (val) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
-    "Email must contain a valid domain (e.g. user@example.com)"
+    (val) => /^[a-zA-Z0-9._%+-]+@gmail\.com$/i.test(val.trim()),
+    { message: "enter valid email" }
   );
 
 // ── Password ──────────────────────────────────────────────────────────────────

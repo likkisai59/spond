@@ -19,7 +19,7 @@ const wsLogger = {
     }
   },
   error: (...args: unknown[]) => {
-    console.error(...args);
+    console.warn(...args);
   }
 };
 

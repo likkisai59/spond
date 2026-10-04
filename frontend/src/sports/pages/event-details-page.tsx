@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Bell,
@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Paperclip,
   Send,
+  Trash2,
   Users,
 } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
@@ -22,7 +23,8 @@ import { EmptyCard } from "@/components/cards";
 import { Card } from "@/components/shared/card";
 import { Input } from "@/components/ui/input";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchEventsThunk } from "@/store/sports/events-slice";
+import { notificationAdded } from "@/store/slices/notification-slice";
+import { fetchEventsThunk, deleteEventThunk } from "@/store/sports/events-slice";
 import { fetchGroupsThunk } from "@/store/sports/groups-slice";
 import {
   selectAllFiles,
@@ -51,6 +53,7 @@ const MOCK_COMMENTS: EventComment[] = [
 export function EventDetailsPage() {
   const params = useParams<{ eventId: string }>();
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const event = useAppSelector((state) => selectEventById(state, params.eventId));
   const group = useAppSelector((state) =>
     selectGroupById(state, event?.groupId ?? "")
@@ -136,6 +139,33 @@ export function EventDetailsPage() {
     setCommentDraft("");
   };
 
+  const handleDeleteEvent = async () => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this event? This action cannot be undone."
+    );
+    if (!confirmed) return;
+
+    try {
+      await dispatch(deleteEventThunk(params.eventId)).unwrap();
+      dispatch(
+        notificationAdded({
+          title: "Event deleted",
+          message: "The event has been successfully deleted.",
+          variant: "success",
+        })
+      );
+      router.push(ROUTES.SPORTS_EVENTS);
+    } catch (error: any) {
+      dispatch(
+        notificationAdded({
+          title: "Error deleting event",
+          message: error?.message || "Failed to delete event",
+          variant: "error",
+        })
+      );
+    }
+  };
+
   return (
     <PageContainer as="main">
       <Breadcrumb
@@ -148,7 +178,11 @@ export function EventDetailsPage() {
         className="mb-4"
       />
 
-      <PageHeaderLikeTitle event={event} groupName={group?.name} />
+      <PageHeaderLikeTitle
+        event={event}
+        groupName={group?.name}
+        onDelete={handleDeleteEvent}
+      />
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -344,9 +378,11 @@ export function EventDetailsPage() {
 function PageHeaderLikeTitle({
   event,
   groupName,
+  onDelete,
 }: {
   event: SportsEvent;
   groupName?: string;
+  onDelete?: () => void;
 }) {
   return (
     <div className="animate-fade-in-up flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -370,6 +406,14 @@ function PageHeaderLikeTitle({
             </Link>
           </Button>
         ) : null}
+        <Button
+          variant="destructive"
+          onClick={onDelete}
+          className="flex items-center gap-1.5"
+        >
+          <Trash2 className="h-4 w-4" />
+          Delete event
+        </Button>
         <Button asChild variant="ghost">
           <Link href={ROUTES.SPORTS_EVENTS}>
             <ArrowLeft />

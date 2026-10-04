@@ -341,4 +341,9 @@ async def vote_poll(id: str, data: PollVoteRequest, user: dict = Depends(get_cur
     poll = await service.vote_poll(id, user["id"], data.option_id)
     return {"status": "success", "data": poll}
 
+@router.delete("/polls/{id}")
+async def delete_poll(id: str, _: dict = Depends(get_current_user)) -> dict:
+    await service.delete_poll(id)
+    return {"status": "success"}
+
 

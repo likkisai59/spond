@@ -798,3 +798,9 @@ class SportsService:
         })
         return updated or poll
 
+    async def delete_poll(self, poll_id: str) -> None:
+        deleted = await self.polls.delete_by_id(poll_id)
+        if not deleted:
+            raise NotFoundError("Poll not found")
+
+

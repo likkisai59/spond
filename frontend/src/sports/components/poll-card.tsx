@@ -1,9 +1,10 @@
 "use client";
 
-import { BarChart3, CalendarClock } from "lucide-react";
+import { BarChart3, CalendarClock, Trash2 } from "lucide-react";
 import { Card } from "@/components/shared/card";
 import { useAppDispatch } from "@/store/hooks";
-import { voteToggled } from "@/store/sports/polls-slice";
+import { voteToggled, deletePollThunk } from "@/store/sports/polls-slice";
+import { notificationAdded } from "@/store/slices/notification-slice";
 import { isPollExpired } from "@/store/sports/selectors";
 import { StatusBadge } from "./status-badge";
 import { formatDate } from "@/utils/date";
@@ -22,6 +23,33 @@ export function PollCard({ poll, groupName, className }: PollCardProps) {
   const totalVotes = poll.options.reduce((sum, o) => sum + o.votes, 0);
   const hasVoted = poll.votedOptionIds.length > 0;
 
+  const handleDeletePoll = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this poll? This action cannot be undone."
+    );
+    if (!confirmed) return;
+
+    try {
+      await dispatch(deletePollThunk(poll.id)).unwrap();
+      dispatch(
+        notificationAdded({
+          title: "Poll deleted",
+          message: "The poll has been successfully deleted.",
+          variant: "success",
+        })
+      );
+    } catch (error: any) {
+      dispatch(
+        notificationAdded({
+          title: "Error deleting poll",
+          message: error?.message || "Failed to delete poll",
+          variant: "error",
+        })
+      );
+    }
+  };
+
   return (
     <Card
       interactive
@@ -38,7 +66,17 @@ export function PollCard({ poll, groupName, className }: PollCardProps) {
             {poll.question}
           </h3>
         </div>
-        <StatusBadge status={isClosed ? "Closed" : "Active"} />
+        <div className="flex items-center gap-2">
+          <StatusBadge status={isClosed ? "Closed" : "Active"} />
+          <button
+            type="button"
+            title="Delete poll"
+            onClick={handleDeletePoll}
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <div className="mt-5 flex-1 space-y-3">

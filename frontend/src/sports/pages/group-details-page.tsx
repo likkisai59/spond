@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   CalendarDays,
   LayoutGrid,
@@ -10,6 +10,7 @@ import {
   Search,
   SearchX,
   Table2,
+  Trash2,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -25,7 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useDebounce } from "@/hooks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
-import { removeMemberThunk, fetchGroupsThunk } from "@/store/sports/groups-slice";
+import { removeMemberThunk, fetchGroupsThunk, deleteGroupThunk } from "@/store/sports/groups-slice";
 import { fetchPaymentsThunk } from "@/store/sports/payments-slice";
 import { fetchEventsThunk } from "@/store/sports/events-slice";
 import {
@@ -53,6 +54,7 @@ export function GroupDetailsPage() {
   const params = useParams<{ groupId: string }>();
   const groupId = params.groupId;
   const dispatch = useAppDispatch();
+  const router = useRouter();
 
   const group = useAppSelector((state) => selectGroupById(state, groupId));
   const upcomingEvents = useAppSelector(selectUpcomingEvents);
@@ -157,6 +159,33 @@ export function GroupDetailsPage() {
     }
   };
 
+  const handleDeleteGroup = async () => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this group? This action cannot be undone."
+    );
+    if (!confirmed) return;
+
+    try {
+      await dispatch(deleteGroupThunk(groupId)).unwrap();
+      dispatch(
+        notificationAdded({
+          title: "Group deleted",
+          message: "The group has been successfully deleted.",
+          variant: "success",
+        })
+      );
+      router.push(ROUTES.SPORTS_GROUPS);
+    } catch (error: any) {
+      dispatch(
+        notificationAdded({
+          title: "Error deleting group",
+          message: error?.message || "Failed to delete group",
+          variant: "error",
+        })
+      );
+    }
+  };
+
   return (
     <PageContainer as="main">
       <Breadcrumb
@@ -204,16 +233,26 @@ export function GroupDetailsPage() {
               {group.description}
             </p>
           </div>
-          <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
-            <Button variant="outline" onClick={handleInvite}>
-              <UserPlus />
-              Invite
-            </Button>
-            <Button asChild variant="accent">
-              <Link href={ROUTES.SPORTS_EVENTS_CREATE}>
-                <CalendarDays />
-                New event
-              </Link>
+          <div className="flex shrink-0 flex-col gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button variant="outline" onClick={handleInvite}>
+                <UserPlus />
+                Invite
+              </Button>
+              <Button asChild variant="accent">
+                <Link href={ROUTES.SPORTS_EVENTS_CREATE}>
+                  <CalendarDays />
+                  New event
+                </Link>
+              </Button>
+            </div>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteGroup}
+              className="w-full sm:w-auto"
+            >
+              <Trash2 />
+              Delete group
             </Button>
           </div>
         </div>

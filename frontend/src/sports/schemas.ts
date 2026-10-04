@@ -167,6 +167,10 @@ export const securitySettingsSchema = z
     newPassword: passwordSchema,
     confirmPassword: z.string().min(1, "Confirm your new password"),
   })
+  .refine((data) => !data.currentPassword || data.newPassword !== data.currentPassword, {
+    message: "New password and current password should not be same",
+    path: ["newPassword"],
+  })
   .refine((data) => data.newPassword === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
@@ -194,11 +198,7 @@ export const createVenueSchema = z.object({
     .string()
     .trim()
     .min(1, "Phone number is required")
-    .regex(/^[0-9+\s\-()]*$/, "Phone number cannot contain alphabets")
-    .refine(
-      (val) => val.replace(/\D/g, "").length >= 10,
-      { message: "Phone number must contain at least 10 digits" }
-    ),
+    .regex(/^\d{10}$/, "Phone number must be exactly 10 digits (numbers only)"),
   openingTime: requiredStringSchema("Opening time"),
   closingTime: requiredStringSchema("Closing time"),
 }).refine(

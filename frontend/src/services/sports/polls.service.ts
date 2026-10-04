@@ -11,6 +11,7 @@ export interface PollsService {
   getById(id: string): Promise<ApiResponse<SportsPoll>>;
   create(input: unknown): Promise<ApiResponse<SportsPoll>>;
   vote(pollId: string, optionIds: string[]): Promise<ApiResponse<SportsPoll>>;
+  delete(id: string): Promise<ApiResponse<void>>;
 }
 
 export const pollsService: PollsService = {
@@ -30,6 +31,10 @@ export const pollsService: PollsService = {
     const { data } = await apiClient.post(`/api/v1/sports/polls/${pollId}/vote`, {
       optionId: optionIds[0],
     });
+    return data;
+  },
+  delete: async (id) => {
+    const { data } = await apiClient.delete(`/api/v1/sports/polls/${id}`);
     return data;
   },
 };

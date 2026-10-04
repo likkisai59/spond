@@ -51,3 +51,8 @@ class SendMessagePayload(BaseModel):
 
 class MessageUpdatePayload(BaseModel):
     content: str
+
+# Backward compatibility aliases
+ChatMessageResponse = MessageSchema
+MessageCreateRequest = SendMessagePayload
+

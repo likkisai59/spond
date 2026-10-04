@@ -11,6 +11,7 @@ export interface GroupsService {
   create(input: unknown): Promise<ApiResponse<SportsGroup>>;
   addMember(groupId: string, input: unknown): Promise<ApiResponse<SportsGroup>>;
   removeMember(groupId: string, memberId: string): Promise<ApiResponse<void>>;
+  delete(id: string): Promise<ApiResponse<void>>;
 }
 
 export const groupsService: GroupsService = {
@@ -32,6 +33,10 @@ export const groupsService: GroupsService = {
   },
   removeMember: async (groupId, memberId) => {
     const { data } = await apiClient.delete(`/api/v1/sports/groups/${groupId}/members/${memberId}`);
+    return data;
+  },
+  delete: async (id) => {
+    const { data } = await apiClient.delete(`/api/v1/sports/groups/${id}`);
     return data;
   },
 };

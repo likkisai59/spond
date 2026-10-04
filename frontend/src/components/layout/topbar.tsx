@@ -111,16 +111,6 @@ function NotificationsMenu() {
             </DropdownMenuItem>
           ))
         )}
-        <DropdownMenuSeparator />
-        <div className="flex p-2 gap-2 justify-center">
-          <Button variant="link" size="sm" asChild className="h-auto p-0">
-            <Link href="/band/artist/bookings">Bookings</Link>
-          </Button>
-          <span className="text-muted-foreground">|</span>
-          <Button variant="link" size="sm" asChild className="h-auto p-0">
-            <Link href="/band/artist/messages">Messages</Link>
-          </Button>
-        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

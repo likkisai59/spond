@@ -56,6 +56,14 @@ export const votePollThunk = createAsyncThunk(
   }
 );
 
+export const deletePollThunk = createAsyncThunk(
+  "sports/polls/deletePoll",
+  async (pollId: string) => {
+    await pollsService.delete(pollId);
+    return pollId;
+  }
+);
+
 const pollsSlice = createSlice({
   name: "sports/polls",
   initialState,
@@ -138,6 +146,9 @@ const pollsSlice = createSlice({
         if (index !== -1) {
           state.polls[index] = action.payload;
         }
+      })
+      .addCase(deletePollThunk.fulfilled, (state, action) => {
+        state.polls = state.polls.filter((p) => p.id !== action.payload);
       });
   },
 });

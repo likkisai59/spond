@@ -69,6 +69,14 @@ export const removeMemberThunk = createAsyncThunk(
   }
 );
 
+export const deleteGroupThunk = createAsyncThunk(
+  "sports/groups/deleteGroup",
+  async (groupId: string) => {
+    await groupsService.delete(groupId);
+    return groupId;
+  }
+);
+
 const groupsSlice = createSlice({
   name: "sports/groups",
   initialState,
@@ -143,6 +151,9 @@ const groupsSlice = createSlice({
         group.members = group.members.filter((m) => m.id !== memberId);
         group.memberCount = group.members.length;
         group.updatedAt = new Date().toISOString();
+      })
+      .addCase(deleteGroupThunk.fulfilled, (state, action) => {
+        state.groups = state.groups.filter((g) => g.id !== action.payload);
       });
   },
 });

@@ -1,6 +1,7 @@
 import os
 from typing import Any
 import aioboto3
+import botocore.client
 from fastapi import UploadFile
 from src.database.mongo import utc_now
 from src.repositories.system import FileRepository, FolderRepository
@@ -51,7 +52,7 @@ class FileService:
 
         if self.bucket:
             try:
-                async with self.session.client("s3") as s3:  # pyright: ignore
+                async with self.session.client("s3", config=botocore.client.Config(signature_version="s3v4", s3={"addressing_style": "virtual"}), endpoint_url=f"https://s3.{self.region}.amazonaws.com") as s3:  # pyright: ignore
                     await s3.put_object(
                         Bucket=self.bucket,
                         Key=s3_key,
@@ -108,7 +109,7 @@ class FileService:
         
         if self.bucket:
             try:
-                async with self.session.client("s3") as s3:  # pyright: ignore
+                async with self.session.client("s3", config=botocore.client.Config(signature_version="s3v4", s3={"addressing_style": "virtual"}), endpoint_url=f"https://s3.{self.region}.amazonaws.com") as s3:  # pyright: ignore
                     await s3.delete_object(Bucket=self.bucket, Key=f["s3_key"])
             except Exception:
                 pass
@@ -128,7 +129,7 @@ class FileService:
             return str(f["file_url"])
             
         try:
-            async with self.session.client("s3") as s3:  # pyright: ignore
+            async with self.session.client("s3", config=botocore.client.Config(signature_version="s3v4", s3={"addressing_style": "virtual"}), endpoint_url=f"https://s3.{self.region}.amazonaws.com") as s3:  # pyright: ignore
                 url = await s3.generate_presigned_url(
                     'get_object',
                     Params={'Bucket': self.bucket, 'Key': f["s3_key"]},
@@ -150,7 +151,13 @@ class FileService:
             # path is like /band/general/doc.pdf
             key = urllib.parse.unquote(parsed.path.lstrip('/'))
             
-            async with self.session.client("s3") as s3:  # pyright: ignore
+            # Extract region from netloc to prevent SigV4 mismatch (e.g. my-bucket.s3.ap-south-2.amazonaws.com)
+            region = self.region
+            parts = parsed.netloc.split('.')
+            if len(parts) >= 4 and parts[1] == 's3':
+                region = parts[2]
+            
+            async with self.session.client("s3", region_name=region, config=botocore.client.Config(signature_version="s3v4", s3={"addressing_style": "virtual"}), endpoint_url=f"https://s3.{region}.amazonaws.com") as s3:  # pyright: ignore
                 url = await s3.generate_presigned_url(
                     'get_object',
                     Params={'Bucket': self.bucket, 'Key': key},

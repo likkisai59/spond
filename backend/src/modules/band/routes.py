@@ -131,15 +131,15 @@ async def get_venues():
     # Only expose venues that have a real venue_name, name, or display_name set
     public_venues = [
         v for v in venues
-        if (v.get("venue_name") or v.get("name") or v.get("display_name"))
+        if (v.get("venue_name") or v.get("business_name") or v.get("name") or v.get("display_name"))
         and not str(v.get("id", "")).startswith("temp_")
     ]
     # Normalize fields for client consumption
     for v in public_venues:
         if not v.get("name"):
-            v["name"] = v.get("venue_name") or v.get("display_name") or "Venue"
+            v["name"] = v.get("venue_name") or v.get("business_name") or v.get("display_name") or "Venue"
         if not v.get("venue_name"):
-            v["venue_name"] = v.get("name") or v.get("display_name") or "Venue"
+            v["venue_name"] = v.get("name") or v.get("business_name") or v.get("display_name") or "Venue"
         if not v.get("capacity"):
             v["capacity"] = v.get("max_capacity") or v.get("min_capacity") or 0
         if not v.get("city"):

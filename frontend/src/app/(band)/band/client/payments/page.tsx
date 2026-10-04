@@ -15,9 +15,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
-import { bandService } from "@/services/band";
 import { useEffect } from "react";
 import { Booking } from "@/types/band";
+import { useRazorpay } from "@/hooks/use-razorpay";
+import { eventHubService } from "@/services/eventhub/events.service";
+import { bandService } from "@/services/band";
 
 interface Transaction {
   id: string;
@@ -44,6 +46,8 @@ export default function ClientPaymentsPage() {
   useEffect(() => {
     const fetchTransactions = async () => {
       try {
+        // Extract bookings from events (in EventHub, user bookings are part of their events)
+        // Alternatively, use bandService.getMyBookings("customer") which might be what's available
         const bookings = await bandService.getMyBookings("customer");
         const txns: Transaction[] = [];
         bookings.forEach((b: Booking) => {
@@ -103,24 +107,68 @@ export default function ClientPaymentsPage() {
     .filter((t) => t.status === "pending")
     .reduce((sum, t) => sum + t.amount, 0);
 
-  const handlePayMilestone = (txId: string) => {
-    setPayingId(txId);
-    setTimeout(() => {
+  const { isLoaded, processPayment } = useRazorpay();
+
+  const handlePayMilestone = async (txn: Transaction) => {
+    try {
+      if (!isLoaded) {
+        toast.error("Payment gateway is still loading. Please wait a moment.");
+        return;
+      }
+      setPayingId(txn.id);
+
+      const isAdvance = txn.milestone.includes("25%");
+      const milestoneParam = isAdvance ? "advance" : "final";
+
+      // 1. Create order on backend
+      const res = await eventHubService.createPaymentOrder(txn.bookingId, txn.amount, milestoneParam);
+      const orderData = res.data;
+      
+      const paymentId = orderData.id || orderData.payment_id;
+
+      // 2. Open Razorpay checkout
+      const rzpResponse = await processPayment({
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_placeholder",
+        amount: Math.round(txn.amount * 100), // Razorpay expects paisa (if not already handled)
+        currency: "INR",
+        name: "EventHub Secure Checkout",
+        description: `${txn.milestone} for ${txn.providerName}`,
+        order_id: orderData.razorpay_order_id,
+        theme: {
+          color: "#e11d48",
+        },
+      });
+
+      // 3. Verify signature
+      await eventHubService.verifyPayment({
+        razorpayOrderId: rzpResponse.razorpay_order_id,
+        razorpayPaymentId: rzpResponse.razorpay_payment_id,
+        razorpaySignature: rzpResponse.razorpay_signature,
+        paymentId: paymentId,
+        milestone: milestoneParam
+      });
+
+      // Update UI
       setTransactions((prev) =>
         prev.map((t) =>
-          t.id === txId
+          t.id === txn.id
             ? {
                 ...t,
                 status: "completed",
                 date: new Date().toISOString().split("T")[0],
-                paymentMethod: "Razorpay Secure (UPI/Card)",
+                paymentMethod: "Razorpay (Verified)",
               }
             : t
         )
       );
+      toast.success("Payment verified and processed successfully!");
+    } catch (error: unknown) {
+      console.error(error);
+      const msg = error instanceof Error ? error.message : "Payment failed or was cancelled.";
+      toast.error(msg);
+    } finally {
       setPayingId(null);
-      toast.success("Milestone payment processed successfully!");
-    }, 1200);
+    }
   };
 
   const handleDownloadInvoice = (txn: Transaction) => {
@@ -332,7 +380,7 @@ export default function ClientPaymentsPage() {
                         <Button
                           size="sm"
                           disabled={payingId === tx.id}
-                          onClick={() => handlePayMilestone(tx.id)}
+                          onClick={() => handlePayMilestone(tx)}
                           className="h-8 text-xs rounded-lg px-3 bg-primary text-primary-foreground font-semibold"
                         >
                           {payingId === tx.id ? "Processing..." : "Pay Now"}

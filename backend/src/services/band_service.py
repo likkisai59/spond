@@ -616,6 +616,7 @@ class BandService:
         venue = await self.get_venue_by_owner(user_id)
         return {
             "cover_image": venue.get("metadata_fields", {}).get("cover_image", None),
+            "logo": venue.get("metadata_fields", {}).get("logo", None),
             "gallery": venue.get("gallery", []),
             "videos": venue.get("videos", []),
             "youtube_links": venue.get("metadata_fields", {}).get("youtube_links", []),
@@ -626,6 +627,7 @@ class BandService:
         venue = await self.get_venue_by_owner(user_id)
         metadata_fields = venue.get("metadata_fields", {})
         metadata_fields["cover_image"] = data.get("cover_image", metadata_fields.get("cover_image"))
+        metadata_fields["logo"] = data.get("logo", metadata_fields.get("logo"))
         metadata_fields["youtube_links"] = data.get("youtube_links", metadata_fields.get("youtube_links"))
         metadata_fields["virtual_tour"] = data.get("virtual_tour", metadata_fields.get("virtual_tour"))
         

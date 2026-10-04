@@ -16,14 +16,7 @@ interface ImageUploadProps {
   subfolder?: string;
 }
 
-function formatImageUrl(url?: string): string {
-  if (!url) return "";
-  if (url.startsWith("blob:") || url.startsWith("data:") || url.startsWith("http://") || url.startsWith("https://")) {
-    return url;
-  }
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-  return `${apiBase.replace(/\/$/, "")}/${url.replace(/^\//, "")}`;
-}
+import { formatImageUrl } from "@/utils/helpers";
 
 export function ImageUpload({ value, onChange, onRemove, subfolder: _subfolder = "general" }: ImageUploadProps) {
   const [isUploading, setIsUploading] = React.useState(false);

@@ -115,7 +115,7 @@ export default function VenuePublicProfilePage() {
               venueId={venueId}
               venueName={profile.name}
               proposedPrice={profile.pricing_details?.base_rate_per_hour || 5000}
-              isArtistBookingVenue={user?.role === "artist" || user?.role === "band"}
+              isArtistBookingVenue={["artist", "band"].includes(String(user?.role ?? "").toLowerCase())}
               onSuccess={(_bookingId) => {
                 setShowBookingWizard(false);
                 router.push(`/band/client/bookings`);

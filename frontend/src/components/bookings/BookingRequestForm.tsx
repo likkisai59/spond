@@ -13,8 +13,9 @@ import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 
 import { bandService } from "@/services/band";
-import type { Artist, Venue } from "@/types/band";
+import type { Artist, BookingRequest, Venue } from "@/types/band";
 import { Music, Building } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 interface BookingRequestFormProps {
   artistProfileId?: string;
@@ -42,6 +43,13 @@ export function BookingRequestForm({
   const [summary, setSummary] = useState<string>("");
   const [artists, setArtists] = useState<Artist[]>([]);
   const [venues, setVenues] = useState<Venue[]>([]);
+  const { user } = useAuth();
+
+  const isArtistUser = ["artist", "band"].includes(String(user?.role ?? "").toLowerCase());
+
+  // Normalize: treat as "artist booking venue" mode whenever the prop says so.
+  // This guards against any case-sensitivity issues from the call-site.
+  const effectiveIsArtistBookingVenue = Boolean(isArtistBookingVenue) || isArtistUser;
 
   const {
     register,
@@ -126,28 +134,6 @@ export function BookingRequestForm({
       const targetArtistId = data.artist_profile_id || artistProfileId || null;
       const targetVenueId = data.venue_id || venueId || null;
 
-      // Map frontend field names to backend API contract
-      const apiPayload: Record<string, unknown> = {
-        artist_profile_id: targetArtistId,
-        venue_id: targetVenueId,
-        // Backend expects event_name, not event_title
-        event_name: data.event_title,
-        event_date: data.event_date,
-        start_time: data.start_time,
-        end_time: data.end_time,
-        location: composedLocation,
-        proposed_price: Number(data.proposed_price),
-        notes:
-          [
-            data.special_requests?.trim()
-              ? `Special requests: ${data.special_requests.trim()}`
-              : "",
-            data.notes?.trim() || "",
-          ]
-            .filter(Boolean)
-            .join("\n") || null,
-      };
-
       let createdId = "";
       const providerId = targetArtistId || targetVenueId || "";
       const providerType = targetArtistId ? "artist" : "venue";
@@ -161,16 +147,17 @@ export function BookingRequestForm({
         event_time: data.start_time,
         message: data.notes || data.special_requests || data.event_title,
         proposed_price: Number(data.proposed_price),
+        location: composedLocation,
       };
 
-      if (isArtistBookingVenue && providerId) {
+      if (effectiveIsArtistBookingVenue && providerId) {
         const res = await bookingService.createArtistVenueBooking(strictPayload as Record<string, unknown>);
         createdId = res.id;
       } else if (isVenueBookingTalent && providerId) {
         const res = await bookingService.createVenueTalentBooking(strictPayload as Record<string, unknown>);
         createdId = res.id;
       } else if (providerId) {
-        const bandRes = await bandService.createBooking(strictPayload as any);
+        const bandRes = await bandService.createBooking(strictPayload as BookingRequest);
         createdId = bandRes.id;
       } else {
         // If no provider selected, this is a generic request (fallback)
@@ -188,34 +175,36 @@ export function BookingRequestForm({
 
   return (
     <Card className="bg-card border border-border rounded-3xl shadow-2xl w-full max-w-2xl mx-auto overflow-hidden text-card-foreground">
-      <CardHeader className="border-b border-border bg-muted/20 p-6 flex flex-row items-start justify-between gap-4">
-        <div className="space-y-1 flex-1">
-          <CardTitle className="text-xl font-extrabold tracking-tight flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-accent" />
-            {isArtistBookingVenue ? "Book a Venue" : "Create Booking Request"}
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            {isArtistBookingVenue
-              ? "Search for and reserve a venue for your performance"
-              : artistName && venueName
-                ? `Submit inquiry for ${artistName} at ${venueName}`
-                : artistName
-                  ? `Submit booking inquiry for performer ${artistName}`
-                  : venueName
-                    ? `Request a reservation for ${venueName}`
-                    : "Hire performers or spaces for live gig entertainment"}
-          </p>
-        </div>
+      <CardHeader className="border-b border-border bg-muted/20 p-6">
+        <div className="flex flex-row items-start justify-between gap-4 w-full">
+          <div className="space-y-1 flex-1">
+            <CardTitle className="text-xl font-extrabold tracking-tight flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-accent" />
+              {effectiveIsArtistBookingVenue ? "Book a Venue" : "Create Booking Request"}
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              {effectiveIsArtistBookingVenue
+                ? "Search for and reserve a venue for your performance"
+                : artistName && venueName
+                  ? `Submit inquiry for ${artistName} at ${venueName}`
+                  : artistName
+                    ? `Submit booking inquiry for performer ${artistName}`
+                    : venueName
+                      ? `Request a reservation for ${venueName}`
+                      : "Hire performers or spaces for live gig entertainment"}
+            </p>
+          </div>
 
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="text-muted-foreground hover:text-foreground p-1.5 rounded-full hover:bg-muted transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        )}
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="text-muted-foreground hover:text-foreground p-1.5 rounded-full hover:bg-muted transition-colors bg-muted/30"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+        </div>
       </CardHeader>
 
       <CardContent className="p-6">
@@ -223,7 +212,12 @@ export function BookingRequestForm({
           {/* Section 0: Select Provider / Venue from Marketplace */}
           <div className="space-y-4 p-4 rounded-2xl bg-muted/10 border border-border">
             <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-              {isArtistBookingVenue ? (
+              {effectiveIsArtistBookingVenue ? (
+                <>
+                  <Building className="h-4 w-4 text-accent" />
+                  <span>Select Venue</span>
+                </>
+              ) : artistProfileId ? (
                 <>
                   <Building className="h-4 w-4 text-accent" />
                   <span>Select Venue</span>
@@ -231,14 +225,38 @@ export function BookingRequestForm({
               ) : (
                 <>
                   <Music className="h-4 w-4 text-accent" />
-                  <span>Select Performer & Venue</span>
+                  <span>Select Performer &amp; Venue</span>
                 </>
               )}
             </h3>
 
-            <div className={`grid grid-cols-1 ${!isArtistBookingVenue ? "sm:grid-cols-2" : ""} gap-4`}>
-              {/* Artist / Performer Select — hidden when artist is booking a venue (Bug 12 fix) or artist is pre-selected (Bug 13) */}
-              {!isArtistBookingVenue && !artistProfileId && (
+            {/* Artist-booking-venue context: show a clear "You will perform" indicator */}
+            {effectiveIsArtistBookingVenue && (
+              <div className="flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent mb-2">
+                <Music className="h-3.5 w-3.5 shrink-0" />
+                <span>You (the logged-in artist) will perform at this event — select a venue below.</span>
+              </div>
+            )}
+
+            {/* Pre-selected artist context: show which performer is already fixed */}
+            {!effectiveIsArtistBookingVenue && artistProfileId && artistName && (
+              <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary mb-2">
+                <Music className="h-3.5 w-3.5 shrink-0" />
+                <span>Performer: <span className="font-bold">{artistName}</span> — already selected. Optionally choose a venue below.</span>
+              </div>
+            )}
+
+            {/* Pre-selected venue context: show which venue is already fixed */}
+            {venueId && venueName && (
+              <div className="flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent mb-2">
+                <Building className="h-3.5 w-3.5 shrink-0" />
+                <span>Venue: <span className="font-bold">{venueName}</span> — already selected.</span>
+              </div>
+            )}
+
+            <div className={`grid grid-cols-1 ${(!effectiveIsArtistBookingVenue && !artistProfileId) && !venueId ? "sm:grid-cols-2" : ""} gap-4`}>
+              {/* Artist / Performer Select — hidden when artist is booking a venue or artist is pre-selected */}
+              {!effectiveIsArtistBookingVenue && !artistProfileId && (
                 <div className="space-y-1.5">
                   <Label htmlFor="artist_profile_id" className="text-xs font-semibold text-foreground">
                     Performer / Band {artistName ? `(Selected: ${artistName})` : ""}
@@ -267,31 +285,37 @@ export function BookingRequestForm({
               )}
 
               {/* Venue Select */}
-              <div className="space-y-1.5">
-                <Label htmlFor="venue_id" className="text-xs font-semibold text-foreground">
-                  Venue {venueName ? `(Selected: ${venueName})` : ""}
-                </Label>
-                <select
-                  id="venue_id"
-                  className="w-full h-9 rounded-xl border border-border bg-background text-foreground text-xs px-3 focus:outline-none focus:ring-1 focus:ring-accent"
-                  {...register("venue_id", {
-                    onChange: (e) => {
-                      const selected = venues.find((v) => v.id === e.target.value);
-                      if (selected) {
-                        setValue("location", selected.name);
-                        if (selected.city) setValue("city", selected.city);
-                      }
-                    },
-                  })}
-                >
-                  <option value="">-- Choose Venue or Enter Custom Location Below --</option>
-                  {venues.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name} ({v.city || "Venue"})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!venueId && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="venue_id" className="text-xs font-semibold text-foreground">
+                    Venue
+                  </Label>
+                  <select
+                    id="venue_id"
+                    className="w-full h-9 rounded-xl border border-border bg-background text-foreground text-xs px-3 focus:outline-none focus:ring-1 focus:ring-accent"
+                    {...register("venue_id", {
+                      onChange: (e) => {
+                        const selected = venues.find((v) => {
+                          const s = v as any;
+                          return (s.id || s._id) === e.target.value;
+                        });
+                        if (selected) {
+                          const s = selected as any;
+                          setValue("location", s.name || s.venue_name || s.business_name);
+                          if (s.city) setValue("city", s.city);
+                        }
+                      },
+                    })}
+                  >
+                    <option value="">-- Choose Venue or Enter Custom Location Below --</option>
+                    {venues.map((v: any) => (
+                      <option key={v.id || v._id} value={v.id || v._id}>
+                        {v.name || v.venue_name || v.business_name || "Venue"} ({v.city || "Venue"})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
 

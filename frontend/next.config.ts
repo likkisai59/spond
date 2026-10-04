@@ -11,6 +11,14 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "myapp-production-storage-2026.s3.ap-south-2.amazonaws.com",
+      },
+    ],
+  },
   async rewrites() {
     return [
       {

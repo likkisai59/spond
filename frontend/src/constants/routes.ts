@@ -58,7 +58,7 @@ export function sportsRoute(
 }
 
 export function getDefaultRouteForRole(role: string): string {
-  switch (role) {
+  switch (String(role || "").toLowerCase()) {
     case "sports_venue_owner":
       return ROUTES.SPORTS_OWNER_DASHBOARD;
     case "client":

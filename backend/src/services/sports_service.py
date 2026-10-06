@@ -49,6 +49,14 @@ class SportsService:
             raise AppException(400, "Group name already exists")
         
         group_doc = data.model_dump(exclude_unset=True, by_alias=False)
+        if "logo_url" in group_doc and "logo" not in group_doc:
+            group_doc["logo"] = group_doc["logo_url"]
+        elif "logo" in group_doc and "logo_url" not in group_doc:
+            group_doc["logo_url"] = group_doc["logo"]
+        if "cover_image" in group_doc and "coverImage" not in group_doc:
+            group_doc["coverImage"] = group_doc["cover_image"]
+        elif "coverImage" in group_doc and "cover_image" not in group_doc:
+            group_doc["cover_image"] = group_doc["coverImage"]
         group_doc.update({
             "created_by": user_id,
             "created_at": utc_now(),
@@ -150,6 +158,14 @@ class SportsService:
 
     async def update_group(self, group_id: str, data: GroupUpdateRequest) -> dict:
         update_data = data.model_dump(exclude_unset=True)
+        if "logo_url" in update_data and "logo" not in update_data:
+            update_data["logo"] = update_data["logo_url"]
+        elif "logo" in update_data and "logo_url" not in update_data:
+            update_data["logo_url"] = update_data["logo"]
+        if "cover_image" in update_data and "coverImage" not in update_data:
+            update_data["coverImage"] = update_data["cover_image"]
+        elif "coverImage" in update_data and "cover_image" not in update_data:
+            update_data["cover_image"] = update_data["coverImage"]
         if not update_data:
             return await self.get_group(group_id)
             

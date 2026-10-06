@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, MapPin, Star, Users } from "lucide-react";
+import { Building2, MapPin, Pencil, Star, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/shared/card";
@@ -13,9 +13,10 @@ export interface VenueCardProps {
   venue: SportsVenue;
   className?: string;
   href?: string;
+  onEdit?: (venue: SportsVenue) => void;
 }
 
-export function VenueCard({ venue, className, href }: VenueCardProps) {
+export function VenueCard({ venue, className, href, onEdit }: VenueCardProps) {
   const priceFrom = Math.min(...VENUE_SLOTS.map((slot) => slot.price));
 
   return (
@@ -28,9 +29,28 @@ export function VenueCard({ venue, className, href }: VenueCardProps) {
           <Building2 className="h-7 w-7 text-accent" />
         </span>
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-lg font-extrabold tracking-tight">
-            {venue.name}
-          </h3>
+          <div className="flex items-center justify-between gap-2">
+            <h3 className="truncate text-lg font-extrabold tracking-tight">
+              {venue.name}
+            </h3>
+            {onEdit && (
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 shrink-0 rounded-full text-muted-foreground hover:bg-accent/15 hover:text-accent"
+                title="Edit venue details"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onEdit(venue);
+                }}
+              >
+                <Pencil className="h-4 w-4" />
+                <span className="sr-only">Edit Venue</span>
+              </Button>
+            )}
+          </div>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{venue.surface}</Badge>
             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">

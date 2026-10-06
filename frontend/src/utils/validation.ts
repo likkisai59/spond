@@ -415,8 +415,7 @@ export const emailSchema = z
   .refine(
     (val) => {
       const email = val.trim().toLowerCase();
-      const domain = email.split("@")[1];
-      return domain !== "hotmail.com" && /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email);
+      return /^[a-zA-Z0-9._%+-]+@(gmail\.com|yahoo\.com|yahoo\.co\.in|outlook\.com)$/.test(email);
     },
     { message: "enter valid email" }
   );

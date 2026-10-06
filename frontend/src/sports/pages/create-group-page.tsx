@@ -47,8 +47,11 @@ export function CreateGroupPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const inputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoName, setLogoName] = useState<string | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverName, setCoverName] = useState<string | null>(null);
 
   const form = useForm<CreateGroupFormData>({
     resolver: zodResolver(createGroupSchema),
@@ -110,11 +113,63 @@ export function CreateGroupPage() {
     setLogoName(null);
   };
 
+  const handleCoverChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      dispatch(
+        notificationAdded({
+          title: "Invalid file",
+          message: "Cover images must be PNG or JPG images.",
+          variant: "info",
+        })
+      );
+      return;
+    }
+    if (file.size > MAX_LOGO_SIZE_KB * 1024) {
+      dispatch(
+        notificationAdded({
+          title: "Cover too large",
+          message: "Please pick an image under 2 MB.",
+          variant: "info",
+        })
+      );
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCoverPreview(typeof reader.result === "string" ? reader.result : null);
+      setCoverName(file.name);
+      dispatch(
+        notificationAdded({
+          title: "Cover image ready",
+          message: `${file.name} will be used as the group cover image.`,
+          variant: "success",
+        })
+      );
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveCover = () => {
+    setCoverPreview(null);
+    setCoverName(null);
+  };
+
   const onSubmit: SubmitHandler<CreateGroupFormData> = async (data) => {
     try {
       const actionResult = await dispatch(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        createGroupThunk({ ...data, logoUrl: logoPreview || undefined } as any)
+        createGroupThunk({
+          ...data,
+          logo: logoPreview || undefined,
+          logoUrl: logoPreview || undefined,
+          coverImage: coverPreview || undefined,
+          cover_image: coverPreview || undefined,
+        } as any)
       ).unwrap();
       dispatch(
         notificationAdded({
@@ -218,6 +273,73 @@ export function CreateGroupPage() {
               label="City"
               placeholder="e.g. Mumbai, MH"
             />
+
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">Group cover image</p>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/png,image/jpeg"
+                className="hidden"
+                onChange={handleCoverChange}
+                aria-hidden="true"
+                tabIndex={-1}
+              />
+              {coverPreview ? (
+                <div className="overflow-hidden rounded-xl border border-border/70 bg-muted/30">
+                  <div className="relative h-28 w-full sm:h-32">
+                    <img
+                      src={coverPreview}
+                      alt="Cover image preview"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold">{coverName}</p>
+                      <p className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                        <Check className="h-3.5 w-3.5" />
+                        Cover ready to save
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => coverInputRef.current?.click()}
+                      >
+                        Replace
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={handleRemoveCover}
+                        aria-label="Remove cover image"
+                      >
+                        <Trash2 />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => coverInputRef.current?.click()}
+                  className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-input bg-muted/40 px-4 py-8 transition-colors hover:border-accent/50 hover:bg-brand-gradient-soft"
+                >
+                  <ImagePlus className="h-7 w-7 text-accent" />
+                  <span className="text-sm font-semibold">
+                    Click to upload a cover image
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    PNG or JPG, up to 2 MB (Banner display)
+                  </span>
+                </button>
+              )}
+            </div>
 
             <div className="space-y-2">
               <p className="text-sm font-semibold">Group logo</p>

@@ -23,7 +23,8 @@ export function GroupCard({ group, nextEvent, className }: GroupCardProps) {
     >
       <div className="flex items-start gap-4">
         <Avatar className="h-14 w-14 rounded-2xl">
-          <AvatarImage src={group.logoUrl || (group as any).logo} alt={group.name} />
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          <AvatarImage src={group.logoUrl || (group as any).logo || (group as any).logo_url} alt={group.name} />
           <AvatarFallback className="rounded-2xl text-sm">
             {getInitials(group.name)}
           </AvatarFallback>

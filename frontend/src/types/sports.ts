@@ -61,6 +61,8 @@ export interface SportsGroup extends BaseEntity {
   visibility?: GroupVisibility;
   logo?: string;
   logoUrl?: string;
+  coverImage?: string;
+  cover_image?: string;
 }
 
 export const EVENT_TYPES = [

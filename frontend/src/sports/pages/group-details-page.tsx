@@ -200,15 +200,23 @@ export function GroupDetailsPage() {
 
       <Card className="animate-fade-in-up p-6 sm:p-8">
         <div className="-mx-6 -mt-6 mb-6 h-28 overflow-hidden rounded-t-lg bg-brand-gradient sm:-mx-8 sm:-mt-8 sm:h-32">
-          <div
-            className="h-full w-full bg-[radial-gradient(circle_at_20%_120%,rgba(255,255,255,0.35),transparent_50%),radial-gradient(circle_at_85%_-20%,rgba(255,255,255,0.25),transparent_45%)]"
-            aria-hidden="true"
-          />
+          {group.coverImage || (group as any).cover_image ? (
+            <img
+              src={group.coverImage || (group as any).cover_image}
+              alt={`${group.name} cover`}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div
+              className="h-full w-full bg-[radial-gradient(circle_at_20%_120%,rgba(255,255,255,0.35),transparent_50%),radial-gradient(circle_at_85%_-20%,rgba(255,255,255,0.25),transparent_45%)]"
+              aria-hidden="true"
+            />
+          )}
         </div>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
           <Avatar className="h-20 w-20 rounded-3xl">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            <AvatarImage src={group.logoUrl || (group as any).logo} alt={group.name} />
+            <AvatarImage src={group.logoUrl || (group as any).logo || (group as any).logo_url} alt={group.name} />
             <AvatarFallback className="rounded-3xl text-xl">
               {getInitials(group.name)}
             </AvatarFallback>

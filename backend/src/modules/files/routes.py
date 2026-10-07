@@ -13,11 +13,12 @@ service = FileService()
 async def upload_file(
     module: str = Form(...),
     module_id: Optional[str] = Form(None),
+    folder: Optional[str] = Form("Training"),
     file: UploadFile = File(...),
     background_tasks: BackgroundTasks = BackgroundTasks(),
     user: dict = Depends(get_current_user)
 ) -> dict:
-    uploaded = await service.upload_file(user["id"], file, module, module_id)
+    uploaded = await service.upload_file(user["id"], file, module, module_id, folder=folder)
     
     background_tasks.add_task(
         send_notification_task,
@@ -31,8 +32,13 @@ async def upload_file(
     return {"status": "success", "data": uploaded}
 
 @router.get("")
-async def list_files(module: str, module_id: str = None, _: dict = Depends(get_current_user)) -> dict:
-    files = await service.list_files(module, module_id)
+async def list_files(
+    module: str, 
+    module_id: Optional[str] = None, 
+    folder: Optional[str] = None, 
+    user: dict = Depends(get_current_user)
+) -> dict:
+    files = await service.list_files(module, module_id, user_id=user["id"], folder=folder)
     return {"status": "success", "data": {"items": files}}
 
 @router.get("/redirect")

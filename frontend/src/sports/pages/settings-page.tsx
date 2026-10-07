@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/shared/card";
 import {
   Form,
-  FormCheckbox,
   FormInput,
   FormPassword,
 } from "@/components/forms";
@@ -21,10 +20,8 @@ import { useAuth } from "@/hooks";
 import { apiClient } from "@/services/api-client";
 import { authService } from "@/services";
 import {
-  notificationSettingsSchema,
   profileSettingsSchema,
   securitySettingsSchema,
-  type NotificationSettingsFormData,
   type ProfileSettingsFormData,
   type SecuritySettingsFormData,
 } from "../schemas";
@@ -107,81 +104,6 @@ function ProfileTab() {
           <div className="flex justify-end">
             <Button type="submit" variant="accent">
               Save profile
-            </Button>
-          </div>
-        </form>
-      </Form>
-    </Card>
-  );
-}
-
-function NotificationsTab() {
-  const dispatch = useAppDispatch();
-  const form = useForm<NotificationSettingsFormData>({
-    resolver: zodResolver(notificationSettingsSchema),
-    defaultValues: {
-      emailNotifications: true,
-      pushNotifications: true,
-      eventReminders: true,
-      pollNotifications: true,
-      paymentReminders: true,
-      messageNotifications: true,
-      weeklyDigest: false,
-    },
-  });
-
-  const onSubmit: SubmitHandler<NotificationSettingsFormData> = () => {
-    dispatch(
-      notificationAdded({
-        title: "Notification preferences saved",
-        message: "Your notification settings were updated (demo mode).",
-        variant: "success",
-      })
-    );
-  };
-
-  return (
-    <Card className="p-6 sm:p-8">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5" noValidate>
-          <FormCheckbox
-            control={form.control}
-            name="emailNotifications"
-            label="Email notifications — receive updates and digests by email"
-          />
-          <FormCheckbox
-            control={form.control}
-            name="pushNotifications"
-            label="Push notifications — get instant alerts on your devices"
-          />
-          <FormCheckbox
-            control={form.control}
-            name="eventReminders"
-            label="Event reminders — ping me before matches and training"
-          />
-          <FormCheckbox
-            control={form.control}
-            name="pollNotifications"
-            label="Poll notifications — tell me when polls open or close"
-          />
-          <FormCheckbox
-            control={form.control}
-            name="paymentReminders"
-            label="Payment reminders — notify me about due and overdue payments"
-          />
-          <FormCheckbox
-            control={form.control}
-            name="messageNotifications"
-            label="Message notifications — alert me for new group messages"
-          />
-          <FormCheckbox
-            control={form.control}
-            name="weeklyDigest"
-            label="Weekly digest — a summary of activity every Monday"
-          />
-          <div className="flex justify-end">
-            <Button type="submit" variant="accent">
-              Save preferences
             </Button>
           </div>
         </form>
@@ -291,22 +213,18 @@ export function SettingsPage() {
 
       <PageHeader
         title="Settings"
-        description="Manage your profile, notifications, security and preferences."
+        description="Manage your profile, security and preferences."
       />
 
       <Tabs defaultValue="profile" className="mt-6">
         <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
           <TabsTrigger value="preferences">Preferences</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="mt-6 animate-fade-in-up">
           <ProfileTab />
-        </TabsContent>
-        <TabsContent value="notifications" className="mt-6 animate-fade-in-up">
-          <NotificationsTab />
         </TabsContent>
         <TabsContent value="security" className="mt-6 animate-fade-in-up">
           <SecurityTab />

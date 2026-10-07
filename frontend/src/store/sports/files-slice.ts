@@ -23,8 +23,12 @@ const initialState: FilesState = { files: [] };
 
 export const fetchFilesThunk = createAsyncThunk(
   "sports/files/fetchFiles",
-  async () => {
-    const response = await filesService.list({ module: "sports" } as any);
+  async (groupId?: string) => {
+    const params: Record<string, string> = { module: "sports" };
+    if (groupId && groupId !== "all") {
+      params.module_id = groupId;
+    }
+    const response = await filesService.list(params as any);
     const resData = (response?.data as any)?.data || response?.data || response;
     const items = Array.isArray(resData) ? resData : (resData?.items || []);
     return items.map((item: any): SportsFile => {
@@ -36,7 +40,7 @@ export const fetchFilesThunk = createAsyncThunk(
       else if (["xls", "xlsx", "csv"].includes(ext)) type = "Spreadsheet";
       else if (["mp4", "mov", "avi", "webm"].includes(ext)) type = "Video";
 
-      const folderRaw = item.moduleId || item.module_id || item.folder || "Training";
+      const folderRaw = item.folder || item.moduleId || item.module_id || "Training";
       const folder = folderRaw === "general" ? "Training" : (folderRaw.charAt(0).toUpperCase() + folderRaw.slice(1));
       const sizeBytes = item.fileSize || item.file_size || (item.sizeKb ? item.sizeKb * 1024 : 0);
       const createdAt = item.createdAt || item.created_at || new Date().toISOString();
@@ -47,6 +51,7 @@ export const fetchFilesThunk = createAsyncThunk(
         type: item.type || type,
         sizeKb: item.sizeKb || Math.max(1, Math.round(sizeBytes / 1024)),
         folder,
+        groupId: item.module_id || item.moduleId || item.groupId || "",
         uploadedBy: item.uploadedBy || item.uploaded_by || "You",
         createdAt,
         updatedAt: item.updatedAt || item.updated_at || createdAt,

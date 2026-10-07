@@ -31,6 +31,8 @@ class GroupResponse(CamelModel):
     age_group: str | None = None
     location: str | None = None
     logo: str | None = None
+    logo_url: str | None = None
+    cover_image: str | None = None
     visibility: str | None = None
     created_by: str
     created_at: datetime
@@ -47,6 +49,8 @@ class GroupCreateRequest(CamelModel):
     location: str | None = None
     visibility: str | None = None
     logo: str | None = None
+    logo_url: str | None = None
+    cover_image: str | None = None
 
 class GroupUpdateRequest(CamelModel):
     name: str | None = Field(default=None, min_length=2, max_length=100)
@@ -57,6 +61,8 @@ class GroupUpdateRequest(CamelModel):
     location: str | None = None
     visibility: str | None = None
     logo: str | None = None
+    logo_url: str | None = None
+    cover_image: str | None = None
 
 # --- Members ---
 class AddMemberRequest(CamelModel):

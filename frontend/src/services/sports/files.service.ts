@@ -3,6 +3,9 @@ import type { ApiResponse, Paginated, PaginationQuery, SportsFile } from "@/type
 
 export interface FileQuery extends PaginationQuery {
   folder?: string;
+  module_id?: string;
+  moduleId?: string;
+  groupId?: string;
 }
 
 export interface FilesService {

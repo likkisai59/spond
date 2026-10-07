@@ -13,7 +13,7 @@ import { useDebounce } from "@/hooks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { filesAdded, fileRemoved, fetchFilesThunk } from "@/store/sports/files-slice";
-import { selectAllFiles, selectRecentFiles } from "@/store/sports/selectors";
+import { selectAllFiles, selectAllGroups, selectRecentFiles } from "@/store/sports/selectors";
 import { FileCardWithActions } from "../components/file-card-with-actions";
 import { downloadMockFile } from "../components/file-utils";
 
@@ -54,8 +54,10 @@ export function FilesPage() {
   const dispatch = useAppDispatch();
   const files = useAppSelector(selectAllFiles);
   const recentFiles = useAppSelector(selectRecentFiles);
+  const groups = useAppSelector(selectAllGroups);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [folder, setFolder] = useState<string>("All");
   const [previewFile, setPreviewFile] = useState<SportsFile | null>(null);
@@ -65,20 +67,21 @@ export function FilesPage() {
   const debouncedSearch = useDebounce(search, 250);
 
   useEffect(() => {
-    dispatch(fetchFilesThunk());
-  }, [dispatch]);
+    dispatch(fetchFilesThunk(selectedGroupId));
+  }, [dispatch, selectedGroupId]);
 
   const filteredFiles = useMemo(() => {
     const query = debouncedSearch.trim().toLowerCase();
     return files.filter((file) => {
+      const matchesGroup = selectedGroupId === "all" || !file.groupId || file.groupId === selectedGroupId;
       const matchesFolder = folder === "All" || file.folder.toLowerCase() === folder.toLowerCase();
       const matchesQuery =
         query.length === 0 ||
         file.name.toLowerCase().includes(query) ||
         file.uploadedBy.toLowerCase().includes(query);
-      return matchesFolder && matchesQuery;
+      return matchesGroup && matchesFolder && matchesQuery;
     });
-  }, [files, folder, debouncedSearch]);
+  }, [files, selectedGroupId, folder, debouncedSearch]);
 
   const handleUploadClick = () => inputRef.current?.click();
 
@@ -101,7 +104,9 @@ export function FilesPage() {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("module", "sports");
-        formData.append("module_id", folder === "All" ? "general" : folder.toLowerCase());
+        const targetGroupId = selectedGroupId !== "all" ? selectedGroupId : (groups[0]?.id || "general");
+        formData.append("module_id", targetGroupId);
+        formData.append("folder", folder === "All" ? "Training" : folder);
         await filesService.upload(formData);
       } catch (err) {
         console.warn("Backend file upload error (falling back to local):", err);
@@ -116,6 +121,7 @@ export function FilesPage() {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           folder: folder === "All" ? "Training" : (folder as any),
           sizeKb: Math.max(1, Math.round(file.size / 1024)),
+          groupId: selectedGroupId !== "all" ? selectedGroupId : (groups[0]?.id || ""),
         }))
       )
     );
@@ -126,7 +132,7 @@ export function FilesPage() {
         variant: "success",
       })
     );
-    dispatch(fetchFilesThunk());
+    dispatch(fetchFilesThunk(selectedGroupId));
     event.target.value = "";
   };
 
@@ -212,7 +218,22 @@ export function FilesPage() {
       )}
 
       <div className="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {groups.length > 0 && (
+            <select
+              value={selectedGroupId}
+              onChange={(event) => setSelectedGroupId(event.target.value)}
+              className="rounded-full border border-border/70 bg-card px-3.5 py-1.5 text-xs font-bold text-foreground transition-colors hover:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent"
+              aria-label="Filter by club"
+            >
+              <option value="all">All Clubs ({groups.length})</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.name}
+                </option>
+              ))}
+            </select>
+          )}
           {FILE_FOLDERS.map((item) => (
             <button
               key={item}

@@ -40,7 +40,7 @@ class FileService:
         clean_name = os.path.basename(original_name)
         return f"{base_path}/{clean_name}"
 
-    async def upload_file(self, user_id: str, file: UploadFile, module: str, module_id: str | None = None) -> dict[str, Any]:
+    async def upload_file(self, user_id: str, file: UploadFile, module: str, module_id: str | None = None, folder: str | None = None) -> dict[str, Any]:
         content = await file.read()
         file_size = len(content)
         
@@ -73,6 +73,7 @@ class FileService:
         doc = {
             "module": module,
             "module_id": module_id,
+            "folder": folder or "Training",
             "file_name": file.filename,
             "original_name": file.filename,
             "file_type": file.content_type,
@@ -92,10 +93,31 @@ class FileService:
             f.write(content)
         return f"/uploads/{rel_path}"
 
-    async def list_files(self, module: str, module_id: str | None = None) -> list[dict[str, Any]]:
+    async def list_files(self, module: str, module_id: str | None = None, user_id: str | None = None, folder: str | None = None) -> list[dict[str, Any]]:
         query: dict[str, Any] = {"module": module}
-        if module_id:
+        if module_id and module_id != "all":
             query["module_id"] = module_id
+        elif module == "sports" and user_id:
+            from src.repositories.sports import GroupMemberRepository, GroupRepository
+            member_repo = GroupMemberRepository()
+            group_repo = GroupRepository()
+            
+            memberships = await member_repo.find_many({"user_id": user_id})
+            created_groups = await group_repo.find_many({"created_by": user_id})
+            
+            group_ids = [m["group_id"] for m in memberships if "group_id" in m]
+            group_ids.extend([g["id"] for g in created_groups if "id" in g])
+            
+            query["$or"] = [
+                {"module_id": {"$in": list(set(group_ids))}},
+                {"uploaded_by": user_id}
+            ]
+        elif module_id:
+            query["module_id"] = module_id
+
+        if folder and folder.lower() != "all":
+            query["folder"] = {"$regex": f"^{folder}$", "$options": "i"}
+
         return await self.files.find_many(query)
 
     async def get_file(self, file_id: str) -> dict[str, Any]:
@@ -106,6 +128,9 @@ class FileService:
 
     async def delete_file(self, file_id: str, user_id: str) -> None:
         f = await self.get_file(file_id)
+        if f.get("uploaded_by") and f.get("uploaded_by") != user_id:
+            from src.exceptions.handlers import ForbiddenError
+            raise ForbiddenError("You do not have permission to delete this file")
         
         if self.bucket:
             try:

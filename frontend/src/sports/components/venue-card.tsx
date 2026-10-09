@@ -4,8 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/shared/card";
 import { ROUTES } from "@/constants";
-import { formatCurrency } from "@/utils/helpers";
-import { VENUE_SLOTS } from "../mocks/venues.mock";
 import type { SportsVenue } from "@/types";
 import { cn } from "@/utils/cn";
 
@@ -17,8 +15,6 @@ export interface VenueCardProps {
 }
 
 export function VenueCard({ venue, className, href, onEdit }: VenueCardProps) {
-  const priceFrom = Math.min(...VENUE_SLOTS.map((slot) => slot.price));
-
   return (
     <Card
       interactive
@@ -73,9 +69,6 @@ export function VenueCard({ venue, className, href, onEdit }: VenueCardProps) {
         <span className="inline-flex items-center gap-1.5">
           <Users className="h-4 w-4 text-accent" />
           Fits {venue.capacity}
-        </span>
-        <span className="ml-auto text-accent">
-          {formatCurrency(priceFrom)}+ / slot
         </span>
       </div>
 

@@ -1,4 +1,6 @@
 import type { SportsFile } from "@/types";
+import { apiClient } from "@/services/api-client";
+import { API_BASE_URL } from "@/utils/constants";
 
 export function formatFileSize(sizeKb: number): string {
   if (sizeKb >= 1024) return `${(sizeKb / 1024).toFixed(1)} MB`;
@@ -6,9 +8,26 @@ export function formatFileSize(sizeKb: number): string {
 }
 
 export async function downloadFile(file: SportsFile) {
-  if (file.fileUrl) {
+  let targetUrl = file.fileUrl || "";
+
+  if (file.id) {
     try {
-      const response = await fetch(file.fileUrl);
+      const res = await apiClient.get(`/api/v1/files/download/${file.id}`);
+      if (res.data?.data?.download_url) {
+        targetUrl = res.data.data.download_url;
+      }
+    } catch (_err) {
+      // fallback to file.fileUrl
+    }
+  }
+
+  if (targetUrl.startsWith("/")) {
+    targetUrl = `${API_BASE_URL}${targetUrl}`;
+  }
+
+  if (targetUrl) {
+    try {
+      const response = await fetch(targetUrl);
       if (response.ok) {
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
@@ -21,8 +40,17 @@ export async function downloadFile(file: SportsFile) {
         URL.revokeObjectURL(url);
         return;
       }
-    } catch (err) {
-      console.warn("Real file download failed, falling back to mock:", err);
+    } catch (_err) {
+      // Direct anchor click bypasses browser CORS for S3 presigned URLs
+      const anchor = document.createElement("a");
+      anchor.href = targetUrl;
+      anchor.download = file.name;
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      return;
     }
   }
 
@@ -31,7 +59,7 @@ export async function downloadFile(file: SportsFile) {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = file.name.endsWith(".txt") ? file.name : `${file.name}.txt`;
+  anchor.download = file.name;
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();

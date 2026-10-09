@@ -157,7 +157,11 @@ class FileService:
             async with self.session.client("s3", config=botocore.client.Config(signature_version="s3v4", s3={"addressing_style": "virtual"}), endpoint_url=f"https://s3.{self.region}.amazonaws.com") as s3:  # pyright: ignore
                 url = await s3.generate_presigned_url(
                     'get_object',
-                    Params={'Bucket': self.bucket, 'Key': f["s3_key"]},
+                    Params={
+                        'Bucket': self.bucket,
+                        'Key': f["s3_key"],
+                        'ResponseContentDisposition': f'attachment; filename="{f.get("file_name") or f.get("original_name") or "download"}"'
+                    },
                     ExpiresIn=3600
                 )
                 return str(url)

@@ -21,6 +21,9 @@ import { useAuth } from "@/hooks";
 import { apiClient } from "@/services/api-client";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchGroupsThunk } from "@/store/sports/groups-slice";
+import { fetchEventsThunk } from "@/store/sports/events-slice";
+import { fetchPollsThunk } from "@/store/sports/polls-slice";
+import { fetchPaymentsThunk } from "@/store/sports/payments-slice";
 import {
   selectActivePolls,
   selectPendingPayments,
@@ -57,6 +60,9 @@ export function SportsDashboardPage() {
   useEffect(() => {
     setMounted(true);
     dispatch(fetchGroupsThunk());
+    dispatch(fetchEventsThunk());
+    dispatch(fetchPollsThunk());
+    dispatch(fetchPaymentsThunk());
   }, [dispatch]);
 
 
@@ -124,7 +130,7 @@ export function SportsDashboardPage() {
 
   const displayStats = {
     groups: realStats.groups || storeStats.groups,
-    events: realStats.events || storeStats.events,
+    events: upcomingEvents.length,
     members: realStats.members || storeStats.members,
     paymentsDue: realStats.paymentsDue || storeStats.paymentsDue,
     unreadMessages: realStats.unreadMessages || storeStats.unreadMessages,

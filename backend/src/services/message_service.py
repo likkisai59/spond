@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import List, Dict, Any, Optional
 from bson import ObjectId
 from src.database.mongo import utc_now
@@ -12,12 +13,22 @@ from src.schemas.messages import (
     MessageUpdatePayload
 )
 from src.core.config import settings
+from src.database.base_repository import BaseRepository
+from src.services.notification_service import NotificationService
+
+class BookingRepository(BaseRepository):
+    collection_name = "band_bookings"
+
+class VenueBookingRepository(BaseRepository):
+    collection_name = "band_venue_bookings"
 
 class MessageService:
     def __init__(self):
         self.conversations = ConversationRepository()
         self.messages = MessageRepository()
-        self.bookings = EventHubEventRepository()  # Assuming bookings are here
+        self.events = EventHubEventRepository()
+        self.band_bookings = BookingRepository()
+        self.venue_bookings = VenueBookingRepository()
 
     async def get_user_conversations(self, user_id: str) -> List[Dict[str, Any]]:
         # A user is in a conversation if they are the client, the band, or the venue owner
@@ -73,20 +84,46 @@ class MessageService:
         if existing:
             raise ValueError(f"Conversation for booking {payload.booking_id} already exists")
             
-        # In a real scenario, we'd fetch the booking to get client_id, band_id, venue_owner_id
-        # For now, we mock the participants based on current user being the client
+        # Fetch the booking to get client_id, band_id, venue_owner_id
+        client_id = user_id
+        band_id = None
+        venue_owner_id = None
+        event_name = f"Event for {payload.booking_id}"
+        
+        # Try band_bookings
+        booking = await self.band_bookings.find_by_id(payload.booking_id)
+        if booking:
+            client_id = booking.get("client_id") or user_id
+            band_id = booking.get("artist_id")
+            event_name = booking.get("event_title") or event_name
+        else:
+            # Try band_venue_bookings
+            booking = await self.venue_bookings.find_by_id(payload.booking_id)
+            if booking:
+                client_id = booking.get("client_id") or user_id
+                venue_owner_id = booking.get("venue_id")
+                event_name = booking.get("event_title") or event_name
+            else:
+                # Try eventhub_events
+                booking = await self.events.find_by_id(payload.booking_id)
+                if booking:
+                    client_id = booking.get("customer_id") or user_id
+                    band_id = booking.get("artist_id")
+                    venue_owner_id = booking.get("venue_id")
+                    event_name = booking.get("event_name") or event_name
+
         now = utc_now()
         doc = {
             "booking_id": payload.booking_id,
-            "client_id": user_id,
-            "band_id": "band-provider-id", # mock
-            "venue_owner_id": None,
+            "client_id": client_id,
+            "band_id": band_id,
+            "venue_owner_id": venue_owner_id,
             "pinned_message_id": None,
             "status": "ACTIVE",
             "last_message_at": now,
             "created_at": now,
             "updated_at": now,
-            "event_name": f"Event for {payload.booking_id}"
+            "event_name": event_name
         }
         
         created = await self.conversations.insert(doc)
@@ -127,7 +164,7 @@ class MessageService:
                     
         return messages_docs
 
-    async def save_message(self, conversation_id: str, sender_id: str, payload: SendMessagePayload, message_type: str = "TEXT", attachment_data: dict = None) -> Dict[str, Any]:
+    async def save_message(self, conversation_id: str, sender_id: str, payload: SendMessagePayload, message_type: str = "TEXT", attachment_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         now = utc_now()
         
         msg_doc = {
@@ -162,11 +199,28 @@ class MessageService:
         conv = await self.conversations.find_by_id(conversation_id)
         if conv:
             participants = [p for p in [conv.get("client_id"), conv.get("band_id"), conv.get("venue_owner_id")] if p]
+            
+            # Send Notifications to everyone except sender
+            notif_service = NotificationService()
             for p in set(participants):
                 await manager.send_personal_message(
                     {"type": "messaging", "event": "message.created", "data": created_msg},
                     p
                 )
+                
+                if p != sender_id:
+                    # Resolve sender name (optional improvement: fetch real name)
+                    msg_preview = payload.content if payload.content else "Sent an attachment"
+                    if len(msg_preview) > 50:
+                        msg_preview = msg_preview[:47] + "..."
+                        
+                    await notif_service.create_notification(
+                        user_id=p,
+                        title="New Message",
+                        message=f"You received a new message: {msg_preview}",
+                        notification_type="NEW_MESSAGE",
+                        module="messages"
+                    )
         
         return created_msg
         
@@ -215,21 +269,23 @@ class MessageService:
             "updated_at": now
         })
         
-        if updated.get("created_at"): updated["created_at"] = updated["created_at"].isoformat()
-        if updated.get("updated_at"): updated["updated_at"] = updated["updated_at"].isoformat()
-        if updated.get("edited_at"): updated["edited_at"] = updated["edited_at"].isoformat()
-        
-        from src.services.websocket_manager import manager
-        conv = await self.conversations.find_by_id(updated["conversation_id"])
-        if conv:
-            participants = [p for p in [conv.get("client_id"), conv.get("band_id"), conv.get("venue_owner_id")] if p]
-            for p in set(participants):
-                await manager.send_personal_message(
-                    {"type": "messaging", "event": "message.updated", "data": updated},
-                    p
-                )
-                
-        return updated
+        if updated:
+            if updated.get("created_at"): updated["created_at"] = updated["created_at"].isoformat()
+            if updated.get("updated_at"): updated["updated_at"] = updated["updated_at"].isoformat()
+            if updated.get("edited_at"): updated["edited_at"] = updated["edited_at"].isoformat()
+            
+            from src.services.websocket_manager import manager
+            conv = await self.conversations.find_by_id(updated.get("conversation_id", ""))
+            if conv:
+                participants = [p for p in [conv.get("client_id"), conv.get("band_id"), conv.get("venue_owner_id")] if p]
+                for p in set(participants):
+                    await manager.send_personal_message(
+                        {"type": "messaging", "event": "message.updated", "data": updated},
+                        p
+                    )
+                    
+            return updated
+        return {}
 
     async def delete_message(self, message_id: str, user_id: str) -> Dict[str, Any]:
         msg = await self.messages.find_by_id(message_id)
@@ -245,10 +301,11 @@ class MessageService:
             "updated_at": now
         })
         
-        if updated.get("created_at"): updated["created_at"] = updated["created_at"].isoformat()
-        if updated.get("updated_at"): updated["updated_at"] = updated["updated_at"].isoformat()
-        
-        return updated
+        if updated:
+            if updated.get("created_at"): updated["created_at"] = updated["created_at"].isoformat()
+            if updated.get("updated_at"): updated["updated_at"] = updated["updated_at"].isoformat()
+            return updated
+        return {}
         
     async def add_reaction(self, message_id: str, user_id: str, emoji: str) -> Dict[str, Any]:
         msg = await self.messages.find_by_id(message_id)

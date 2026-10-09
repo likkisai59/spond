@@ -2,6 +2,7 @@ export interface ClientBrief {
   id: string;
   name: string;
   email: string;
+  phone?: string;
 }
 
 export interface ArtistBrief {
@@ -57,10 +58,14 @@ export interface BookingRequestDetail {
   country?: string;
   google_maps_coords?: string | null;
   special_requests?: string | null;
+  payment_status?: string | null;
+  advance_amount?: number | null;
   venue_id?: string | null;
   artist_profile_id?: string | null;
   created_at: string;
   updated_at: string;
+  provider_phone?: string | null;
+  customer_phone?: string | null;
 }
 
 export interface BookingsListResponse {

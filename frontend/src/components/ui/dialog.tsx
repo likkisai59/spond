@@ -33,7 +33,7 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
         onClick={() => onOpenChange(false)}
       />
       {/* Content */}
-      <div className="relative z-50 w-full max-w-lg scale-100 opacity-100 transition-all duration-300">
+      <div className="relative z-50 w-full flex justify-center scale-100 opacity-100 transition-all duration-300">
         {children}
       </div>
     </div>
@@ -49,7 +49,7 @@ export function DialogContent({ className, children, onClose, ...props }: Dialog
   return (
     <div
       className={cn(
-        "glass-card w-full rounded-2xl p-6 shadow-2xl border border-border/80 relative text-left animate-in fade-in zoom-in-95 duration-200",
+        "glass-card w-full max-w-lg mx-auto rounded-2xl p-6 shadow-2xl border border-border/80 relative text-left animate-in fade-in zoom-in-95 duration-200",
         className
       )}
       {...props}

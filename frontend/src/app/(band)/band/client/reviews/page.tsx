@@ -14,6 +14,7 @@ import { Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { bookingService } from "@/services/band/bookings.service";
 import { BookingRequestDetail } from "@/types/booking";
+import { ReviewableBooking } from "@/components/reviews/ReviewFormModal";
 
 export default function ReviewsPage() {
   const [reviews, setReviews] = React.useState<Review[]>([]);
@@ -23,7 +24,7 @@ export default function ReviewsPage() {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [editingReview, setEditingReview] = React.useState<Review | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [eligibleBookings, setEligibleBookings] = React.useState<BookingRequestDetail[]>([]);
+  const [eligibleBookings, setEligibleBookings] = React.useState<ReviewableBooking[]>([]);
   
   const { user } = useAuth();
   const currentUserId = user?.id || "";
@@ -44,9 +45,10 @@ export default function ReviewsPage() {
   const fetchBookings = async () => {
     try {
       const response = await bookingService.getClientBookings({ limit: 100 });
-      const completed = (response.bookings || []).filter((b: BookingRequestDetail) => 
-        (b.status as string) === "completed" || (b.status as string) === "EVENT_COMPLETED" || b.status === "confirmed"
-      );
+      const completed = (response.bookings || []).filter((b: BookingRequestDetail) => {
+        const s = (b.status as string).toLowerCase();
+        return ["completed", "event_completed", "confirmed", "accepted"].includes(s);
+      }) as unknown as ReviewableBooking[];
       setEligibleBookings(completed);
     } catch (err: unknown) {
       console.error("Failed to load eligible bookings for review:", err);

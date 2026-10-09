@@ -1,8 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, @next/next/no-img-element */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/utils/cn";
 import { BookingRequestForm } from "@/components/bookings/BookingRequestForm";
 import { bandService } from "@/services/band";
 import type { Artist, Band } from "@/types/band";
@@ -46,12 +47,19 @@ export function VenueTalentWizard({ open, onOpenChange, onSuccess }: VenueTalent
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] bg-card border-border max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold">
-            {step === 1 ? "Step 1: Select Talent for your Venue" : `Step 2: Book ${selectedTalent?.name}`}
+      <DialogContent className={cn("transition-all duration-300", step === 1 ? "sm:max-w-3xl bg-card border-border max-h-[90vh] overflow-y-auto" : "sm:max-w-5xl p-0 overflow-hidden bg-transparent border-0 shadow-none")}>
+        {step === 1 && (
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">
+              Step 1: Select Talent for your Venue
+            </DialogTitle>
+          </DialogHeader>
+        )}
+        {step === 2 && (
+          <DialogTitle className="sr-only">
+            Step 2: Book {selectedTalent?.name}
           </DialogTitle>
-        </DialogHeader>
+        )}
 
         {step === 1 && (
           <div className="space-y-4 py-4">

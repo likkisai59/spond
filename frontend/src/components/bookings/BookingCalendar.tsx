@@ -56,19 +56,23 @@ export function BookingCalendar({
 
   // Navigate back/forward depending on current view mode
   const handlePrev = () => {
-    setCurrentDate(prev => {
-      if (calendarView === "month") return subMonths(prev, 1);
-      if (calendarView === "week") return subWeeks(prev, 1);
-      return subDays(prev, 1);
-    });
+    let newDate = currentDate;
+    if (calendarView === "month") newDate = subMonths(currentDate, 1);
+    else if (calendarView === "week") newDate = subWeeks(currentDate, 1);
+    else newDate = subDays(currentDate, 1);
+    
+    setCurrentDate(newDate);
+    setSelectedDate(newDate);
   };
 
   const handleNext = () => {
-    setCurrentDate(prev => {
-      if (calendarView === "month") return addMonths(prev, 1);
-      if (calendarView === "week") return addWeeks(prev, 1);
-      return addDays(prev, 1);
-    });
+    let newDate = currentDate;
+    if (calendarView === "month") newDate = addMonths(currentDate, 1);
+    else if (calendarView === "week") newDate = addWeeks(currentDate, 1);
+    else newDate = addDays(currentDate, 1);
+    
+    setCurrentDate(newDate);
+    setSelectedDate(newDate);
   };
 
   const handleToday = () => {

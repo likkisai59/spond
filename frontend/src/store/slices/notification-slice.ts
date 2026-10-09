@@ -27,7 +27,8 @@ export const fetchNotifications = createAsyncThunk(
   "notifications/fetchAll",
   async () => {
     const res = await notificationsService.list();
-    return res.items.map((n: any) => ({
+    type NotificationPayload = { id?: string; _id?: string; title: string; message: string; variant?: "info" | "success" | "warning" | "error"; is_read: boolean; created_at: string; module?: string };
+    return res.items.map((n: NotificationPayload) => ({
       id: n.id || n._id,
       title: n.title,
       message: n.message,
@@ -44,6 +45,20 @@ export const markNotificationsAsRead = createAsyncThunk(
   async (_, { dispatch }) => {
     await notificationsService.markAllRead();
     dispatch(notificationsMarkedAllAsRead());
+  }
+);
+
+export const clearAllNotifications = createAsyncThunk(
+  "notifications/clearAll",
+  async (_, { dispatch }) => {
+    try {
+      await notificationsService.clearAll();
+      dispatch(notificationSlice.actions.notificationsCleared());
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: unknown } };
+      console.error("Failed to clear notifications:", err?.response?.data || error);
+      throw error;
+    }
   }
 );
 

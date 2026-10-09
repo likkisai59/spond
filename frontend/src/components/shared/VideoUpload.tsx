@@ -35,6 +35,9 @@ export function VideoUpload({ value, onChange, onRemove, subfolder: _subfolder =
       if (url) {
         onChange(url);
         toast.success("Video uploaded successfully!");
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
       } else {
         throw new Error("No URL returned from server.");
       }

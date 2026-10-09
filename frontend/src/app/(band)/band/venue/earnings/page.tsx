@@ -25,7 +25,32 @@ export default function VenueEarningsPage() {
   const { data: summary, loading, error, refetch: fetchEarnings } = useEarnings("venue");
 
   const handleDownloadStatement = () => {
-    toast.success("Preparing PDF tax statement download... (Placeholder active)");
+    if (!summary?.transactions || summary.transactions.length === 0) {
+      toast.error("No transactions available to download.");
+      return;
+    }
+
+    toast.success("Generating your statement report...");
+
+    const headers = ["Transaction ID", "Date", "Description", "Type", "Amount (INR)", "Status"];
+    const rows = summary.transactions.map(tx => [
+      tx.id,
+      new Date(tx.created_at).toLocaleString(),
+      `"${tx.description || 'N/A'}"`,
+      tx.type,
+      tx.amount,
+      tx.status
+    ]);
+    
+    const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `EventHub_Venue_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (loading) {
@@ -45,10 +70,6 @@ export default function VenueEarningsPage() {
     );
   }
 
-  // Calculate tax metrics dynamically based on standard 18% GST estimate
-  const estimatedTax = summary.total_earnings * 0.18;
-  const netEarnings = summary.total_earnings - estimatedTax;
-
   return (
     <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       
@@ -65,7 +86,7 @@ export default function VenueEarningsPage() {
         </div>
         <Button 
           onClick={handleDownloadStatement}
-          className="bg-primary hover:bg-primary/95 text-white font-bold h-10 px-5 flex items-center gap-1.5 self-start sm:self-center"
+          className="font-bold h-10 px-5 flex items-center gap-1.5 self-start sm:self-center"
         >
           <Download className="h-4 w-4" />
           <span>Download Statement</span>
@@ -145,44 +166,9 @@ export default function VenueEarningsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* Chart Column */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-3">
           <VenueRevenueChart data={summary.revenue_chart} />
         </div>
-
-        {/* Tax Summary Card */}
-        <Card className="bg-card/45 backdrop-blur-md border border-border rounded-2xl shadow flex flex-col justify-between p-5 text-foreground">
-          <div className="space-y-4">
-            <div className="border-b border-border pb-2">
-              <h3 className="text-sm font-bold uppercase tracking-wider flex items-center gap-1.5">
-                <FileText className="h-4.5 w-4.5 text-primary" />
-                GST Tax Summary
-              </h3>
-              <p className="text-[10px] text-muted-foreground">Calculations based on 18% service levy</p>
-            </div>
-
-            <div className="space-y-3.5 text-xs">
-              <div className="flex items-center justify-between text-muted-foreground">
-                <span>Gross Revenue Rents</span>
-                <span className="font-bold text-foreground">₹{summary.total_earnings.toLocaleString("en-IN")}</span>
-              </div>
-
-              <div className="flex items-center justify-between text-muted-foreground">
-                <span>Estimated Tax (18% GST)</span>
-                <span className="font-bold text-error">- ₹{estimatedTax.toLocaleString("en-IN")}</span>
-              </div>
-
-              <div className="border-t border-border pt-3 flex items-center justify-between font-bold">
-                <span className="text-muted-foreground">Estimated Net Income</span>
-                <span className="text-emerald-400">₹{netEarnings.toLocaleString("en-IN")}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-3 bg-primary/5 rounded-xl border border-primary/20 text-[10px] text-muted-foreground leading-relaxed mt-4">
-            <span className="font-bold text-foreground block mb-0.5">Disclaimer:</span>
-            Estimates shown are indicative. Actual filings should audit deductions, caution refund credits, and cancellation fee margins.
-          </div>
-        </Card>
 
       </div>
 

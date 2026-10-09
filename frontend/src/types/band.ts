@@ -57,7 +57,7 @@ export interface BookingRequest {
   proposed_price?: number;
 }
 
-export type BookingStatus = "REQUESTED" | "ACCEPTED" | "REJECTED" | "CONFIRMED" | "EVENT_COMPLETED" | "COMPLETED" | "CANCELLED";
+export type BookingStatus = "REQUESTED" | "COUNTER_OFFERED" | "ACCEPTED" | "REJECTED" | "CONFIRMED" | "EVENT_COMPLETED" | "COMPLETED" | "CANCELLED";
 export type PaymentStatus = "UNPAID" | "ADVANCE_PENDING" | "ADVANCE_PAID" | "FINAL_PENDING" | "FULLY_PAID" | "REFUNDED";
 
 export interface Booking {
@@ -73,6 +73,7 @@ export interface Booking {
   payment_status: PaymentStatus;
   total_amount: number;
   advance_amount: number;
+  counter_price?: number | null;
   created_at: string;
   updated_at: string;
 }

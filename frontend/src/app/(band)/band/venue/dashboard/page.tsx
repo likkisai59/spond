@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { getUserDisplayName } from "@/utils/helpers";
 import { bandService } from "@/services/band";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,7 +97,7 @@ export default function VenueDashboardPage() {
         <div className="space-y-1">
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground">Venue Dashboard</h1>
           <p className="text-muted-foreground text-sm">
-            Welcome back, {user?.firstName || "Venue Owner"}. Here is your live overview.
+            Welcome back, {getUserDisplayName(user, "Venue Owner")}. Here is your live overview.
           </p>
         </div>
         <div className="flex items-center gap-2">

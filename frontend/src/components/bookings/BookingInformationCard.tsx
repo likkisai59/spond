@@ -2,7 +2,8 @@
 
 import { Card } from "@/components/ui/card";
 import { BookingRequestDetail } from "@/types/booking";
-import { Building2, Heart, MapPin, MessageSquare, ShieldCheck, Users } from "lucide-react";
+import { Building2, Heart, MapPin, MessageSquare, ShieldCheck, Users, Phone } from "lucide-react";
+import { maskPhoneNumber } from "@/utils/helpers";
 
 interface BookingInformationCardProps {
   booking: BookingRequestDetail;
@@ -79,6 +80,46 @@ export function BookingInformationCard({ booking, className }: BookingInformatio
                   View on Google Maps &rarr;
                 </a>
               )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Contact Details */}
+      <div className="space-y-4 pt-4 border-t border-border">
+        <h4 className="text-xs font-bold text-primary uppercase tracking-wider">Contact Details</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex items-start gap-3">
+            <Users className="h-4.5 w-4.5 text-muted-foreground mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[10px] text-muted-foreground">Client / Host</p>
+              <p className="text-xs font-bold text-foreground">{booking.client.name}</p>
+              <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                <Phone className="h-3 w-3" />
+                <span>
+                  {maskPhoneNumber(
+                    booking.customer_phone || booking.client.phone,
+                    ["accepted", "confirmed", "completed"].includes(booking.status)
+                  )}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <Heart className="h-4.5 w-4.5 text-muted-foreground mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[10px] text-muted-foreground">Provider</p>
+              <p className="text-xs font-bold text-foreground">{booking.artist_name || booking.venue_name || "Provider"}</p>
+              <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                <Phone className="h-3 w-3" />
+                <span>
+                  {maskPhoneNumber(
+                    booking.provider_phone,
+                    ["accepted", "confirmed", "completed"].includes(booking.status)
+                  )}
+                </span>
+              </div>
             </div>
           </div>
         </div>

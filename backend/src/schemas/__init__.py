@@ -76,6 +76,7 @@ class UserResponse(BaseModel):
 
     id: str
     full_name: str
+    name: str | None = None
     email: EmailStr
     phone: str | None = None
     profile_image: str | None = None

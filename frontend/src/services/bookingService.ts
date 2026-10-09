@@ -87,7 +87,7 @@ export const bookingService = {
     message?: string,
   ): Promise<BookingRequestDetail> => {
     if (isPreviewActive()) return toastMutationBlocked();
-    const response = await api.put<ApiResponse<BookingRequestDetail>>(`/band/bookings/${bookingId}/status?status=REQUESTED`, {
+    const response = await api.put<ApiResponse<BookingRequestDetail>>(`/band/bookings/${bookingId}/status?status=COUNTER_OFFERED`, {
       counter_price: counterPrice,
       message,
     });

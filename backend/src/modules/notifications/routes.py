@@ -29,14 +29,14 @@ async def mark_all_read(user: dict = Depends(get_current_user)) -> dict:
     await service.mark_all_read(user["id"])
     return {"status": "success"}
 
-@router.delete("/{id}")
-async def delete_notification(id: str, user: dict = Depends(get_current_user)) -> dict:
-    await service.delete_notification(id, user["id"])
-    return {"status": "success"}
-
 @router.delete("/clear-all")
 async def clear_all_notifications(user: dict = Depends(get_current_user)) -> dict:
     await service.clear_all(user["id"])
+    return {"status": "success"}
+
+@router.delete("/{id}")
+async def delete_notification(id: str, user: dict = Depends(get_current_user)) -> dict:
+    await service.delete_notification(id, user["id"])
     return {"status": "success"}
 
 from fastapi import WebSocket, WebSocketDisconnect

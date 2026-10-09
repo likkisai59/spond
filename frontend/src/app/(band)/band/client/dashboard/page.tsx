@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { getUserDisplayName } from "@/utils/helpers";
 import { bandService } from "@/services/band";
 import {
   CalendarRange,
@@ -74,7 +75,7 @@ export default function ClientDashboardPage() {
         <div className="space-y-1">
           <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Home</h1>
           <p className="text-xs text-muted-foreground">
-            Welcome back{user?.firstName ? `, ${user.firstName}` : ""}! Discover artists, manage your
+            Welcome back, {getUserDisplayName(user, "User")}! Discover artists, manage your
             bookings, and find amazing venues.
           </p>
         </div>

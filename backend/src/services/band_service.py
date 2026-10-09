@@ -1047,6 +1047,17 @@ class BandService:
                 booking["artist_name"] = p_name
                 booking["venue_name"] = p_name
                 booking["provider_image"] = provider.get("profile_image") or provider.get("cover_image") or ""
+                
+                # Get provider owner's phone
+                provider_owner_id = provider.get("created_by")
+                if provider_owner_id:
+                    owner_user = await self.users.find_by_id(provider_owner_id)
+                    if owner_user:
+                        booking["provider_phone"] = owner_user.get("phone") or provider.get("mobile_number") or ""
+                    else:
+                        booking["provider_phone"] = provider.get("mobile_number") or ""
+                else:
+                    booking["provider_phone"] = provider.get("mobile_number") or ""
             else:
                 booking["provider_name"] = "Performer"
                 booking["artist_name"] = "Performer"
@@ -1093,22 +1104,49 @@ class BandService:
             if customer:
                 booking["customer_name"] = customer.get("full_name", "Unknown Client")
                 booking["customer_email"] = customer.get("email", "")
+                booking["customer_phone"] = customer.get("phone", "")
             else:
                 booking["customer_name"] = "Unknown Client"
                 booking["customer_email"] = ""
+                booking["customer_phone"] = ""
                 
         return bookings
 
     async def get_booking_by_id(self, booking_id: str) -> Optional[Dict]:
         return await self.bookings.find_by_id(booking_id)
 
-    async def update_booking_status(self, booking_id: str, status: BookingStatus) -> Optional[Dict]:
+    async def update_booking_status(self, booking_id: str, status: BookingStatus, payload: Optional[Dict[str, Any]] = None) -> Optional[Dict]:
         now = datetime.now(timezone.utc)
         booking = await self.bookings.find_by_id(booking_id or "")
         if not booking:
             return None
 
-        success = await self.bookings.update_by_id(booking_id or "", {"status": status.value, "updated_at": now})
+        update_data: Dict[str, Any] = {"status": status.value, "updated_at": now}
+        
+        if payload:
+            if "counter_price" in payload:
+                update_data["counter_price"] = payload["counter_price"]
+                # Frontend uses 'counter_offered' or 'countered' for status?
+                # Backend enum doesn't have it, so we keep REQUESTED but set counter_price.
+            if "message" in payload:
+                update_data["message"] = payload["message"]
+                
+            if "reason" in payload:
+                update_data["cancel_reason"] = payload["reason"]
+
+        if status == BookingStatus.ACCEPTED:
+            update_data["payment_status"] = PaymentStatus.ADVANCE_PENDING.value
+            if booking.get("counter_price"):
+                update_data["total_amount"] = booking["counter_price"]
+                update_data["amount"] = booking["counter_price"]
+                update_data["advance_amount"] = round(booking["counter_price"] * 0.25)
+                update_data["final_amount"] = booking["counter_price"] - update_data["advance_amount"]
+                update_data["counter_price"] = None
+
+        if status == BookingStatus.EVENT_COMPLETED:
+            update_data["payment_status"] = PaymentStatus.FINAL_PENDING.value
+
+        success = await self.bookings.update_by_id(booking_id or "", update_data)
         if success:
             customer_id = booking.get("customer_id")
             if customer_id:
@@ -1134,7 +1172,7 @@ class BandService:
                     user_id=customer_id,
                     title="Booking Update",
                     message=msg,
-                    notification_type="BOOKING_STATUS_UPDATE",
+                    notification_type="BOOKING_STATUS",
                     module="band"
                 )
                 

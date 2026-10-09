@@ -5,6 +5,7 @@ from datetime import datetime
 
 class BookingStatus(str, Enum):
     REQUESTED = "REQUESTED"
+    COUNTER_OFFERED = "COUNTER_OFFERED"
     ACCEPTED = "ACCEPTED"
     REJECTED = "REJECTED"
     CONFIRMED = "CONFIRMED"

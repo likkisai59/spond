@@ -1,13 +1,11 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { bookingService } from "@/services/bookingService";
 import { BookingRequestFormData, bookingRequestSchema } from "@/utils/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Calendar, Clock, IndianRupee, MapPin, Send, Sparkles, Users, X } from "lucide-react";
+import { Send } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
@@ -74,6 +72,7 @@ export function BookingRequestForm({
       city: "Bangalore",
       state: "Karnataka",
       country: "India",
+      postcode: "",
       google_maps_coords: "",
       special_requests: "",
       notes: "",
@@ -128,6 +127,7 @@ export function BookingRequestForm({
         data.city?.trim(),
         data.state?.trim(),
         data.country?.trim(),
+        data.postcode?.trim(),
       ].filter(Boolean);
       const composedLocation = locationParts.join(", ") || "Location not specified";
 
@@ -174,494 +174,399 @@ export function BookingRequestForm({
   };
 
   return (
-    <Card className="bg-card border border-border rounded-3xl shadow-2xl w-full max-w-2xl mx-auto overflow-hidden text-card-foreground">
-      <CardHeader className="border-b border-border bg-muted/20 p-6">
-        <div className="flex flex-row items-start justify-between gap-4 w-full">
-          <div className="space-y-1 flex-1">
-            <CardTitle className="text-xl font-extrabold tracking-tight flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-accent" />
+    <div className="bg-[#0b0a0a] h-full max-h-[85vh] rounded-2xl text-white font-sans overflow-hidden border border-[#222] shadow-2xl w-full max-w-5xl mx-auto flex flex-col">
+      {/* Header */}
+      <header className="flex items-center justify-between border-b border-[#222] px-8 py-5 bg-[#0b0a0a]">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f03e65] text-white">
+            <div className="h-4 w-4 bg-white rotate-45" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-white">
               {effectiveIsArtistBookingVenue ? "Book a Venue" : "Create Booking Request"}
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">
-              {effectiveIsArtistBookingVenue
-                ? "Search for and reserve a venue for your performance"
-                : artistName && venueName
-                  ? `Submit inquiry for ${artistName} at ${venueName}`
-                  : artistName
-                    ? `Submit booking inquiry for performer ${artistName}`
-                    : venueName
-                      ? `Request a reservation for ${venueName}`
-                      : "Hire performers or spaces for live gig entertainment"}
+            </h1>
+            <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-0.5">
+              {artistName ? `ARTIST: ${artistName.toUpperCase()}` : venueName ? `VENUE: ${venueName.toUpperCase()}` : "SUBMIT INQUIRY"}
             </p>
           </div>
-
+        </div>
+        <div className="flex items-center gap-4">
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="text-muted-foreground hover:text-foreground p-1.5 rounded-full hover:bg-muted transition-colors bg-muted/30"
+              className="text-sm font-bold text-white hover:text-gray-300 transition-colors uppercase tracking-wider"
             >
-              <X className="h-5 w-5" />
+              CANCEL
             </button>
           )}
+          <button
+            type="button"
+            onClick={handleSubmit(onSubmit)}
+            disabled={isSubmitting}
+            className="rounded bg-[#f03e65] px-6 py-2.5 text-sm font-bold uppercase tracking-wider text-white hover:bg-[#d83558] transition-colors"
+          >
+            {isSubmitting ? "SENDING..." : "SEND REQUEST"}
+          </button>
         </div>
-      </CardHeader>
+      </header>
 
-      <CardContent className="p-6">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Section 0: Select Provider / Venue from Marketplace */}
-          <div className="space-y-4 p-4 rounded-2xl bg-muted/10 border border-border">
-            <h3 className="text-xs font-extrabold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-              {effectiveIsArtistBookingVenue ? (
-                <>
-                  <Building className="h-4 w-4 text-accent" />
-                  <span>Select Venue</span>
-                </>
-              ) : artistProfileId ? (
-                <>
-                  <Building className="h-4 w-4 text-accent" />
-                  <span>Select Venue</span>
-                </>
+      <div className="flex-1 overflow-y-auto p-8 lg:p-12">
+        <form onSubmit={handleSubmit(onSubmit)} className="mx-auto max-w-4xl space-y-12">
+          
+          {/* Top selection boxes */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-[#222] rounded-xl overflow-hidden border border-[#333]">
+            
+            {/* Performer Selection */}
+            <div className="bg-[#121010] p-6">
+              <p className="text-[10px] font-bold text-[#f03e65] uppercase tracking-wider mb-4">Selected Performer</p>
+              {!effectiveIsArtistBookingVenue && !artistProfileId ? (
+                <select
+                  id="artist_profile_id"
+                  className="w-full h-12 rounded-lg bg-[#1a1414] border border-[#333] text-white px-4 focus:outline-none focus:border-[#f03e65] text-lg font-bold"
+                  {...register("artist_profile_id", {
+                    onChange: (e) => {
+                      const selected = artists.find((a) => a.id === e.target.value);
+                      const price = selected?.packages?.[0]?.price;
+                      if (price) {
+                        setValue("proposed_price", price);
+                      }
+                    },
+                  })}
+                >
+                  <option value="">-- Choose Performer --</option>
+                  {artists.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
               ) : (
-                <>
-                  <Music className="h-4 w-4 text-accent" />
-                  <span>Select Performer &amp; Venue</span>
-                </>
-              )}
-            </h3>
-
-            {/* Artist-booking-venue context: show a clear "You will perform" indicator */}
-            {effectiveIsArtistBookingVenue && (
-              <div className="flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent mb-2">
-                <Music className="h-3.5 w-3.5 shrink-0" />
-                <span>You (the logged-in artist) will perform at this event — select a venue below.</span>
-              </div>
-            )}
-
-            {/* Pre-selected artist context: show which performer is already fixed */}
-            {!effectiveIsArtistBookingVenue && artistProfileId && artistName && (
-              <div className="flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary mb-2">
-                <Music className="h-3.5 w-3.5 shrink-0" />
-                <span>Performer: <span className="font-bold">{artistName}</span> — already selected. Optionally choose a venue below.</span>
-              </div>
-            )}
-
-            {/* Pre-selected venue context: show which venue is already fixed */}
-            {venueId && venueName && (
-              <div className="flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent mb-2">
-                <Building className="h-3.5 w-3.5 shrink-0" />
-                <span>Venue: <span className="font-bold">{venueName}</span> — already selected.</span>
-              </div>
-            )}
-
-            <div className={`grid grid-cols-1 ${(!effectiveIsArtistBookingVenue && !artistProfileId) && !venueId ? "sm:grid-cols-2" : ""} gap-4`}>
-              {/* Artist / Performer Select — hidden when artist is booking a venue or artist is pre-selected */}
-              {!effectiveIsArtistBookingVenue && !artistProfileId && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="artist_profile_id" className="text-xs font-semibold text-foreground">
-                    Performer / Band {artistName ? `(Selected: ${artistName})` : ""}
-                  </Label>
-                  <select
-                    id="artist_profile_id"
-                    className="w-full h-9 rounded-xl border border-border bg-background text-foreground text-xs px-3 focus:outline-none focus:ring-1 focus:ring-accent"
-                    {...register("artist_profile_id", {
-                      onChange: (e) => {
-                        const selected = artists.find((a) => a.id === e.target.value);
-                        const price = selected?.packages?.[0]?.price;
-                        if (price) {
-                          setValue("proposed_price", price);
-                        }
-                      },
-                    })}
-                  >
-                    <option value="">-- Choose Performer / Band from Marketplace --</option>
-                    {artists.map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name} ({Array.isArray(a.genre) ? a.genre.join(", ") : a.genre || "Live Music"} - ₹{(a.packages?.[0]?.price || 15000).toLocaleString()})
-                      </option>
-                    ))}
-                  </select>
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#1a1414] border border-[#333]">
+                    <Music className="h-6 w-6 text-[#f03e65]" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-bold text-white">{artistName || (effectiveIsArtistBookingVenue ? "You" : "Unknown")}</span>
+                    <span className="text-[#f03e65]">✓</span>
+                  </div>
                 </div>
               )}
+            </div>
 
-              {/* Venue Select */}
-              {!venueId && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="venue_id" className="text-xs font-semibold text-foreground">
-                    Venue
-                  </Label>
-                  <select
-                    id="venue_id"
-                    className="w-full h-9 rounded-xl border border-border bg-background text-foreground text-xs px-3 focus:outline-none focus:ring-1 focus:ring-accent"
-                    {...register("venue_id", {
-                      onChange: (e) => {
-                        const selected = venues.find((v) => {
-                          const s = v as any;
-                          return (s.id || s._id) === e.target.value;
-                        });
-                        if (selected) {
-                          const s = selected as any;
-                          setValue("location", s.name || s.venue_name || s.business_name);
-                          if (s.city) setValue("city", s.city);
-                        }
-                      },
-                    })}
-                  >
-                    <option value="">-- Choose Venue or Enter Custom Location Below --</option>
-                    {venues.map((v: any) => (
-                      <option key={v.id || v._id} value={v.id || v._id}>
-                        {v.name || v.venue_name || v.business_name || "Venue"} ({v.city || "Venue"})
+            {/* Venue Selection */}
+            <div className="bg-[#121010] p-6">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-4">Venue Select</p>
+              {!venueId ? (
+                <select
+                  id="venue_id"
+                  className="w-full h-12 bg-transparent text-gray-300 text-sm focus:outline-none border-b border-[#333] pb-2 appearance-none cursor-pointer"
+                  {...register("venue_id", {
+                    onChange: (e) => {
+                      const selected = venues.find((v) => {
+                        const s = v as unknown as Record<string, unknown>;
+                        return (s.id || s._id) === e.target.value;
+                      });
+                      if (selected) {
+                        const s = selected as unknown as Record<string, unknown>;
+                        setValue("location", (s.name || s.venue_name || s.business_name) as string);
+                        if (s.city) setValue("city", s.city as string);
+                      }
+                    },
+                  })}
+                >
+                  <option value="" className="bg-[#121010]">Choose Venue or Enter Custom Location Below</option>
+                  {venues.map((v: unknown) => {
+                    const sv = v as Record<string, unknown>;
+                    return (
+                      <option key={(sv.id || sv._id) as string} value={(sv.id || sv._id) as string} className="bg-[#121010]">
+                        {(sv.name || sv.venue_name || sv.business_name || "Venue") as string} ({(sv.city || "Venue") as string})
                       </option>
-                    ))}
-                  </select>
+                    );
+                  })}
+                </select>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#1a1414] border border-[#333]">
+                    <Building className="h-6 w-6 text-gray-400" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl font-bold text-white">{venueName}</span>
+                    <span className="text-[#f03e65]">✓</span>
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Section 1: Event Details */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
-              Event Parameters
-            </h3>
+          {/* Section 1: Event Parameters & Location Details (2 columns on large screens) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            
+            {/* Event Parameters */}
+            <div className="space-y-6">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider border-l-2 border-[#f03e65] pl-3 mb-8">
+                Event Parameters
+              </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="event_title">Event Title</Label>
-                <div className="relative">
-                  <Input
-                    id="event_title"
-                    placeholder="e.g. Annual Tech Summit Afterparty"
-                    className="text-foreground text-xs bg-background border-border placeholder:text-muted-foreground rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
-                    {...register("event_title", {
-                      onChange: (e) => {
-                        // Restrict numeric input by automatically removing numeric digits (Bug 13 fix)
-                        if (/\d/.test(e.target.value)) {
-                          e.target.value = e.target.value.replace(/\d/g, "");
-                          setValue("event_title", e.target.value, { shouldValidate: true });
-                        }
-                      },
-                    })}
-                    onKeyDown={(e) => {
-                      // Prevent typing numeric digits 0-9
-                      if (e.key >= "0" && e.key <= "9") {
-                        e.preventDefault();
+                <Label htmlFor="event_title" className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Event Title</Label>
+                <Input
+                  id="event_title"
+                  placeholder="e.g. Annual Tech Summit Afterparty"
+                  className="w-full h-11 bg-[#161212] border-[#333] text-white rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65]"
+                  {...register("event_title", {
+                    onChange: (e) => {
+                      if (/\d/.test(e.target.value)) {
+                        e.target.value = e.target.value.replace(/\d/g, "");
+                        setValue("event_title", e.target.value, { shouldValidate: true });
                       }
-                    }}
+                    },
+                  })}
+                />
+                <p className="text-[10px] text-gray-500 mt-1">Letters, spaces, and punctuation only (no numbers).</p>
+                {errors.event_title && <p className="text-xs text-red-500">{errors.event_title.message}</p>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="event_type" className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Event Type</Label>
+                  <select
+                    id="event_type"
+                    className="w-full h-11 bg-[#161212] border border-[#333] text-white rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65] px-3 text-sm"
+                    {...register("event_type")}
+                  >
+                    <option value="Wedding">Wedding Celebration</option>
+                    <option value="Corporate Gig">Corporate Event</option>
+                    <option value="Private Event">Private Party</option>
+                    <option value="Concert">Public Concert</option>
+                    <option value="Festival">Festival Gig</option>
+                    <option value="Club Performance">Club/Pub Event</option>
+                    <option value="Other">Other Occasion</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="event_date" className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Date</Label>
+                  <div className="relative">
+                    <Input
+                      id="event_date"
+                      type="date"
+                      min={new Date().toISOString().split("T")[0]}
+                      className="w-full h-11 bg-[#161212] border-[#333] text-white rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65] [color-scheme:dark]"
+                      {...register("event_date")}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="start_time" className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Start Time</Label>
+                  <div className="relative">
+                    <Input
+                      id="start_time"
+                      type="time"
+                      className="w-full h-11 bg-[#161212] border-[#333] text-white rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65] [color-scheme:dark]"
+                      {...register("start_time")}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="end_time" className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">End Time</Label>
+                  <div className="relative">
+                    <Input
+                      id="end_time"
+                      type="time"
+                      className="w-full h-11 bg-[#161212] border-[#333] text-white rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65] [color-scheme:dark]"
+                      {...register("end_time")}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="guest_count" className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Expected Guests</Label>
+                  <Input
+                    id="guest_count"
+                    type="number"
+                    placeholder="50"
+                    className="w-full h-11 bg-[#161212] border-[#333] text-white rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65]"
+                    {...register("guest_count", { valueAsNumber: true })}
                   />
                 </div>
-                <p className="text-[10px] text-muted-foreground">Letters, spaces, and punctuation only (no numbers allowed).</p>
-                {errors.event_title && (
-                  <p className="text-xs text-error font-medium">{errors.event_title.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="event_type">Event Type</Label>
-                <select
-                  id="event_type"
-                  className="w-full h-9 rounded-xl border border-border bg-background text-foreground text-xs px-3 focus:outline-none focus:ring-1 focus:ring-accent"
-                  {...register("event_type")}
-                >
-                  <option value="Wedding">Wedding Celebration</option>
-                  <option value="Corporate Gig">Corporate Event</option>
-                  <option value="Private Event">Private Party</option>
-                  <option value="Concert">Public Concert</option>
-                  <option value="Festival">Festival Gig</option>
-                  <option value="Club Performance">Club/Pub Event</option>
-                  <option value="Other">Other Occasion</option>
-                </select>
-                {errors.event_type && (
-                  <p className="text-xs text-error font-medium">{errors.event_type.message}</p>
-                )}
+                <div className="space-y-1.5">
+                  <Label htmlFor="proposed_price" className="text-[10px] text-[#f03e65] uppercase font-bold tracking-wider">Proposed Budget (INR)</Label>
+                  <Input
+                    id="proposed_price"
+                    type="number"
+                    placeholder="15000"
+                    className="w-full h-11 bg-[#161212] border-[#333] text-[#f03e65] font-bold rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65]"
+                    {...register("proposed_price", { valueAsNumber: true })}
+                  />
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Location Details */}
+            <div className="space-y-6 relative">
+              {/* Decorative line separator on mobile, hidden on desktop */}
+              <div className="w-full h-px bg-[#333] lg:hidden mb-8"></div>
+              
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider border-l-2 border-[#f03e65] pl-3 mb-8">
+                Location Details
+              </h3>
+
               <div className="space-y-1.5">
-                <Label htmlFor="event_date" className="flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5 text-accent" />
-                  <span>Date</span>
-                </Label>
+                <Label htmlFor="location" className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Venue Name / Description</Label>
                 <Input
-                  id="event_date"
-                  type="date"
-                  min={new Date().toISOString().split("T")[0]}
-                  className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
-                  {...register("event_date")}
+                  id="location"
+                  placeholder="e.g. Taj West End, Grand Ballroom"
+                  className="w-full h-11 bg-[#161212] border-[#333] text-white rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65]"
+                  {...register("location")}
                 />
-                {errors.event_date && (
-                  <p className="text-xs text-error font-medium">{errors.event_date.message}</p>
-                )}
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="start_time" className="flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5 text-accent" />
-                  <span>Start Time</span>
-                </Label>
+                <Label htmlFor="address" className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Street Address</Label>
                 <Input
-                  id="start_time"
-                  type="time"
-                  className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
-                  {...register("start_time")}
+                  id="address"
+                  placeholder="e.g. 25 Race Course Road"
+                  className="w-full h-11 bg-[#161212] border-[#333] text-white rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65]"
+                  {...register("address")}
                 />
-                {errors.start_time && (
-                  <p className="text-xs text-error font-medium">{errors.start_time.message}</p>
-                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="city" className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">City</Label>
+                  <Input
+                    id="city"
+                    placeholder="Bangalore"
+                    className="w-full h-11 bg-[#161212] border-[#333] text-white rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65]"
+                    {...register("city")}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="state" className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">State</Label>
+                  <Input
+                    id="state"
+                    placeholder="Karnataka"
+                    className="w-full h-11 bg-[#161212] border-[#333] text-white rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65]"
+                    {...register("state")}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="country" className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Country</Label>
+                  <Input
+                    id="country"
+                    placeholder="India"
+                    className="w-full h-11 bg-[#161212] border-[#333] text-white rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65]"
+                    {...register("country")}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="postcode" className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Postcode</Label>
+                  <Input
+                    id="postcode"
+                    placeholder="560001"
+                    className="w-full h-11 bg-[#161212] border-[#333] text-white rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65]"
+                    {...register("postcode")}
+                  />
+                </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="end_time" className="flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5 text-accent" />
-                  <span>End Time</span>
-                </Label>
+                <Label htmlFor="google_maps_coords" className="text-[10px] text-blue-400 uppercase font-bold tracking-wider">Google Maps URL or Coordinates (Optional)</Label>
                 <Input
-                  id="end_time"
-                  type="time"
-                  className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
-                  {...register("end_time")}
+                  id="google_maps_coords"
+                  placeholder="e.g. https://maps.google.com/?q=... or 12.9716, 77.59"
+                  className="w-full h-11 bg-[#161212] border-[#333] text-white rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65]"
+                  {...register("google_maps_coords")}
                 />
-                {errors.end_time && (
-                  <p className="text-xs text-error font-medium">{errors.end_time.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="guest_count" className="flex items-center gap-1">
-                  <Users className="h-3.5 w-3.5 text-accent" />
-                  <span>Expected Guests</span>
-                </Label>
-                <Input
-                  id="guest_count"
-                  type="number"
-                  placeholder="50"
-                  className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
-                  {...register("guest_count", { valueAsNumber: true })}
-                />
-                {errors.guest_count && (
-                  <p className="text-xs text-error font-medium">{errors.guest_count.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="proposed_price" className="flex items-center gap-1">
-                  <IndianRupee className="h-3.5 w-3.5 text-accent" />
-                  <span>Proposed Budget (INR)</span>
-                </Label>
-                <Input
-                  id="proposed_price"
-                  type="number"
-                  placeholder="15000"
-                  className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
-                  {...register("proposed_price", { valueAsNumber: true })}
-                />
-                {errors.proposed_price && (
-                  <p className="text-xs text-error font-medium">{errors.proposed_price.message}</p>
-                )}
               </div>
             </div>
           </div>
 
-          {/* Section 2: Location Details */}
-          <div className="space-y-4 pt-4 border-t border-border">
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
-              Location details
-            </h3>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="location" className="flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5 text-accent" />
-                <span>Venue Name / Location Description</span>
-              </Label>
-              <Input
-                id="location"
-                placeholder="e.g. Taj West End, Grand Ballroom"
-                className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
-                {...register("location")}
-              />
-              {errors.location && (
-                <p className="text-xs text-error font-medium">{errors.location.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="address">Street Address</Label>
-              <Input
-                id="address"
-                placeholder="e.g. 25 Race Course Road"
-                className="text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent"
-                {...register("address")}
-              />
-              {errors.address && (
-                <p className="text-xs text-error font-medium">{errors.address.message}</p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  placeholder="Bangalore"
-                  className={`text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent ${
-                    errors.city ? "border-error focus-visible:ring-error" : ""
-                  }`}
-                  {...register("city", {
-                    onChange: (e) => {
-                      if (/\d/.test(e.target.value)) {
-                        e.target.value = e.target.value.replace(/\d/g, "");
-                        setValue("city", e.target.value, { shouldValidate: true });
-                      }
-                    },
-                  })}
-                  onKeyDown={(e) => {
-                    if (e.key >= "0" && e.key <= "9") {
-                      e.preventDefault();
-                    }
-                  }}
-                />
-                {errors.city && (
-                  <p className="text-xs text-error font-medium">{errors.city.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="state">State</Label>
-                <Input
-                  id="state"
-                  placeholder="Karnataka"
-                  className={`text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent ${
-                    errors.state ? "border-error focus-visible:ring-error" : ""
-                  }`}
-                  {...register("state", {
-                    onChange: (e) => {
-                      if (/\d/.test(e.target.value)) {
-                        e.target.value = e.target.value.replace(/\d/g, "");
-                        setValue("state", e.target.value, { shouldValidate: true });
-                      }
-                    },
-                  })}
-                  onKeyDown={(e) => {
-                    if (e.key >= "0" && e.key <= "9") {
-                      e.preventDefault();
-                    }
-                  }}
-                />
-                {errors.state && (
-                  <p className="text-xs text-error font-medium">{errors.state.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
-                  className={`text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent ${
-                    errors.country ? "border-error focus-visible:ring-error" : ""
-                  }`}
-                  {...register("country", {
-                    onChange: (e) => {
-                      if (/\d/.test(e.target.value)) {
-                        e.target.value = e.target.value.replace(/\d/g, "");
-                        setValue("country", e.target.value, { shouldValidate: true });
-                      }
-                    },
-                  })}
-                  onKeyDown={(e) => {
-                    if (e.key >= "0" && e.key <= "9") {
-                      e.preventDefault();
-                    }
-                  }}
-                />
-                {errors.country && (
-                  <p className="text-xs text-error font-medium">{errors.country.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="google_maps_coords">Google Maps URL or Coordinates (Optional)</Label>
-              <Input
-                id="google_maps_coords"
-                placeholder="e.g. https://maps.google.com/?q=... or 12.9716, 77.5946"
-                className={`text-foreground text-xs bg-background border-border rounded-xl focus:border-accent focus:ring-1 focus:ring-accent ${
-                  errors.google_maps_coords ? "border-error focus-visible:ring-error" : ""
-                }`}
-                {...register("google_maps_coords")}
-              />
-              {errors.google_maps_coords && (
-                <p className="text-xs text-error font-medium">{errors.google_maps_coords.message}</p>
-              )}
-            </div>
+          {/* Decorative wave separator */}
+          <div className="w-full h-24 mt-8 bg-[url('/wave-pattern.svg')] bg-repeat-x bg-center opacity-30 pointer-events-none" style={{ backgroundImage: 'radial-gradient(ellipse at center, rgba(240, 62, 101, 0.2) 0%, rgba(0,0,0,0) 70%)' }}>
+             {/* A fallback gradient if SVG is missing */}
           </div>
 
-          {/* Section 3: Notes & Special Requests */}
-          <div className="space-y-4 pt-4 border-t border-border">
-            <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">
+          {/* Section 3: Notes & Special Instructions */}
+          <div className="space-y-6 pt-4">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider border-l-2 border-[#f03e65] pl-3 mb-8">
               Notes & Special Instructions
             </h3>
 
-            <div className="rounded-xl border border-accent/20 bg-accent/80 p-3 text-white">
-              <p className="text-[11px] font-medium text-white/70">Request preview</p>
-              <p className="mt-1 text-sm font-medium">{summary}</p>
+            <div className="rounded-xl border border-[#4a1b26] bg-[#2a1118] p-5">
+              <p className="text-[11px] font-bold text-[#f03e65] mb-2">Request preview</p>
+              <p className="text-sm text-gray-200 leading-relaxed">{summary}</p>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="special_requests">Special Equipment / Performance Requests</Label>
-              <textarea
-                id="special_requests"
-                rows={2}
-                placeholder="e.g. Wireless microphones requested, custom sound check required, specific song choice etc."
-                className="w-full rounded-xl border border-border bg-background text-foreground text-xs p-3 focus:outline-none focus:ring-1 focus:ring-accent resize-y"
-                {...register("special_requests")}
-              />
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                <Label htmlFor="special_requests" className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Special Equipment / Performance Requests</Label>
+                <textarea
+                  id="special_requests"
+                  rows={4}
+                  placeholder="e.g. Wireless microphones requested, custom sound check required, specific song choice etc."
+                  className="w-full rounded-md border border-[#333] bg-[#161212] text-white text-sm p-4 focus:outline-none focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65] resize-y"
+                  {...register("special_requests")}
+                />
+              </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="notes">Introductory Note for Artist / Venue</Label>
-              <textarea
-                id="notes"
-                rows={3}
-                placeholder="Share more context about the event crowd, musical preference, layout, or timeline scheduling."
-                className="w-full rounded-xl border border-border bg-background text-foreground text-xs p-3 focus:outline-none focus:ring-1 focus:ring-accent resize-y"
-                {...register("notes")}
-              />
+              <div className="space-y-1.5">
+                <Label htmlFor="notes" className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Introductory Note for Artist / Venue</Label>
+                <textarea
+                  id="notes"
+                  rows={4}
+                  placeholder="Share more context about the event crowd, musical preference, layout, or timeline scheduling."
+                  className="w-full rounded-md border border-[#333] bg-[#161212] text-white text-sm p-4 focus:outline-none focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65] resize-y"
+                  {...register("notes")}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Action triggers */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
-            <Button
+          {/* Bottom Actions */}
+          <div className="flex items-center justify-end gap-4 pt-8">
+            <button
               type="button"
-              variant="outline"
               onClick={onCancel ? onCancel : () => window.history.back()}
               disabled={isSubmitting}
-              className="font-bold text-xs h-9 px-5 border-border bg-muted/30 hover:bg-muted text-foreground cursor-pointer rounded-xl transition-colors shadow-sm"
+              className="px-6 py-2.5 text-sm font-bold text-white bg-transparent border border-[#333] rounded-md hover:bg-[#222] transition-colors"
             >
               Cancel
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
               disabled={isSubmitting}
-              className="font-bold text-xs h-9 px-5 flex items-center gap-1.5 cursor-pointer bg-accent hover:bg-accent/90 text-white"
+              className="px-6 py-2.5 flex items-center gap-2 text-sm font-bold text-white bg-[#f03e65] rounded-md hover:bg-[#d83558] transition-colors"
             >
               {isSubmitting ? (
-                <>
-                  <span>Submitting request...</span>
-                </>
+                <span>Submitting...</span>
               ) : (
                 <>
-                  <Send className="h-3.5 w-3.5" />
+                  <Send className="h-4 w-4" />
                   <span>Submit Booking Request</span>
                 </>
               )}
-            </Button>
+            </button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Footer */}
+      <footer className="mt-auto border-t border-[#222] px-8 py-4 flex items-center justify-between text-[10px] font-bold text-gray-600 uppercase tracking-widest bg-[#0b0a0a]">
+        <div className="flex items-center gap-2">
+          <Music className="h-3 w-3" />
+          <span>Artist Marketplace</span>
+        </div>
+        <span>Booking Request</span>
+      </footer>
+    </div>
   );
 }

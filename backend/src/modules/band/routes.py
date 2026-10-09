@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import List, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from typing import List, Dict, Any, Optional
 from src.dependencies.auth import get_current_user
 from src.schemas.band import BookingRequest, BookingStatus, PaymentStatus, CustomerEventCreate
 from src.services.band_service import BandService
@@ -321,6 +321,7 @@ async def get_booking(
 async def update_booking_status(
     booking_id: str,
     status: BookingStatus,
+    payload: Optional[Dict[str, Any]] = Body(None),
     current_user: dict = Depends(get_current_user)
 ):
     booking = await service.get_booking_by_id(booking_id)
@@ -331,7 +332,7 @@ async def update_booking_status(
     if booking.get("provider_id") not in profile_ids:
         raise HTTPException(status_code=403, detail="Only provider can update booking status")
 
-    updated = await service.update_booking_status(booking_id, status)
+    updated = await service.update_booking_status(booking_id, status, payload=payload)
     return _ok(updated)
 
 @router.put("/bookings/{booking_id}/payment")

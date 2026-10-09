@@ -44,8 +44,8 @@ class FileService:
         content = await file.read()
         file_size = len(content)
         
-        if file_size > 10 * 1024 * 1024:  # 10MB limit
-            raise AppException(400, "File size exceeds 10MB limit")
+        if file_size > 20 * 1024 * 1024:  # 20MB limit
+            raise AppException(400, "File size exceeds 20MB limit")
 
         s3_key = await self._get_s3_key(module, file.filename or "file", module_id)
         file_url = ""

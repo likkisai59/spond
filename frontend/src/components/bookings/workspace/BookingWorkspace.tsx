@@ -21,6 +21,7 @@ interface RawBooking extends Booking {
 import { BookingInboxTab } from "./BookingInboxTab";
 import { EventCalendarTab } from "./EventCalendarTab";
 import { BookingHistoryTab } from "./BookingHistoryTab";
+import { useAuth } from "@/hooks/use-auth";
 import { BookingRequestForm } from "@/components/bookings/BookingRequestForm";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Inbox, CalendarDays, History, Calendar, Plus } from "lucide-react";
@@ -42,7 +43,7 @@ function normalizeBandBooking(b: RawBooking): BookingRequestDetail {
     start_time: b.event_time,
     end_time: b.event_time,
     proposed_price: b.total_amount,
-    counter_price: null,
+    counter_price: b.counter_price || null,
     status: b.status.toLowerCase() as BookingRequestDetail["status"],
     location: "",
     notes: b.message || null,
@@ -59,6 +60,8 @@ function normalizeBandBooking(b: RawBooking): BookingRequestDetail {
     timeline_events: [],
     created_at: b.created_at,
     updated_at: b.updated_at,
+    payment_status: b.payment_status || "UNPAID",
+    advance_amount: b.advance_amount || 0,
   };
 }
 
@@ -71,6 +74,7 @@ type PrimaryTab = "inbox" | "calendar" | "history";
 export function BookingWorkspace({ role }: BookingWorkspaceProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
 
   const [activeTab, setActiveTab] = React.useState<PrimaryTab>("inbox");
   const [bookings, setBookings] = React.useState<BookingRequestDetail[]>([]);
@@ -132,9 +136,23 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
         const res = await bookingService.adminGetBookings({ limit: 100 });
         setBookings(res.bookings || []);
       } else {
-        // Artist or Venue — bookings where they are the provider
-        const raw = await bandService.getMyBookings("provider");
-        setBookings(Array.isArray(raw) ? raw.map(normalizeBandBooking) : []);
+        // Artist or Venue — fetch bookings where they are the provider OR the customer
+        const [rawProvider, rawCustomer] = await Promise.all([
+          bandService.getMyBookings("provider").catch(() => []),
+          bandService.getMyBookings("customer").catch(() => []),
+        ]);
+        
+        const providerArr = Array.isArray(rawProvider) ? rawProvider : [];
+        const customerArr = Array.isArray(rawCustomer) ? rawCustomer : [];
+        
+        // Combine and deduplicate by ID just in case
+        const combinedMap = new Map();
+        [...providerArr, ...customerArr].forEach(b => {
+          if (b && b.id) combinedMap.set(b.id, b);
+        });
+        
+        const combined = Array.from(combinedMap.values());
+        setBookings(combined.map(normalizeBandBooking));
       }
     } catch {
       toast.error("Failed to load booking details.");
@@ -177,11 +195,13 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
       {/* Workspace Header Panel */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-2xl font-extrabold text-foreground tracking-tight flex items-center gap-2">
-            <Calendar className="h-6 w-6 text-primary" />
+          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f03e65] text-white">
+              <Calendar className="h-4 w-4" />
+            </div>
             Booking Workspace
           </h1>
-          <p className="text-xs text-zinc-300 font-medium">
+          <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-0.5 font-bold">
             Manage inquiries, workflow transitions, event schedules, and booking history.
           </p>
         </div>
@@ -194,9 +214,9 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
                 setShowBookingForm(true);
               }}
               size="sm"
-              className="bg-white hover:bg-zinc-200 text-black font-black text-xs h-9 gap-1.5 cursor-pointer shadow-md rounded-xl"
+              className="bg-[#f03e65] hover:bg-[#d83558] text-white font-bold text-[10px] uppercase tracking-wider h-9 gap-1.5 cursor-pointer rounded shadow-md transition-colors"
             >
-              <Plus className="h-4 w-4 stroke-[3]" />
+              <Plus className="h-3.5 w-3.5" />
               <span>Create Booking</span>
             </Button>
           )}
@@ -208,9 +228,9 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
                 setShowBookingForm(true);
               }}
               size="sm"
-              className="bg-white hover:bg-zinc-200 text-black font-black text-xs h-9 gap-1.5 cursor-pointer shadow-md rounded-xl"
+              className="bg-[#f03e65] hover:bg-[#d83558] text-white font-bold text-[10px] uppercase tracking-wider h-9 gap-1.5 cursor-pointer rounded shadow-md transition-colors"
             >
-              <Plus className="h-4 w-4 stroke-[3]" />
+              <Plus className="h-3.5 w-3.5" />
               <span>Book a Venue</span>
             </Button>
           )}
@@ -219,7 +239,7 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
             variant="outline"
             size="sm"
             onClick={reloadAll}
-            className="flex items-center gap-1.5 text-xs h-9 cursor-pointer border-zinc-700 bg-zinc-900 text-zinc-100 hover:text-white hover:bg-zinc-800 font-bold rounded-xl"
+            className="flex items-center gap-1.5 text-[10px] h-9 cursor-pointer border-[#333] bg-[#161212] text-gray-400 hover:text-white hover:bg-[#222] font-bold uppercase tracking-wider rounded transition-colors"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
             <span>Reload Workspace</span>
@@ -228,19 +248,19 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
       </div>
 
       {/* Primary Workspace Tabs Bar */}
-      <div className="border-b border-zinc-800 pb-2">
-        <div className="flex items-center gap-2">
+      <div className="border-b border-[#222] pb-4 mt-6">
+        <div className="flex items-center gap-3 overflow-x-auto pb-2">
           <Button
             variant={activeTab === "inbox" ? "default" : "ghost"}
             size="sm"
             onClick={() => handleTabChange("inbox")}
-            className={`text-xs font-bold gap-2 px-4 h-9 rounded-xl transition-all border ${
+            className={`text-[10px] font-bold uppercase tracking-wider gap-2 px-6 h-10 rounded transition-all border ${
               activeTab === "inbox"
-                ? "bg-white text-black border-white shadow-md font-black hover:bg-zinc-100"
-                : "bg-zinc-900/90 text-zinc-200 border-zinc-800 hover:text-white hover:bg-zinc-800 hover:border-zinc-700"
+                ? "bg-[#f03e65] text-white border-[#f03e65] shadow-md hover:bg-[#d83558]"
+                : "bg-[#121010] text-gray-400 border-[#333] hover:text-white hover:bg-[#1a1414] hover:border-[#444]"
             }`}
           >
-            <Inbox className="h-4 w-4" />
+            <Inbox className="h-3.5 w-3.5" />
             <span>Booking Inbox</span>
           </Button>
 
@@ -248,13 +268,13 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
             variant={activeTab === "calendar" ? "default" : "ghost"}
             size="sm"
             onClick={() => handleTabChange("calendar")}
-            className={`text-xs font-bold gap-2 px-4 h-9 rounded-xl transition-all border ${
+            className={`text-[10px] font-bold uppercase tracking-wider gap-2 px-6 h-10 rounded transition-all border ${
               activeTab === "calendar"
-                ? "bg-white text-black border-white shadow-md font-black hover:bg-zinc-100"
-                : "bg-zinc-900/90 text-zinc-200 border-zinc-800 hover:text-white hover:bg-zinc-800 hover:border-zinc-700"
+                ? "bg-[#f03e65] text-white border-[#f03e65] shadow-md hover:bg-[#d83558]"
+                : "bg-[#121010] text-gray-400 border-[#333] hover:text-white hover:bg-[#1a1414] hover:border-[#444]"
             }`}
           >
-            <CalendarDays className="h-4 w-4" />
+            <CalendarDays className="h-3.5 w-3.5" />
             <span>Event Calendar</span>
           </Button>
 
@@ -262,13 +282,13 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
             variant={activeTab === "history" ? "default" : "ghost"}
             size="sm"
             onClick={() => handleTabChange("history")}
-            className={`text-xs font-bold gap-2 px-4 h-9 rounded-xl transition-all border ${
+            className={`text-[10px] font-bold uppercase tracking-wider gap-2 px-6 h-10 rounded transition-all border ${
               activeTab === "history"
-                ? "bg-white text-black border-white shadow-md font-black hover:bg-zinc-100"
-                : "bg-zinc-900/90 text-zinc-200 border-zinc-800 hover:text-white hover:bg-zinc-800 hover:border-zinc-700"
+                ? "bg-[#f03e65] text-white border-[#f03e65] shadow-md hover:bg-[#d83558]"
+                : "bg-[#121010] text-gray-400 border-[#333] hover:text-white hover:bg-[#1a1414] hover:border-[#444]"
             }`}
           >
-            <History className="h-4 w-4" />
+            <History className="h-3.5 w-3.5" />
             <span>Booking History</span>
           </Button>
         </div>
@@ -276,7 +296,7 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
 
       {/* Primary Tab Content Viewports */}
       {activeTab === "inbox" && (
-        <BookingInboxTab role={role} bookings={bookings} loading={loading} onRefresh={reloadAll} />
+        <BookingInboxTab role={role} userId={user?.id} bookings={bookings} loading={loading} onRefresh={reloadAll} />
       )}
 
       {activeTab === "calendar" && (
@@ -301,8 +321,8 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
 
       {/* Booking Request Form Modal */}
       {showBookingForm && (role === "client" || role === "artist" || role === "venue") && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 overflow-y-auto p-4 sm:p-6 md:p-8 flex justify-center items-start">
-          <div className="w-full max-w-2xl my-4 sm:my-8 relative">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex justify-center items-start pt-4 sm:pt-8 overflow-hidden">
+          <div className="w-full max-w-5xl relative max-h-[95vh] flex flex-col">
             <BookingRequestForm
               artistProfileId={bookingIntent?.artistProfileId}
               artistName={bookingIntent?.artistName}

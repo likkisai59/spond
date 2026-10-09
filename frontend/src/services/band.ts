@@ -1,6 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { api } from "./api";
 import { Artist, Band, Venue, Booking, BookingRequest, CustomerEvent, CustomerEventCreate } from "@/types/band";
-import { isEntertainmentVenue, isEntertainmentArtist } from "@/utils/sportsFilter";
 
 export const bandService = {
   // Artists

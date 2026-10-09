@@ -3,6 +3,9 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
+import { getDefaultRouteForRole } from "@/constants/routes";
 import { bandService } from "@/services/band";
 import { Loader2 } from "lucide-react";
 import { ErrorState } from "@/components/shared/error-state";
@@ -56,6 +59,11 @@ const RATINGS = [3, 3.5, 4, 4.5, 5];
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function VenuesMarketplacePage() {
+  const router = useRouter();
+  const { isAuthenticated, user } = useAuth();
+  
+
+
   const [venues, setVenues] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -131,15 +139,24 @@ export default function VenuesMarketplacePage() {
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-primary/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Back to Home Button */}
+      {/* Back Button */}
       <div className="absolute top-6 left-6 z-20">
-        <Link 
-          href="/" 
+        <button 
+          onClick={() => {
+            if (isAuthenticated && user?.role) {
+              const defaultRoute = getDefaultRouteForRole(user.role);
+              if (defaultRoute) {
+                router.push(defaultRoute);
+                return;
+              }
+            }
+            router.push("/band");
+          }}
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-card/50 hover:text-foreground border border-transparent hover:border-border/50"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Home
-        </Link>
+        </button>
       </div>
 
       {/* Hero Header */}
@@ -373,19 +390,29 @@ export default function VenuesMarketplacePage() {
                 venue.profile_image ||
                 (typeof venue.gallery?.[0] === "string" ? venue.gallery[0] : (venue.gallery?.[0] as any)?.url) ||
                 (Array.isArray(venue.images) && venue.images[0]) ||
-                "https://images.unsplash.com/photo-1519167758481-83f550bb49b3";
+                null;
               const venueLogo = venue.metadata_fields?.logo || venue.logo || null;
               return (
                 <Link key={venue.id} href={`/band/marketplace/venues/${venue.id}`}>
                   <Card className="bg-card/45 backdrop-blur-md border border-border/70 overflow-hidden hover:border-primary/45 transition-all duration-300 group h-full flex flex-col">
                     {/* Image */}
-                    <div className="relative h-52 w-full overflow-hidden">
-                      <img
-                        src={formatImageUrl(coverImage)}
-                        alt={venueDisplayName}
-                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500 brightness-90"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-bg-card via-transparent to-transparent" />
+                    <div className="relative h-52 w-full overflow-hidden bg-gradient-to-tr from-[#1a1414] to-[#2a2424] flex flex-col items-center justify-center">
+                      {coverImage ? (
+                        <>
+                          <img
+                            src={formatImageUrl(coverImage)}
+                            alt={venueDisplayName}
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500 brightness-90"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-bg-card via-transparent to-transparent" />
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-muted-foreground/50 h-full w-full">
+                          <Building2 className="h-10 w-10 mb-2 opacity-20" />
+                          <span className="text-[10px] font-bold tracking-widest uppercase opacity-40">No Cover Image</span>
+                          <div className="absolute inset-0 bg-gradient-to-t from-bg-card via-transparent to-transparent" />
+                        </div>
+                      )}
 
                       {/* Badges */}
                       <div className="absolute top-3 left-3 flex items-center gap-1.5">

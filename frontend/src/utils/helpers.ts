@@ -1,6 +1,12 @@
 import type { BreadcrumbItem } from "@/types";
 export { formatDate, formatDateTime, formatRelative } from "./date";
 
+
+export function getUserDisplayName(user: any, fallback: string = 'Not set'): string {
+  if (!user) return fallback;
+  const name = user.fullName?.trim() || user.full_name?.trim() || user.name?.trim() || `${user.firstName || ''} ${user.lastName || ''}`.trim();
+  return name || fallback;
+}
 export function isClient(): boolean {
   return typeof window !== "undefined";
 }
@@ -85,3 +91,19 @@ export function formatImageUrl(url?: string | null): string {
   return `${apiBase.replace(/\/$/, "")}/${url.replace(/^\//, "")}`;
 }
 
+export function maskPhoneNumber(phone?: string | null, isAccepted?: boolean): string {
+  if (!phone) return "Not provided";
+  if (isAccepted) return phone;
+  
+  // Format: +91 9876543210 -> +91 98765XXXXX
+  const match = phone.trim().match(/^(\+\d{1,4}\s*)?(\d{5})(\d+)/);
+  if (match) {
+    const [, code = "", first5, rest] = match;
+    return `${code}${first5}${"X".repeat(rest.length)}`;
+  }
+  
+  // Fallback if it doesn't match standard length (e.g., short number)
+  const cleanPhone = phone.trim();
+  if (cleanPhone.length <= 5) return "X".repeat(cleanPhone.length);
+  return cleanPhone.substring(0, 5) + "X".repeat(cleanPhone.length - 5);
+}

@@ -14,11 +14,12 @@ interface ImageUploadProps {
   onChange: (url: string) => void;
   onRemove?: () => void;
   subfolder?: string;
+  clearAfterUpload?: boolean;
 }
 
 import { formatImageUrl } from "@/utils/helpers";
 
-export function ImageUpload({ value, onChange, onRemove, subfolder: _subfolder = "general" }: ImageUploadProps) {
+export function ImageUpload({ value, onChange, onRemove, subfolder: _subfolder = "general", clearAfterUpload = false }: ImageUploadProps) {
   const [isUploading, setIsUploading] = React.useState(false);
   const [localPreview, setLocalPreview] = React.useState<string | null>(null);
   const [hasError, setHasError] = React.useState(false);
@@ -65,6 +66,12 @@ export function ImageUpload({ value, onChange, onRemove, subfolder: _subfolder =
       if (url) {
         onChange(url);
         toast.success("Image uploaded successfully!");
+        if (clearAfterUpload) {
+          setLocalPreview(null);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+        }
       } else {
         // Even if server doesn't return URL, keep the local preview so user sees their chosen image
         onChange(objectUrl);

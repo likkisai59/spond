@@ -9,7 +9,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { ErrorState } from "@/components/ui/error-state";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CalendarDays } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { BookingRequestForm } from "@/components/bookings/BookingRequestForm";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -102,15 +102,13 @@ export default function ArtistPublicProfilePage() {
       </div>
 
       {/* Render the full profile using the Preview component */}
-      <ArtistProfilePreview profile={profile} />
+      <ArtistProfilePreview profile={profile} isMaskedPhone={true} />
 
       {/* Booking Wizard Dialog */}
       <Dialog open={showBookingWizard} onOpenChange={setShowBookingWizard}>
-        <DialogContent className="sm:max-w-[700px] bg-card border-border max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Book {profile.display_name || "Artist"}</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
+        <DialogContent className="sm:max-w-5xl p-0 overflow-hidden bg-transparent border-0 shadow-none">
+          <DialogTitle className="sr-only">Book {profile.display_name || "Artist"}</DialogTitle>
+          <div className="w-full">
             <BookingRequestForm
               artistProfileId={artistId}
               artistName={profile.display_name}

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm, Path } from "react-hook-form";
+import { useForm, Path, FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { venueProfileUpdateSchema, VenueProfileUpdateFormData } from "@/utils/validation";
 import { VenueResponseData } from "@/types/venue";
@@ -21,10 +21,11 @@ import {
   Users,
   Briefcase
 } from "lucide-react";
+import { PhoneInputField } from "@/components/shared/PhoneInputField";
 import { bandService } from "@/services/band";
-import { siteConfig } from "@/config/site";
 import toast from "react-hot-toast";
 import { formatImageUrl } from "@/utils/helpers";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 interface VenueProfileEditProps {
   profile: VenueResponseData;
   onSuccess: (updated: VenueProfileUpdateFormData) => void;
@@ -76,11 +77,12 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
     handleSubmit,
     setValue,
     watch,
-    formState: { errors, isSubmitting }
+    formState: { errors, isSubmitting, isDirty }
   } = useForm<VenueProfileUpdateFormData>({
     resolver: zodResolver(venueProfileUpdateSchema),
     defaultValues: {
       owner_name: profile.user.name || "",
+      mobile_number: profile.user.phone || profile.user.mobile_number || (profile as VenueResponseData & { mobile_number?: string }).mobile_number || "",
       business_name: profile.business_name || "",
       contact_person: profile.metadata_fields?.contact_person || "",
       gst_number: profile.metadata_fields?.gst_number || "",
@@ -123,9 +125,10 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
       doc_government_id: profile.documents?.doc_government_id || "",
       doc_business_license: profile.documents?.doc_business_license || "",
       youtube_links: profile.metadata_fields?.youtube_links || []
-    }
+    } as unknown as VenueProfileUpdateFormData
   });
 
+  useUnsavedChangesWarning(isDirty);
 
   const watchedWeeklySchedule = watch("weekly_schedule") || {};
   const watchedYoutubeLinks = watch("youtube_links") || [];
@@ -214,13 +217,25 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
 
 
 
-  const onFormError = (formErrors: any) => {
-    console.error("[VenueProfileEdit] Form validation error:", formErrors);
-    const errorKeys = Object.keys(formErrors);
+  const onFormError = (formErrors: FieldErrors<VenueProfileUpdateFormData>) => {
+    console.warn("[VenueProfileEdit] Form validation error:", formErrors);
+    const errorKeys = Object.keys(formErrors) as Array<keyof VenueProfileUpdateFormData>;
     if (errorKeys.length > 0) {
-      const firstError = formErrors[errorKeys[0]];
-      const message = firstError?.message || `Please check the ${errorKeys[0]} field.`;
+      const firstErrorKey = errorKeys[0];
+      const firstError = formErrors[firstErrorKey];
+      // Sometimes errors are nested (like weekly_schedule)
+      let message = "Please check the highlighted fields.";
+      if (firstError?.message) {
+        message = firstError.message as string;
+      } else if (firstErrorKey === "weekly_schedule") {
+        message = "Please check your weekly schedule times.";
+      } else {
+        message = `Please check the ${String(firstErrorKey)} field.`;
+      }
       toast.error(message);
+    } else {
+      // Fallback if keys are empty but it's still invalid
+      toast.error("Form is invalid. Please check all fields.");
     }
   };
 
@@ -247,6 +262,16 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
             <Input id="venue_name" placeholder="e.g. Royal Grand Hall" {...register("venue_name")} />
             <p className="text-[10px] text-muted-foreground">Letters and spaces only — no numbers</p>
             {errors.venue_name && <p className="text-xs text-error">{errors.venue_name.message}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="mobile_number">Mobile / Booking Phone</Label>
+            <PhoneInputField 
+              id="mobile_number"
+              value={watch("mobile_number")}
+              onChange={val => setValue("mobile_number", val, { shouldValidate: true })}
+              error={errors.mobile_number?.message}
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -424,6 +449,12 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
               <option value="">Select District</option>
               {cities.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
             </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="city_id">City</Label>
+            <Input id="city_id" placeholder="e.g. Chennai" {...register("city_id")} />
+            {errors.city_id && <p className="text-xs text-error">{errors.city_id.message}</p>}
           </div>
 
           <div className="space-y-1.5">

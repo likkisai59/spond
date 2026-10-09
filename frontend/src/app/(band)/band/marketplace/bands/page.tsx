@@ -3,6 +3,9 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
+import { getDefaultRouteForRole } from "@/constants/routes";
 import { bandService } from "@/services/band";
 import { formatImageUrl } from "@/utils/helpers";
 import { Artist } from "@/types/band";
@@ -40,8 +43,18 @@ const GENRES = [
 const RATINGS = ["4.5+", "4.0+", "3.5+", "3.0+"];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-
 export default function PublicArtistsListPage() {
+  const router = useRouter();
+  const { isAuthenticated, user } = useAuth();
+  
+  let homeRoute = "/band";
+  if (isAuthenticated && user?.role) {
+    const defaultRoute = getDefaultRouteForRole(user.role);
+    if (defaultRoute) {
+      homeRoute = defaultRoute;
+    }
+  }
+
   const [bands, setBands] = React.useState<Artist[]>([]);
   const [loading, setLoading] = React.useState<boolean>(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -99,15 +112,24 @@ export default function PublicArtistsListPage() {
       {/* Background ambient glow */}
       <div className="absolute inset-0 glow-overlay pointer-events-none" />
 
-      {/* Back to Home Button */}
+      {/* Back Button */}
       <div className="absolute top-6 left-6 z-20">
-        <Link 
-          href="/" 
+        <button 
+          onClick={() => {
+            if (isAuthenticated && user?.role) {
+              const defaultRoute = getDefaultRouteForRole(user.role);
+              if (defaultRoute) {
+                router.push(defaultRoute);
+                return;
+              }
+            }
+            router.push("/band");
+          }}
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-card/50 hover:text-foreground border border-transparent hover:border-border/50"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Home
-        </Link>
+        </button>
       </div>
 
       {/* Hero Header */}

@@ -19,7 +19,7 @@ import {
   Phone,
   Image as ImageIcon
 } from "lucide-react";
-import { formatImageUrl } from "@/utils/helpers";
+import { formatImageUrl, maskPhoneNumber } from "@/utils/helpers";
 import { FavoriteButton } from "@/components/shared/FavoriteButton";
 
 const FACILITY_OPTIONS = [
@@ -45,9 +45,10 @@ const FACILITY_OPTIONS = [
 
 interface VenueProfilePreviewProps {
   profile: VenueResponseData;
+  isMaskedPhone?: boolean;
 }
 
-export function VenueProfilePreview({ profile }: VenueProfilePreviewProps) {
+export function VenueProfilePreview({ profile, isMaskedPhone = false }: VenueProfilePreviewProps) {
   const weeklySchedule = profile.availability_rules?.weekly_schedule || {};
   const blockedDates = profile.availability_rules?.blocked_dates || [];
   const maintenanceDays = profile.availability_rules?.maintenance_days || [];
@@ -372,7 +373,7 @@ export function VenueProfilePreview({ profile }: VenueProfilePreviewProps) {
                 )}
                 <div className="flex items-center gap-2 pl-6 pt-1">
                   <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>{profile.user?.email || "No email provided"}</span>
+                  <span>{maskPhoneNumber(profile.user?.phone || profile.user?.mobile_number || (profile as any).mobile_number, !isMaskedPhone)}</span>
                 </div>
               </div>
             </CardContent>

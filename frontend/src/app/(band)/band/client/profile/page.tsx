@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { getUserDisplayName } from "@/utils/helpers";
 import { api } from "@/services/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +14,7 @@ import toast from "react-hot-toast";
 import { PhoneInputField } from "@/components/shared/PhoneInputField";
 
 export default function ClientProfilePage() {
-  const { user, setUser } = useAuth() as { user: Record<string, any> | null; setUser: (u: any) => void };
+  const { user, setUser } = useAuth() as { user: Record<string, unknown> | null; setUser: (u: unknown) => void };
 
   const [editing, setEditing] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -26,7 +27,7 @@ export default function ClientProfilePage() {
   React.useEffect(() => {
     if (user) {
       setForm({
-        full_name: user.name || user.full_name || "",
+        full_name: getUserDisplayName(user, ""),
         phone: user.phone || "",
       });
     }
@@ -50,7 +51,7 @@ export default function ClientProfilePage() {
     }
     setSaving(true);
     try {
-      const { data } = await api.patch<Record<string, any>>("/auth/me", form);
+      const { data } = await api.patch<Record<string, unknown>>("/auth/me", form);
       const updated = data.data;
       // Refresh auth user in store if setUser is available
       if (setUser && typeof setUser === "function") {
@@ -192,7 +193,7 @@ export default function ClientProfilePage() {
                     <div>
                       <p className="text-[10px] font-bold uppercase text-muted-foreground">Name</p>
                       <p className="text-sm font-semibold text-foreground">
-                        {user?.name || user?.full_name || "Not set"}
+                        {getUserDisplayName(user, "Not set")}
                       </p>
                     </div>
                   </div>

@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Logo, LogoMark } from "@/components/shared/brand";
 import { useAuth } from "@/hooks";
-import { getInitials } from "@/utils/helpers";
+import { getInitials, getUserDisplayName } from "@/utils/helpers";
 import type { NavSection } from "@/types";
 import { cn } from "@/utils/cn";
 import { ROUTES } from "@/constants";
@@ -214,7 +214,7 @@ function SidebarProfile({
   }, []);
 
   const name = mounted && user
-    ? (user.fullName?.trim() || `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.name || "Guest user")
+    ? getUserDisplayName(user, "Guest user")
     : "Guest user";
   const displayRole = mounted && user
     ? (user.role === "member" ? "Club Owner" : user.role === "sports_venue_owner" ? "Sports Venue Owner" : user.role === "venue_owner" ? "Venue Owner" : user.role)

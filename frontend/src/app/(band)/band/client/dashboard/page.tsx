@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { getUserDisplayName } from "@/utils/helpers";
 import { bandService } from "@/services/band";
 import {
   CalendarRange,
@@ -43,17 +44,17 @@ export default function ClientDashboardPage() {
     let cancelled = false;
     async function fetchSummary() {
       try {
-        // Fetch in parallel: total count, accepted/confirmed (upcoming), completed
-        const [all, accepted, completed] = await Promise.all([
-          bandService.getMyBookings("customer"),
-          bandService.getMyBookings("customer"),
-          bandService.getMyBookings("customer"),
-        ]);
+        const allRaw = await bandService.getMyBookings("customer");
+        const allClient = allRaw.filter((b: any) => {
+          const rType = (b.requester_type || "").toLowerCase();
+          return rType === "" || rType === "client";
+        });
+        
         if (!cancelled) {
           setBookingSummary({
-            total: all.length,
-            upcoming: accepted.filter(b => b.status === "ACCEPTED").length,
-            completed: completed.filter(b => b.status === "COMPLETED").length,
+            total: allClient.length,
+            upcoming: allClient.filter((b: any) => ["ACCEPTED", "CONFIRMED"].includes(b.status?.toUpperCase() || b.booking_status?.toUpperCase() || "")).length,
+            completed: allClient.filter((b: any) => (b.status || b.booking_status)?.toUpperCase() === "COMPLETED").length,
           });
         }
       } catch {
@@ -74,7 +75,7 @@ export default function ClientDashboardPage() {
         <div className="space-y-1">
           <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Home</h1>
           <p className="text-xs text-muted-foreground">
-            Welcome back{user?.firstName ? `, ${user.firstName}` : ""}! Discover artists, manage your
+            Welcome back, {getUserDisplayName(user, "User")}! Discover artists, manage your
             bookings, and find amazing venues.
           </p>
         </div>
@@ -150,16 +151,15 @@ export default function ClientDashboardPage() {
           {[
             {
               title: "My Bookings",
-              description: "Manage your event requests",
+              description: "Manage event requests",
               href: "/band/client/bookings",
-              value: bookingSummary !== null ? bookingSummary.total : "—",
               icon: CalendarRange,
               iconClassName: "text-primary",
               iconBgClassName: "bg-primary/10 group-hover:bg-primary/20",
             },
             {
               title: "Find Artist",
-              description: "Discover performers for your event",
+              description: "Discover performers",
               href: "/band/marketplace/artists",
               icon: Music,
               iconClassName: "text-secondary",
@@ -167,7 +167,7 @@ export default function ClientDashboardPage() {
             },
             {
               title: "Find Venues",
-              description: "Browse event spaces near you",
+              description: "Browse event spaces",
               href: "/band/marketplace/venues",
               icon: Building2,
               iconClassName: "text-secondary",
@@ -175,26 +175,27 @@ export default function ClientDashboardPage() {
             },
             {
               title: "Favourites",
-              description: "Your saved artists and venues",
+              description: "Saved artists & venues",
               href: "/band/client/favorites",
               icon: Heart,
               iconClassName: "text-primary",
               iconBgClassName: "bg-primary/10 group-hover:bg-primary/20",
             },
           ].map((action) => (
-            <DashboardCard
-              key={action.title}
-              title={action.title}
-              description={action.description}
-              href={action.href}
-              icon={action.icon}
-              iconClassName={action.iconClassName}
-              iconBgClassName={action.iconBgClassName}
-              actionIcon={
-                <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-current transition-colors" />
-              }
-              className="bg-card/45 backdrop-blur-md border border-border rounded-2xl shadow-xl"
-            />
+            <Link key={action.title} href={action.href} className="block h-full outline-none">
+              <Card className="bg-card/45 backdrop-blur-md border border-border rounded-2xl shadow-xl hover:border-primary/30 transition-all duration-300 h-full group">
+                <CardContent className="p-4 flex items-center gap-4 h-full">
+                  <div className={`p-3 rounded-xl shrink-0 transition-colors ${action.iconBgClassName}`}>
+                    <action.icon className={`h-5 w-5 ${action.iconClassName}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-foreground truncate">{action.title}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{action.description}</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors shrink-0" />
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       </div>

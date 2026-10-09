@@ -27,6 +27,7 @@ export interface Message {
   id: string;
   conversation_id: string;
   sender_id: string;
+  sender_name?: string | null;
   message_type: MessageType;
   content: string;
   reply_to_message_id?: string | null;

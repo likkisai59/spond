@@ -176,6 +176,37 @@ export const venueProfileUpdateSchema = z
       })
       .optional()
       .default(""),
+    mobile_number: z
+      .string()
+      .trim()
+      .min(1, "Mobile phone number is required")
+      .superRefine((val, ctx) => {
+        const match = val.match(/^(\+\d{1,4})\s*(\d*)$/);
+        if (!match) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Please enter a valid phone number with country code (e.g. +91 9876543210)",
+          });
+          return;
+        }
+        const [, code, digits] = match;
+        const country = COUNTRY_CODES.find((c) => c.code === code);
+        if (country) {
+          if (digits.length !== country.digits) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: `${country.name} (${country.code}) requires exactly ${country.digits} digits (currently ${digits.length})`,
+            });
+          }
+        } else {
+          if (digits.length < 7 || digits.length > 15) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Phone number must contain between 7 and 15 digits",
+            });
+          }
+        }
+      }),
     gst_number: z
       .string()
       .optional()
@@ -207,6 +238,9 @@ export const venueProfileUpdateSchema = z
       "Club",
       "Pub",
       "Restaurant",
+      "Convention Center",
+      "Beach Venue",
+      "Rooftop",
       "Others",
     ]),
     description: z
@@ -230,7 +264,7 @@ export const venueProfileUpdateSchema = z
       .optional()
       .default("")
       .refine((val) => !val || !/\d/.test(val), { message: "District cannot contain numbers" }),
-    city_id: z.string().uuid("City is required"),
+    city_id: z.string().min(1, "City is required"),
     area: z
       .string()
       .optional()
@@ -382,6 +416,7 @@ export const bookingRequestSchema = z.object({
     .refine((val) => !val || !/\d/.test(val), {
       message: "Country must contain letters and spaces only (no numbers)",
     }),
+  postcode: z.string().optional().default(""),
   google_maps_coords: z
     .string()
     .optional()

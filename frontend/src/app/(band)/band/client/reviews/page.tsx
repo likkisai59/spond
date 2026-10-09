@@ -13,7 +13,9 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { bookingService } from "@/services/band/bookings.service";
+import { bandService } from "@/services/band";
 import { BookingRequestDetail } from "@/types/booking";
+import { ReviewableBooking } from "@/components/reviews/ReviewFormModal";
 
 export default function ReviewsPage() {
   const [reviews, setReviews] = React.useState<Review[]>([]);
@@ -23,7 +25,7 @@ export default function ReviewsPage() {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [editingReview, setEditingReview] = React.useState<Review | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [eligibleBookings, setEligibleBookings] = React.useState<BookingRequestDetail[]>([]);
+  const [eligibleBookings, setEligibleBookings] = React.useState<ReviewableBooking[]>([]);
   
   const { user } = useAuth();
   const currentUserId = user?.id || "";
@@ -43,10 +45,17 @@ export default function ReviewsPage() {
 
   const fetchBookings = async () => {
     try {
-      const response = await bookingService.getClientBookings({ limit: 100 });
-      const completed = (response.bookings || []).filter((b: BookingRequestDetail) => 
-        (b.status as string) === "completed" || (b.status as string) === "EVENT_COMPLETED" || b.status === "confirmed"
-      );
+      const rawBookings = await bandService.getMyBookings("customer");
+      const completed = (rawBookings || []).filter((b: any) => {
+        const s = (b.status as string).toLowerCase();
+        return ["completed", "event_completed", "confirmed", "accepted"].includes(s);
+      }).map((b: any) => ({
+        id: b.id,
+        artist_name: b.provider_name,
+        venue_name: b.provider_name,
+        event_title: b.event_name,
+        event_date: b.event_date,
+      })) as ReviewableBooking[];
       setEligibleBookings(completed);
     } catch (err: unknown) {
       console.error("Failed to load eligible bookings for review:", err);

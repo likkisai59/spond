@@ -134,13 +134,13 @@ export function VenueBookingDetails({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 p-4 border border-border bg-accent/10 rounded-2xl text-xs">
               <div className="space-y-1">
                 <span className="text-[10px] text-muted-foreground">Contact Name</span>
-                <p className="font-bold text-foreground">{booking.client.name}</p>
+                <p className="font-bold text-foreground">{booking.client?.name || "Client"}</p>
               </div>
               <div className="space-y-1">
                 <span className="text-[10px] text-muted-foreground">Email Address</span>
                 <p className="font-bold text-foreground flex items-center gap-1">
                   <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                  {booking.client.email}
+                  {booking.client?.email || "No email provided"}
                 </p>
               </div>
             </div>

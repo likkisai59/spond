@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Bell, LogOut, Menu, PanelLeft, Settings } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,13 +20,13 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { useAuth, useSidebar } from "@/hooks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { notificationsCleared, markNotificationsAsRead } from "@/store/slices/notification-slice";
+import { clearAllNotifications, markNotificationsAsRead } from "@/store/slices/notification-slice";
 import {
   selectNotifications,
   selectUnreadNotificationsCount,
 } from "@/store/selectors";
 import { ROUTES } from "@/constants";
-import { formatRelative, getInitials } from "@/utils";
+import { formatRelative, getInitials, getUserDisplayName } from "@/utils/helpers";
 import type { BreadcrumbItem } from "@/types";
 import { cn } from "@/utils/cn";
 
@@ -65,7 +65,10 @@ function NotificationsMenu() {
             <button
               type="button"
               className="text-xs font-semibold text-accent hover:underline"
-              onClick={() => dispatch(notificationsCleared())}
+              onClick={(e) => {
+                e.stopPropagation();
+                dispatch(clearAllNotifications());
+              }}
             >
               Clear all
             </button>
@@ -77,9 +80,10 @@ function NotificationsMenu() {
             No notifications yet
           </p>
         ) : (
-          notifications.slice(0, 5).map((notification) => (
-            <DropdownMenuItem
-              key={notification.id}
+          <div className="max-h-[350px] overflow-y-auto">
+            {notifications.map((notification) => (
+              <DropdownMenuItem
+                key={notification.id}
               className="flex cursor-default flex-col items-start gap-0.5 py-2"
             >
               <span className="flex w-full items-center justify-between gap-2">
@@ -109,7 +113,8 @@ function NotificationsMenu() {
                 {formatRelative(notification.createdAt)}
               </span>
             </DropdownMenuItem>
-          ))
+            ))}
+          </div>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
@@ -118,8 +123,12 @@ function NotificationsMenu() {
 
 function SettingsButton() {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useAuth();
   if (!user) return null;
+
+  // Hide the header settings button in the band module because the sidebar already has it.
+  if (pathname?.startsWith("/band")) return null;
 
   const role = user.role || "";
   let settingsLink = "/sports/settings";
@@ -146,7 +155,6 @@ function SettingsButton() {
 }
 
 function UserMenu() {
-  const router = useRouter();
   const { user, logout } = useAuth();
   const [mounted, setMounted] = React.useState(false);
 
@@ -158,12 +166,12 @@ function UserMenu() {
     return <Skeleton className="h-9 w-9 rounded-full" />;
   }
 
-  const displayName = user?.fullName || "Guest user";
+  const displayName = getUserDisplayName(user, "Guest user");
   const initials = getInitials(displayName);
 
   const handleLogout = () => {
     logout();
-    router.push(ROUTES.LOGIN);
+    window.location.href = ROUTES.LOGIN;
   };
 
   return (

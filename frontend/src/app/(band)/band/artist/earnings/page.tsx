@@ -26,10 +26,34 @@ import toast from "react-hot-toast";
 
 export default function ArtistEarningsPage() {
   const { data, loading, error, refetch } = useArtistEarnings();
-  const [showTaxModal, setShowTaxModal] = React.useState(false);
 
   const handleDownloadStatement = () => {
-    toast.success("Preparing your statement report. Download will start shortly!");
+    if (!data?.transactions || data.transactions.length === 0) {
+      toast.error("No transactions available to download.");
+      return;
+    }
+
+    toast.success("Generating your statement report...");
+
+    const headers = ["Transaction ID", "Date", "Description", "Type", "Amount (INR)", "Status"];
+    const rows = data.transactions.map(tx => [
+      tx.id,
+      new Date(tx.created_at).toLocaleString(),
+      `"${tx.description || 'Inbound booking payout'}"`,
+      tx.type,
+      tx.amount,
+      tx.status
+    ]);
+    
+    const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `EventHub_Artist_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const getStatusBadge = (s: string) => {
@@ -86,16 +110,6 @@ export default function ArtistEarningsPage() {
         </div>
         
         <div className="flex items-center gap-2 self-start sm:self-center">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => setShowTaxModal(true)}
-            className="flex items-center gap-1 text-xs h-9"
-          >
-            <Percent className="h-4 w-4" />
-            <span>Tax Summary</span>
-          </Button>
-
           <Button 
             onClick={refetch}
             variant="outline" 
@@ -286,61 +300,7 @@ export default function ArtistEarningsPage() {
 
       </div>
 
-      {/* Tax Summary placeholder Modal overlay */}
-      {showTaxModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <Card className="bg-card border border-border max-w-md w-full rounded-2xl shadow-2xl p-6 relative">
-            <h3 className="text-lg font-black text-foreground flex items-center gap-2">
-              <FileText className="h-5.5 w-5.5 text-primary" />
-              Annual Tax Summary (Estimate)
-            </h3>
-            
-            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-              Below is an estimation of your platform earnings for the current tax assessment cycle. Tax rules vary by location.
-            </p>
-
-            <div className="mt-5 space-y-3.5 divide-y divide-border/40 text-xs">
-              <div className="flex justify-between items-center py-2.5">
-                <span className="text-muted-foreground">Gross Platform Sales</span>
-                <span className="font-bold text-foreground">{formatCurrency(data.total_earnings)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2.5">
-                <span className="text-muted-foreground">Deductible Commission (10%)</span>
-                <span className="font-bold text-primary">-{formatCurrency(data.total_earnings * 0.1)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2.5">
-                <span className="text-muted-foreground">Net Taxable Revenue</span>
-                <span className="font-bold text-foreground">{formatCurrency(data.total_earnings * 0.9)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2.5">
-                <span className="text-muted-foreground">Estimated Tax Bracket Liability</span>
-                <span className="font-bold text-foreground">Zone Specific (Calculated at withdrawal)</span>
-              </div>
-            </div>
-
-            <div className="mt-6 flex gap-3">
-              <Button 
-                onClick={() => {
-                  setShowTaxModal(false);
-                  toast.success("Tax estimation summary statement generated!");
-                }}
-                className="flex-1 bg-primary text-white font-bold h-10 flex items-center justify-center gap-1.5"
-              >
-                <ShieldCheck className="h-4.5 w-4.5" />
-                <span>Calculate Details</span>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                onClick={() => setShowTaxModal(false)}
-                className="h-10 text-xs"
-              >
-                Close
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+      {/* Content ends */}
 
     </div>
   );

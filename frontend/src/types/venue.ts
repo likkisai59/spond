@@ -12,6 +12,8 @@ export interface VenueResponseData {
     name: string;
     email: string;
     is_active: boolean;
+    phone?: string;
+    mobile_number?: string;
   };
   name: string;
   venue_type: string;
@@ -34,11 +36,11 @@ export interface VenueResponseData {
   country: string | null;
   google_map_location: string | null;
   facilities: string[];
-  gallery: any[];
-  pricing_details: Record<string, any>;
-  availability_rules: Record<string, any>;
-  documents: Record<string, any>;
-  metadata_fields: Record<string, any>;
+  gallery: unknown[];
+  pricing_details: Record<string, unknown>;
+  availability_rules: Record<string, unknown>;
+  documents: Record<string, unknown>;
+  metadata_fields: Record<string, unknown>;
   created_at: string;
 }
 
@@ -198,7 +200,7 @@ export interface VenueConflictCheckResponse {
 
 export interface VenueFacilitiesData {
   facilities: string[];
-  details: Record<string, any>;
+  details: Record<string, unknown>;
 }
 
 export interface VenueDiscountData {

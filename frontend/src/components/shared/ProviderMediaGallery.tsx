@@ -10,8 +10,6 @@ import { VideoUpload } from "@/components/shared/VideoUpload";
 import {
   Plus,
   Trash2,
-  ChevronLeft,
-  ChevronRight,
   Image as ImageIcon,
   Video as VideoIcon,
   Star,
@@ -19,6 +17,9 @@ import {
   Youtube
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { formatImageUrl } from "@/utils/helpers";
+
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 
 export interface BaseGalleryItem {
   url: string;
@@ -53,12 +54,17 @@ export interface ProviderMediaGalleryProps<
   // Dedicated cover image option (e.g. for venues)
   showDedicatedCover?: boolean;
   initialCoverImage?: string | null;
+  
+  // Dedicated logo option
+  showDedicatedLogo?: boolean;
+  initialLogo?: string | null;
 
   onSave: (data: {
     gallery: TGallery[];
     videos: TVideo[];
     youtubeLinks: string[];
     coverImage?: string | null;
+    logo?: string | null;
   }) => Promise<void>;
 
   extraSections?: React.ReactNode;
@@ -81,18 +87,24 @@ export function ProviderMediaGallery<
   initialYoutubeLinks = [],
   showDedicatedCover = false,
   initialCoverImage = null,
+  showDedicatedLogo = false,
+  initialLogo = null,
   onSave,
   extraSections
 }: ProviderMediaGalleryProps<TGallery, TVideo>) {
   const [coverImage, setCoverImage] = React.useState<string | null>(initialCoverImage);
+  const [logo, setLogo] = React.useState<string | null>(initialLogo);
   const [gallery, setGallery] = React.useState<TGallery[]>(initialGallery);
   const [videos, setVideos] = React.useState<TVideo[]>(initialVideos);
   const [youtubeLinks, setYoutubeLinks] = React.useState<string[]>(initialYoutubeLinks);
 
   const [saving, setSaving] = React.useState(false);
+  const [isDirty, setIsDirty] = React.useState(false);
   const [newAlbumName, setNewAlbumName] = React.useState(albums[0] || "General");
   const [newYoutubeUrl, setNewYoutubeUrl] = React.useState("");
   const [youtubeError, setYoutubeError] = React.useState("");
+
+  useUnsavedChangesWarning(isDirty);
 
   const isValidYoutubeUrl = (url: string) => {
     if (!url || !url.trim()) return false;
@@ -122,8 +134,10 @@ export function ProviderMediaGallery<
         gallery,
         videos,
         youtubeLinks: currentYoutubeLinks,
-        coverImage
+        coverImage,
+        logo
       });
+      setIsDirty(false);
     } catch {
       toast.error("Failed to save media changes.");
     } finally {
@@ -145,6 +159,7 @@ export function ProviderMediaGallery<
     if (showDedicatedCover && gallery.length === 0 && !coverImage) {
       setCoverImage(url);
     }
+    setIsDirty(true);
   };
 
   const removeImage = (idx: number) => {
@@ -161,6 +176,7 @@ export function ProviderMediaGallery<
       }
       return current;
     });
+    setIsDirty(true);
   };
 
   const setAsCover = (idx: number) => {
@@ -173,23 +189,9 @@ export function ProviderMediaGallery<
     if (showDedicatedCover && gallery[idx]) {
       setCoverImage(gallery[idx].url);
     }
+    setIsDirty(true);
     toast.success("Cover image updated!");
   };
-
-  const moveImage = (idx: number, direction: "left" | "right") => {
-    setGallery(prev => {
-      const current = [...prev];
-      const targetIdx = direction === "left" ? idx - 1 : idx + 1;
-      if (targetIdx < 0 || targetIdx >= current.length) return prev;
-
-      const temp = current[idx];
-      current[idx] = current[targetIdx];
-      current[targetIdx] = temp;
-      return current;
-    });
-  };
-
-
 
   // Video File methods
   const addVideoFile = (url: string) => {
@@ -201,6 +203,7 @@ export function ProviderMediaGallery<
       thumbnail: ""
     } as unknown as TVideo;
     setVideos(prev => [...prev, newItem]);
+    setIsDirty(true);
   };
 
   const removeVideoFile = (idx: number) => {
@@ -209,12 +212,14 @@ export function ProviderMediaGallery<
       current.splice(idx, 1);
       return current;
     });
+    setIsDirty(true);
   };
 
   const handleVideoCategoryChange = (idx: number, category: string) => {
     setVideos(prev =>
       prev.map((item, i) => (i === idx ? { ...item, category } : item))
     );
+    setIsDirty(true);
   };
 
   // YouTube Links methods
@@ -228,6 +233,7 @@ export function ProviderMediaGallery<
     setYoutubeError("");
     setYoutubeLinks(prev => [...prev, newYoutubeUrl.trim()]);
     setNewYoutubeUrl("");
+    setIsDirty(true);
     toast.success("YouTube link added!");
   };
 
@@ -237,6 +243,7 @@ export function ProviderMediaGallery<
       current.splice(idx, 1);
       return current;
     });
+    setIsDirty(true);
   };
 
   return (
@@ -264,9 +271,29 @@ export function ProviderMediaGallery<
           <div className="max-w-md">
             <ImageUpload
               value={coverImage || undefined}
-              onChange={url => setCoverImage(url)}
-              onRemove={() => setCoverImage(null)}
+              onChange={url => { 
+                setCoverImage(url);
+                // When uploading a dedicated cover, remove the is_cover flag from any gallery item
+                setGallery(prev => prev.map(item => ({ ...item, is_cover: false })));
+                setIsDirty(true); 
+              }}
+              onRemove={() => { setCoverImage(null); setIsDirty(true); }}
               subfolder={`${uploadSubfolder}/covers`}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* OPTIONAL DEDICATED LOGO / AVATAR SECTION */}
+      {showDedicatedLogo && (
+        <div className="space-y-4 pt-4 border-t border-border">
+          <Label className="text-sm font-bold text-foreground">Profile Avatar / Logo</Label>
+          <div className="max-w-xs">
+            <ImageUpload
+              value={logo || undefined}
+              onChange={url => { setLogo(url); setIsDirty(true); }}
+              onRemove={() => { setLogo(null); setIsDirty(true); }}
+              subfolder={`${uploadSubfolder}/logos`}
             />
           </div>
         </div>
@@ -301,6 +328,7 @@ export function ProviderMediaGallery<
           <ImageUpload
             onChange={addImageToGallery}
             subfolder={`${uploadSubfolder}/gallery`}
+            clearAfterUpload={true}
           />
         </div>
 
@@ -313,7 +341,7 @@ export function ProviderMediaGallery<
             >
               <div className="aspect-video w-full relative bg-accent/40 flex items-center justify-center border-b border-border">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={item.url} alt="Gallery item" className="absolute inset-0 w-full h-full object-cover" />
+                <img src={formatImageUrl(item.url)} alt="Gallery item" className="absolute inset-0 w-full h-full object-cover" />
                 {item.is_cover && (
                   <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase bg-primary text-primary-foreground flex items-center gap-1 shadow-sm border border-primary-light">
                     <Star className="h-3 w-3 fill-current" /> Cover Image
@@ -344,35 +372,7 @@ export function ProviderMediaGallery<
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-1 border-t border-border">
-                  {/* Bug 9 fix: Only show reorder arrows when there are multiple images */}
-                  {gallery.length > 1 ? (
-                    <div className="flex gap-1.5">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        disabled={idx === 0}
-                        onClick={() => moveImage(idx, "left")}
-                        className="h-7 w-7"
-                      >
-                        <ChevronLeft className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        disabled={idx === gallery.length - 1}
-                        onClick={() => moveImage(idx, "right")}
-                        className="h-7 w-7"
-                      >
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div /> 
-                  )}
-
+                <div className="flex items-center justify-end pt-1 border-t border-border">
                   {!item.is_cover && (
                     <Button
                       type="button"
@@ -424,7 +424,7 @@ export function ProviderMediaGallery<
               className="border border-border rounded-2xl overflow-hidden bg-card/85 flex flex-col group relative min-w-0"
             >
               <div className="aspect-video w-full relative bg-black/90 border-b border-border flex items-center justify-center">
-                <video src={v.url} controls className="absolute inset-0 w-full h-full object-contain" />
+                <video src={formatImageUrl(v.url)} controls className="absolute inset-0 w-full h-full object-contain" />
                 <button
                   type="button"
                   onClick={() => removeVideoFile(idx)}

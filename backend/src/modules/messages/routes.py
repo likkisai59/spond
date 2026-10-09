@@ -15,7 +15,7 @@ router = APIRouter(prefix="", tags=["Messages"])
 def get_service() -> MessageService:
     return MessageService()
 
-@router.get("/conversations", response_model=List[Dict[str, Any]])
+@router.get("/conversations", response_model=Dict[str, Any])
 async def get_conversations(
     current_user: dict = Depends(get_current_user),
     service: MessageService = Depends(get_service)
@@ -49,7 +49,7 @@ async def get_conversation(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-@router.get("/conversations/{conversation_id}/messages", response_model=List[Dict[str, Any]])
+@router.get("/conversations/{conversation_id}/messages", response_model=Dict[str, Any])
 async def get_messages(
     conversation_id: str,
     page: int = Query(1, ge=1),
@@ -82,10 +82,7 @@ async def send_message(
             payload=payload
         )
         
-        # In a real app we would use NotificationService to broadcast the event
-        # to the websocket connections for the other participants
-        
-        return msg
+        return {"data": msg}
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
     except ValueError as e:

@@ -13,6 +13,7 @@ import { ImageUpload } from "@/components/shared/ImageUpload";
 import { PhoneInputField } from "@/components/shared/PhoneInputField";
 import { Plus, Trash2, Save } from "lucide-react";
 import toast from "react-hot-toast";
+import { useUnsavedChangesWarning } from "@/hooks/useUnsavedChangesWarning";
 
 interface ArtistProfileEditProps {
   profile: ArtistProfile;
@@ -72,11 +73,13 @@ export function ArtistProfileEdit({ profile, onSuccess }: ArtistProfileEditProps
     watch,
     reset,
     control,
-    formState: { errors, isSubmitting }
+    formState: { errors, isSubmitting, isDirty }
   } = useForm<ArtistProfileUpdateFormData>({
     resolver: zodResolver(artistProfileUpdateSchema),
     defaultValues: getFormValuesFromProfile(profile)
   });
+
+  useUnsavedChangesWarning(isDirty);
 
   React.useEffect(() => {
     if (profile) {

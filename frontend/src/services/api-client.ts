@@ -115,16 +115,19 @@ apiClient.interceptors.response.use(
             refresh_token: refreshToken,
           });
 
-          if (res.data?.data?.accessToken) {
+          const newAccessToken = res.data?.data?.accessToken || res.data?.data?.access_token;
+          const newRefreshToken = res.data?.data?.refreshToken || res.data?.data?.refresh_token;
+
+          if (newAccessToken) {
             // Step 3: Save new tokens and retry original request
-            storage.set(STORAGE_KEYS.ACCESS_TOKEN, res.data.data.accessToken);
-            if (res.data.data.refreshToken) {
-              storage.set(STORAGE_KEYS.REFRESH_TOKEN, res.data.data.refreshToken);
+            storage.set(STORAGE_KEYS.ACCESS_TOKEN, newAccessToken);
+            if (newRefreshToken) {
+              storage.set(STORAGE_KEYS.REFRESH_TOKEN, newRefreshToken);
             }
-            originalRequest.headers.Authorization = `Bearer ${res.data.data.accessToken}`;
+            originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             return apiClient(originalRequest);
           }
-        } catch (refreshError) {
+        } catch {
           // Fall through to logout if refresh fails
         }
       }

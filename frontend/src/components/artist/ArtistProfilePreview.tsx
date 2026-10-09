@@ -21,14 +21,16 @@ import {
   Video
 } from "lucide-react";
 import { formatCurrency } from "@/utils/format-currency";
-import { formatImageUrl } from "@/utils/helpers";
+import { formatImageUrl, maskPhoneNumber } from "@/utils/helpers";
 import { FavoriteButton } from "@/components/shared/FavoriteButton";
+import { Phone } from "lucide-react";
 
 interface ArtistProfilePreviewProps {
   profile: ArtistProfile;
+  isMaskedPhone?: boolean;
 }
 
-export function ArtistProfilePreview({ profile }: ArtistProfilePreviewProps) {
+export function ArtistProfilePreview({ profile, isMaskedPhone = false }: ArtistProfilePreviewProps) {
   const hasSocials = profile.social_links && Object.values(profile.social_links).some(Boolean);
   const achievements = profile.achievements || [];
 
@@ -349,6 +351,21 @@ export function ArtistProfilePreview({ profile }: ArtistProfilePreviewProps) {
               </CardContent>
             </Card>
           )}
+
+          {/* Contact Details Panel */}
+          <Card className="bg-card/45 backdrop-blur-md border border-border rounded-2xl shadow-xl">
+            <CardContent className="p-5 space-y-4">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
+                Contact Details
+              </h3>
+              <div className="flex items-center gap-2 pl-2">
+                <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-xs text-foreground font-medium">
+                  {maskPhoneNumber((profile as any).mobile_number || (profile as any).user?.phone || (profile as any).user?.mobile_number, !isMaskedPhone)}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
 
         </div>
 

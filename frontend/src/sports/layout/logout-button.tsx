@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth, useSidebar } from "@/hooks";
@@ -8,13 +8,13 @@ import { ROUTES } from "@/constants";
 import { cn } from "@/utils/cn";
 
 export function SportsLogoutButton() {
-  const router = useRouter();
+
   const { logout } = useAuth();
   const { isCollapsed } = useSidebar();
 
   const handleLogout = () => {
     logout();
-    router.push(ROUTES.LOGIN);
+    window.location.href = ROUTES.LOGIN;
   };
 
   return (

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Sparkles, Music, Star, ShieldCheck, Zap, Globe, ArrowRight, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroSection } from "@/components/shared/HeroSection";
@@ -8,8 +9,22 @@ import { AnimatedCard } from "@/components/shared/AnimatedCard";
 import { AnimatedSection } from "@/components/shared/AnimatedSection";
 import { GradientBlob } from "@/components/shared/GradientBlob";
 import { motion } from "framer-motion";
+import { useAuth } from "@/hooks/use-auth";
+import { getDefaultRouteForRole } from "@/constants/routes";
 
 export default function LandingPage() {
+  const router = useRouter();
+  const { isAuthenticated, user } = useAuth();
+  
+  // Resolve back to home route
+  let homeRoute = "/";
+  if (isAuthenticated && user?.role) {
+    const defaultRoute = getDefaultRouteForRole(user.role);
+    if (defaultRoute) {
+      homeRoute = defaultRoute;
+    }
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
       {/* Subtle background glow */}
@@ -24,15 +39,24 @@ export default function LandingPage() {
         intensity="low"
       />
 
-      {/* Back to Home Button */}
+      {/* Back Button */}
       <div className="absolute top-6 left-6 z-20">
-        <Link 
-          href="/" 
+        <button 
+          onClick={() => {
+            if (isAuthenticated && user?.role) {
+              const defaultRoute = getDefaultRouteForRole(user.role);
+              if (defaultRoute) {
+                router.push(defaultRoute);
+                return;
+              }
+            }
+            router.push("/");
+          }}
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:bg-card/50 hover:text-foreground border border-transparent hover:border-border/50"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Home
-        </Link>
+        </button>
       </div>
 
       {/* Hero Section with Animated Content */}

@@ -44,6 +44,10 @@ export function BookingHistoryTab({
   const [page, setPage] = React.useState(1);
   const limit = 12;
 
+  const handleCloseDialog = React.useCallback(() => {
+    setSelectedBookingId(null);
+  }, []);
+
   // Filter historical status items (completed, cancelled, expired)
   const historyBookings = React.useMemo(() => {
     return bookings.filter((b) =>
@@ -90,26 +94,26 @@ export function BookingHistoryTab({
   return (
     <div className="space-y-4">
       {/* Filters Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-900/80 p-2.5 rounded-2xl border border-zinc-800 shadow-md">
-        <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#121010] p-3 rounded-xl border border-[#222] shadow-xl">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant={filter === "all" ? "default" : "ghost"}
             size="sm"
             onClick={() => { setFilter("all"); setPage(1); }}
-            className={`text-xs h-8 font-bold gap-1.5 rounded-xl transition-all ${
+            className={`text-[10px] h-8 font-bold gap-1.5 rounded uppercase tracking-wider transition-all ${
               filter === "all"
-                ? "bg-white text-black font-extrabold shadow hover:bg-zinc-100"
-                : "text-zinc-300 hover:text-white hover:bg-zinc-800/80"
+                ? "bg-[#f03e65] text-white shadow hover:bg-[#d83558]"
+                : "text-gray-400 hover:text-white hover:bg-[#1a1414]"
             }`}
           >
             <History className="h-3.5 w-3.5" />
             <span>All History</span>
             <Badge
               variant="secondary"
-              className={`text-[10px] px-1.5 py-0 font-extrabold ${
+              className={`text-[9px] px-1.5 py-0 font-extrabold ${
                 filter === "all"
-                  ? "bg-black text-white"
-                  : "bg-zinc-800 text-zinc-200 border border-zinc-700"
+                  ? "bg-white text-black"
+                  : "bg-[#222] text-gray-400 border border-[#333]"
               }`}
             >
               {counts.all}
@@ -120,20 +124,20 @@ export function BookingHistoryTab({
             variant={filter === "completed" ? "default" : "ghost"}
             size="sm"
             onClick={() => { setFilter("completed"); setPage(1); }}
-            className={`text-xs h-8 font-bold gap-1.5 rounded-xl transition-all ${
+            className={`text-[10px] h-8 font-bold gap-1.5 rounded uppercase tracking-wider transition-all ${
               filter === "completed"
-                ? "bg-white text-black font-extrabold shadow hover:bg-zinc-100"
-                : "text-zinc-300 hover:text-white hover:bg-zinc-800/80"
+                ? "bg-[#f03e65] text-white shadow hover:bg-[#d83558]"
+                : "text-gray-400 hover:text-white hover:bg-[#1a1414]"
             }`}
           >
             <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
             <span>Completed</span>
             <Badge
               variant="secondary"
-              className={`text-[10px] px-1.5 py-0 font-extrabold ${
+              className={`text-[9px] px-1.5 py-0 font-extrabold ${
                 filter === "completed"
-                  ? "bg-black text-white"
-                  : "bg-zinc-800 text-zinc-200 border border-zinc-700"
+                  ? "bg-white text-black"
+                  : "bg-[#222] text-gray-400 border border-[#333]"
               }`}
             >
               {counts.completed}
@@ -144,20 +148,20 @@ export function BookingHistoryTab({
             variant={filter === "cancelled" ? "default" : "ghost"}
             size="sm"
             onClick={() => { setFilter("cancelled"); setPage(1); }}
-            className={`text-xs h-8 font-bold gap-1.5 rounded-xl transition-all ${
+            className={`text-[10px] h-8 font-bold gap-1.5 rounded uppercase tracking-wider transition-all ${
               filter === "cancelled"
-                ? "bg-white text-black font-extrabold shadow hover:bg-zinc-100"
-                : "text-zinc-300 hover:text-white hover:bg-zinc-800/80"
+                ? "bg-[#f03e65] text-white shadow hover:bg-[#d83558]"
+                : "text-gray-400 hover:text-white hover:bg-[#1a1414]"
             }`}
           >
             <XCircle className="h-3.5 w-3.5 text-red-400" />
             <span>Cancelled</span>
             <Badge
               variant="secondary"
-              className={`text-[10px] px-1.5 py-0 font-extrabold ${
+              className={`text-[9px] px-1.5 py-0 font-extrabold ${
                 filter === "cancelled"
-                  ? "bg-black text-white"
-                  : "bg-zinc-800 text-zinc-200 border border-zinc-700"
+                  ? "bg-white text-black"
+                  : "bg-[#222] text-gray-400 border border-[#333]"
               }`}
             >
               {counts.cancelled}
@@ -168,20 +172,20 @@ export function BookingHistoryTab({
             variant={filter === "expired" ? "default" : "ghost"}
             size="sm"
             onClick={() => { setFilter("expired"); setPage(1); }}
-            className={`text-xs h-8 font-bold gap-1.5 rounded-xl transition-all ${
+            className={`text-[10px] h-8 font-bold gap-1.5 rounded uppercase tracking-wider transition-all ${
               filter === "expired"
-                ? "bg-white text-black font-extrabold shadow hover:bg-zinc-100"
-                : "text-zinc-300 hover:text-white hover:bg-zinc-800/80"
+                ? "bg-[#f03e65] text-white shadow hover:bg-[#d83558]"
+                : "text-gray-400 hover:text-white hover:bg-[#1a1414]"
             }`}
           >
             <Clock className="h-3.5 w-3.5 text-amber-400" />
             <span>Expired</span>
             <Badge
               variant="secondary"
-              className={`text-[10px] px-1.5 py-0 font-extrabold ${
+              className={`text-[9px] px-1.5 py-0 font-extrabold ${
                 filter === "expired"
-                  ? "bg-black text-white"
-                  : "bg-zinc-800 text-zinc-200 border border-zinc-700"
+                  ? "bg-white text-black"
+                  : "bg-[#222] text-gray-400 border border-[#333]"
               }`}
             >
               {counts.expired}
@@ -191,12 +195,12 @@ export function BookingHistoryTab({
 
         {/* Search Input */}
         <div className="relative w-full sm:w-64 shrink-0">
-          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-zinc-400" />
+          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-gray-500" />
           <Input
             placeholder="Search history records..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="pl-8 text-xs h-8 bg-black/60 border-zinc-700 text-white placeholder:text-zinc-400 rounded-xl focus-visible:ring-primary"
+            className="pl-9 text-xs h-9 bg-[#161212] border-[#333] text-white placeholder:text-gray-500 rounded focus-visible:ring-[#f03e65] focus-visible:border-[#f03e65]"
           />
         </div>
       </div>
@@ -204,34 +208,34 @@ export function BookingHistoryTab({
       {/* History Grid */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <Spinner className="h-8 w-8 text-primary" />
-          <p className="text-xs text-zinc-300 animate-pulse font-medium">Loading booking history...</p>
+          <Spinner className="h-8 w-8 text-[#f03e65]" />
+          <p className="text-[10px] text-gray-400 uppercase tracking-widest animate-pulse font-bold">Loading booking history...</p>
         </div>
       ) : paginatedBookings.length === 0 ? (
-        <Card className="bg-zinc-900/60 border-zinc-800 p-12 text-center rounded-2xl shadow-sm">
-          <History className="h-10 w-10 mx-auto mb-3 text-zinc-400 opacity-70" />
-          <h3 className="text-sm font-bold text-white mb-1">No history records</h3>
-          <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+        <Card className="bg-[#121010] border-[#222] p-12 text-center rounded-xl shadow-lg">
+          <History className="h-10 w-10 mx-auto mb-3 text-[#333] opacity-70" />
+          <h3 className="text-sm font-bold text-white mb-1 uppercase tracking-wider">No history records</h3>
+          <p className="text-xs text-gray-500 max-w-sm mx-auto">
             No completed, cancelled, or expired bookings match your filter query.
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {paginatedBookings.map((b) => (
             <Card
               key={b.id}
               onClick={() => setSelectedBookingId(b.id)}
-              className="bg-zinc-900/80 hover:bg-zinc-900 border border-zinc-800 hover:border-primary/60 transition-all cursor-pointer shadow-md rounded-2xl group"
+              className="bg-[#161212] hover:bg-[#1a1414] border border-[#333] hover:border-[#f03e65] transition-all cursor-pointer shadow-xl rounded-xl group"
             >
-              <CardHeader className="p-4 pb-2 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-xs font-bold text-white line-clamp-1 group-hover:text-primary transition-colors">
+              <CardHeader className="p-5 pb-3 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <CardTitle className="text-xs font-bold text-white uppercase tracking-wider line-clamp-1 group-hover:text-[#f03e65] transition-colors">
                     {b.event_name}
                   </CardTitle>
                   <BookingStatusBadge status={b.status} />
                 </div>
-                <div className="text-[11px] text-zinc-300 flex items-center gap-1.5 font-medium">
-                  <User className="h-3.5 w-3.5 text-primary shrink-0" />
+                <div className="text-[10px] text-gray-400 flex items-center gap-2 font-bold uppercase tracking-wider">
+                  <User className="h-3.5 w-3.5 text-[#f03e65] shrink-0" />
                   <span className="truncate">
                     {role === "client"
                       ? b.artist?.display_name || b.artist_name || "Performer"
@@ -240,17 +244,17 @@ export function BookingHistoryTab({
                 </div>
               </CardHeader>
 
-              <CardContent className="p-4 pt-2 space-y-2 text-xs text-zinc-300">
-                <div className="flex items-center gap-1.5 text-zinc-300 font-medium">
-                  <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
+              <CardContent className="p-5 pt-3 space-y-3 text-xs text-gray-400">
+                <div className="flex items-center gap-2 text-gray-400 font-bold text-[10px] uppercase tracking-wider">
+                  <Calendar className="h-3.5 w-3.5 text-[#f03e65] shrink-0" />
                   <span>{formatDate(b.event_date)}</span>
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
-                  <span className="text-xs font-extrabold text-white">
+                <div className="flex items-center justify-between pt-3 border-t border-[#333]">
+                  <span className="text-xs font-extrabold text-[#f03e65]">
                     {formatCurrency(b.proposed_price)}
                   </span>
-                  <span className="text-[10px] text-zinc-400 font-mono">
+                  <span className="text-[9px] text-[#444] font-mono">
                     ID: {b.id.slice(0, 8)}
                   </span>
                 </div>
@@ -294,7 +298,7 @@ export function BookingHistoryTab({
         <BookingDetailsDialog
           bookingId={selectedBookingId}
           isOpen={!!selectedBookingId}
-          onClose={() => setSelectedBookingId(null)}
+          onClose={handleCloseDialog}
           onRefresh={onRefresh}
           role={role}
         />

@@ -13,6 +13,7 @@ class MessageSchema(BaseModel):
     id: str
     conversation_id: str
     sender_id: str
+    sender_name: Optional[str] = None
     message_type: str = "TEXT"
     content: str
     reply_to_message_id: Optional[str] = None

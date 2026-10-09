@@ -326,7 +326,7 @@ export function MessageComposer({
           }
           size="icon"
           className={cn(
-            "h-10 w-10 shrink-0 font-bold rounded-xl text-white cursor-pointer",
+            "h-10 w-10 shrink-0 font-bold rounded-xl text-primary-foreground cursor-pointer",
             editingMessage ? "bg-amber-500 hover:bg-amber-600" : "bg-primary hover:bg-primary/90"
           )}
           aria-label={editingMessage ? "Save edit" : "Send message"}

@@ -61,17 +61,17 @@ export function BookingRequestForm({
       artist_profile_id: artistProfileId || null,
       venue_id: venueId || null,
       event_title: "",
-      event_type: "Wedding",
+      event_type: "",
       event_date: "",
-      start_time: "18:00",
-      end_time: "22:00",
-      guest_count: 50,
-      proposed_price: proposedPrice || 15000,
+      start_time: "",
+      end_time: "",
+      guest_count: undefined as unknown as number,
+      proposed_price: proposedPrice || (undefined as unknown as number),
       location: venueName || "",
       address: "",
-      city: "Bangalore",
-      state: "Karnataka",
-      country: "India",
+      city: "",
+      state: "",
+      country: "",
       postcode: "",
       google_maps_coords: "",
       special_requests: "",
@@ -82,11 +82,13 @@ export function BookingRequestForm({
   useEffect(() => {
     async function loadProviders() {
       try {
-        const [aList, vList] = await Promise.all([
+        const [aList, bList, vList] = await Promise.all([
           bandService.getArtists().catch(() => []),
+          bandService.getBands().catch(() => []),
           bandService.getVenues().catch(() => []),
         ]);
-        setArtists(aList);
+        // Combine artists and bands into the performers list
+        setArtists([...aList, ...bList]);
         setVenues(vList);
       } catch {
         // Fallback gracefully
@@ -134,38 +136,45 @@ export function BookingRequestForm({
       const targetArtistId = data.artist_profile_id || artistProfileId || null;
       const targetVenueId = data.venue_id || venueId || null;
 
-      let createdId = "";
-      const providerId = targetArtistId || targetVenueId || "";
-      const providerType = targetArtistId ? "artist" : "venue";
-      
-      // Use the strict BookingRequest schema matching the backend
-      const strictPayload = {
-        provider_id: providerId,
-        provider_type: providerType,
-        package_id: "pkg-custom",
-        event_date: data.event_date,
-        event_time: data.start_time,
-        message: data.notes || data.special_requests || data.event_title,
-        proposed_price: Number(data.proposed_price),
-        location: composedLocation,
-      };
-
-      if (effectiveIsArtistBookingVenue && providerId) {
-        const res = await bookingService.createArtistVenueBooking(strictPayload as Record<string, unknown>);
-        createdId = res.id;
-      } else if (isVenueBookingTalent && providerId) {
-        const res = await bookingService.createVenueTalentBooking(strictPayload as Record<string, unknown>);
-        createdId = res.id;
-      } else if (providerId) {
-        const bandRes = await bandService.createBooking(strictPayload as BookingRequest);
-        createdId = bandRes.id;
-      } else {
-        // If no provider selected, this is a generic request (fallback)
+      if (!targetArtistId && !targetVenueId) {
         throw new Error("A performer or venue must be selected.");
       }
 
-      toast.success("Booking request submitted successfully!");
-      if (onSuccess) onSuccess(createdId);
+      let lastCreatedId = "";
+
+      const submitForProvider = async (pId: string, pType: string) => {
+        const strictPayload = {
+          provider_id: pId,
+          provider_type: pType,
+          package_id: "pkg-custom",
+          event_date: data.event_date,
+          event_time: data.start_time,
+          message: data.notes || data.special_requests || data.event_title,
+          proposed_price: Number(data.proposed_price),
+          location: composedLocation,
+        };
+
+        if (effectiveIsArtistBookingVenue) {
+          const res = await bookingService.createArtistVenueBooking(strictPayload as Record<string, unknown>);
+          return res.id;
+        } else if (isVenueBookingTalent) {
+          const res = await bookingService.createVenueTalentBooking(strictPayload as Record<string, unknown>);
+          return res.id;
+        } else {
+          const bandRes = await bandService.createBooking(strictPayload as BookingRequest);
+          return bandRes.id;
+        }
+      };
+
+      if (targetArtistId) {
+        lastCreatedId = await submitForProvider(targetArtistId, "artist");
+      }
+      if (targetVenueId) {
+        lastCreatedId = await submitForProvider(targetVenueId, "venue");
+      }
+
+      toast.success("Booking request(s) submitted successfully!");
+      if (onSuccess) onSuccess(lastCreatedId);
     } catch (err) {
       const error = err as { response?: { data?: { error?: { message?: string } } }, message?: string };
       const msg = error.response?.data?.error?.message || error.message || "Failed to submit booking request.";
@@ -256,11 +265,11 @@ export function BookingRequestForm({
 
             {/* Venue Selection */}
             <div className="bg-[#121010] p-6">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-4">Venue Select</p>
+              <p className="text-[10px] font-bold text-[#f03e65] uppercase tracking-wider mb-4">Venue Select</p>
               {!venueId ? (
                 <select
                   id="venue_id"
-                  className="w-full h-12 bg-transparent text-gray-300 text-sm focus:outline-none border-b border-[#333] pb-2 appearance-none cursor-pointer"
+                  className="w-full h-12 rounded-lg bg-[#1a1414] border border-[#333] text-white px-4 focus:outline-none focus:border-[#f03e65] text-lg font-bold"
                   {...register("venue_id", {
                     onChange: (e) => {
                       const selected = venues.find((v) => {
@@ -335,6 +344,7 @@ export function BookingRequestForm({
                     className="w-full h-11 bg-[#161212] border border-[#333] text-white rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65] px-3 text-sm"
                     {...register("event_type")}
                   >
+                    <option value="" disabled>Select Event Type</option>
                     <option value="Wedding">Wedding Celebration</option>
                     <option value="Corporate Gig">Corporate Event</option>
                     <option value="Private Event">Private Party</option>
@@ -389,9 +399,14 @@ export function BookingRequestForm({
                   <Input
                     id="guest_count"
                     type="number"
-                    placeholder="50"
+                    placeholder="e.g. 50"
                     className="w-full h-11 bg-[#161212] border-[#333] text-white rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65]"
                     {...register("guest_count", { valueAsNumber: true })}
+                    onKeyDown={(e) => {
+                      if (!/[0-9]/.test(e.key) && !["Backspace", "ArrowLeft", "ArrowRight", "Delete", "Tab"].includes(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -399,9 +414,14 @@ export function BookingRequestForm({
                   <Input
                     id="proposed_price"
                     type="number"
-                    placeholder="15000"
+                    placeholder="e.g. 15000"
                     className="w-full h-11 bg-[#161212] border-[#333] text-[#f03e65] font-bold rounded-md focus:border-[#f03e65] focus:ring-1 focus:ring-[#f03e65]"
                     {...register("proposed_price", { valueAsNumber: true })}
+                    onKeyDown={(e) => {
+                      if (!/[0-9]/.test(e.key) && !["Backspace", "ArrowLeft", "ArrowRight", "Delete", "Tab"].includes(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                 </div>
               </div>

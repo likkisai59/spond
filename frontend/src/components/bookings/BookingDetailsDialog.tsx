@@ -31,6 +31,7 @@ import {
   CheckSquare,
   Star,
   MessageSquarePlus,
+  Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
@@ -45,7 +46,7 @@ interface BookingDetailsDialogProps {
   bookingId: string;
   isOpen: boolean;
   onClose: () => void;
-  onRefresh?: () => void;
+  onRefresh?: (silent?: boolean) => void;
   role: "client" | "artist" | "venue" | "admin";
 }
 
@@ -123,13 +124,15 @@ export function BookingDetailsDialog({
         const data = await bookingService.getBookingDetails(bookingId);
         setBooking(data);
       }
+      // Silently refresh the parent inbox so it reflects any external changes!
+      if (onRefresh) onRefresh(true);
     } catch {
       toast.error("Failed to load booking details.");
       onClose();
     } finally {
       setLoading(false);
     }
-  }, [bookingId, isBandRole, onClose]);
+  }, [bookingId, isBandRole, onClose, onRefresh]);
 
   React.useEffect(() => {
     if (isOpen && bookingId) fetchBookingDetails();
@@ -182,9 +185,12 @@ export function BookingDetailsDialog({
       refetchEligibility();
       if (onRefresh) onRefresh();
     } catch (err) {
-      const error = err as { response?: { data?: { error?: { message?: string } } } };
+      const error = err as { response?: { data?: { error?: { message?: string }, detail?: string, message?: string } } };
       const msg =
-        error.response?.data?.error?.message || `Failed to perform ${action} action.`;
+        error.response?.data?.error?.message || 
+        error.response?.data?.detail || 
+        error.response?.data?.message || 
+        `Failed to perform ${action} action.`;
       toast.error(msg);
     } finally {
       setActioning(false);
@@ -214,6 +220,21 @@ export function BookingDetailsDialog({
       const error = err as { response?: { data?: { message?: string } } };
       const msg = error.response?.data?.message || "Failed to cancel booking.";
       toast.error(msg);
+    } finally {
+      setActioning(false);
+    }
+  };
+
+  const handleDeleteBooking = async () => {
+    if (!window.confirm("Are you sure you want to delete this booking? This will remove it from your workspace permanently.")) return;
+    setActioning(true);
+    try {
+      await bookingService.deleteBooking(bookingId);
+      toast.success("Booking deleted.");
+      onClose();
+      if (onRefresh) onRefresh();
+    } catch {
+      toast.error("Failed to delete booking.");
     } finally {
       setActioning(false);
     }
@@ -291,10 +312,13 @@ export function BookingDetailsDialog({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-card border border-border rounded-2xl shadow-2xl p-6 text-xs text-muted-foreground scrollbar-thin">
+        <DialogContent 
+          onClose={onClose}
+          className="max-w-4xl max-h-[90vh] overflow-y-auto bg-card border border-border rounded-2xl shadow-2xl p-6 text-xs text-muted-foreground scrollbar-thin"
+        >
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-3">
-              <Spinner className="h-10 w-10 text-primary" />
+              <Spinner className="h-10 w-10 text-[#f03e65]" />
               <p className="text-sm animate-pulse text-muted-foreground">
                 Retrieving booking parameters...
               </p>
@@ -313,7 +337,7 @@ export function BookingDetailsDialog({
                       {booking.event_title || booking.event_name}
                     </DialogTitle>
                   </div>
-                  <div className="flex items-center gap-2 self-start sm:self-center">
+                  <div className="flex items-center gap-2 self-start sm:self-center pr-8">
                     <BookingStatusBadge status={booking.status} />
                     <span className="text-[10px] text-muted-foreground">
                       ID: {booking.id.slice(0, 8)}...
@@ -499,7 +523,7 @@ export function BookingDetailsDialog({
                         const conv = await createConversation(booking.id);
                         if (conv) {
                           onClose();
-                          router.push("/messages");
+                          router.push(`/band/${role}/messages`);
                         }
                       }}
                       className="border-primary/40 hover:bg-primary/10 text-primary font-bold h-9 text-xs flex items-center gap-1.5 cursor-pointer"
@@ -519,6 +543,16 @@ export function BookingDetailsDialog({
                         <span>Cancel Booking</span>
                       </Button>
                     )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleDeleteBooking}
+                      disabled={actioning}
+                      className="border-red-500/30 hover:bg-red-500/10 text-red-500 font-bold h-9 text-xs flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span>Delete</span>
+                    </Button>
                   </div>
 
                   {/* Comment / Note Thread */}

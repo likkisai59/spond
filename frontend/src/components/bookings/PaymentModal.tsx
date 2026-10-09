@@ -4,7 +4,9 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CreditCard, CheckCircle2, Loader2, IndianRupee } from "lucide-react";
-import { bandService } from "@/services/band";
+
+import { api } from "@/services/api";
+import { useRazorpay } from "@/hooks/use-razorpay";
 import toast from "react-hot-toast";
 
 interface PaymentModalProps {
@@ -27,28 +29,61 @@ export function PaymentModal({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const { isLoaded, processPayment } = useRazorpay();
+
   const handlePay = async () => {
+    if (!isLoaded) {
+      toast.error("Payment gateway is still loading. Please try again in a moment.");
+      return;
+    }
+
     setIsProcessing(true);
-    
-    // Simulate dynamic payment gateway delay
-    setTimeout(async () => {
-      try {
-        await bandService.simulatePayment(bookingId, paymentType);
-        setIsProcessing(false);
-        setIsSuccess(true);
-        toast.success("Payment processed successfully!");
-        
-        setTimeout(() => {
-          setIsSuccess(false);
-          onClose();
-          onSuccess();
-        }, 1500);
-      } catch (err) {
-        setIsProcessing(false);
-        const error = err as { response?: { data?: { error?: { message?: string } } } };
-        toast.error(error.response?.data?.error?.message || "Payment failed to process");
-      }
-    }, 2000);
+    try {
+      // 1. Create order on backend
+      const { data: orderRes } = await api.post("/payments/create-order", {
+        module: "band",
+        module_id: bookingId,
+        milestone: paymentType === "ADVANCE_PAID" ? "advance" : "final",
+        amount: amount,
+        currency: "INR",
+        payment_method: "razorpay"
+      });
+      const orderData = orderRes.data;
+
+      // 2. Process with Razorpay SDK
+      const rzpResponse = await processPayment({
+        key: orderData.razorpay_key_id || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: Math.round(amount * 100),
+        currency: "INR",
+        name: "EventHub Platform",
+        description: paymentType === "ADVANCE_PAID" ? "Advance Payment" : "Final Payment",
+        order_id: orderData.order_id,
+        theme: { color: "#E11D48" },
+      });
+
+      // 3. Verify payment signature on backend
+      await api.post("/payments/verify", {
+        order_id: rzpResponse.razorpay_order_id,
+        razorpay_payment_id: rzpResponse.razorpay_payment_id,
+        razorpay_signature: rzpResponse.razorpay_signature,
+      });
+
+      setIsProcessing(false);
+      setIsSuccess(true);
+      toast.success("Payment processed successfully!");
+      
+      setTimeout(() => {
+        setIsSuccess(false);
+        onClose();
+        onSuccess();
+      }, 1500);
+
+    } catch (err: unknown) {
+      setIsProcessing(false);
+      const e = err as { response?: { data?: { detail?: string } }, description?: string, message?: string };
+      const errorMsg = e?.response?.data?.detail || e?.description || e?.message || "Payment failed to process";
+      toast.error(errorMsg);
+    }
   };
 
   return (
@@ -96,6 +131,7 @@ export function PaymentModal({
 
               <Button
                 onClick={handlePay}
+                disabled={!isLoaded || isProcessing}
                 className="w-full h-12 text-sm font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-transform active:scale-95"
               >
                 Pay <IndianRupee className="h-3.5 w-3.5 ml-1 mr-0.5" />{amount.toLocaleString("en-IN")} Now

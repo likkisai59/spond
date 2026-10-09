@@ -138,6 +138,7 @@ export function ChatWindow({
         hasMore={hasMoreMessages}
         loadingMore={loadingMoreMessages}
         pinnedMessageId={pinnedMessage?.id}
+        typingText={typingText}
         onLoadOlder={onLoadOlderMessages}
         onReply={(msg) => onSetReplyingMessage(msg)}
         onEdit={(msg) => onSetEditingMessage(msg)}

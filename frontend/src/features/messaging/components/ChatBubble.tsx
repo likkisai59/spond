@@ -21,6 +21,7 @@ import {
   Copy,
   Pin,
 } from "lucide-react";
+import { motion } from "framer-motion";
 
 const SUPPORTED_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "👏"];
 
@@ -136,6 +137,7 @@ export function ChatBubble({
     if (message.message_type === "IMAGE") {
       return (
         <div className="mt-1 mb-1 overflow-hidden rounded-xl border border-border/60 max-w-xs cursor-pointer group/img">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={message.attachment_url}
             alt={message.attachment_name || "Attachment"}
@@ -195,7 +197,7 @@ export function ChatBubble({
           download={message.attachment_name || "attachment"}
           target="_blank"
           rel="noopener noreferrer"
-          className="p-1.5 rounded-lg bg-bg-card border border-border hover:bg-primary hover:text-white transition-colors shrink-0 text-text-secondary"
+          className="p-1.5 rounded-lg bg-bg-card border border-border hover:bg-primary hover:text-primary-foreground transition-colors shrink-0 text-text-secondary"
           title="Download File"
         >
           <Download className="h-3.5 w-3.5" />
@@ -205,13 +207,24 @@ export function ChatBubble({
   };
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 15, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.25, type: "spring", bounce: 0.3 }}
       id={`msg-${message.id}`}
       className={cn(
-        "group relative flex flex-col max-w-[80%] text-xs leading-relaxed transition-all my-1",
+        "group relative flex flex-col max-w-[85%] text-xs leading-relaxed transition-all my-1.5",
         isSelf ? "ml-auto items-end" : "mr-auto items-start"
       )}
     >
+      {/* Sender Name for Received Messages */}
+      {!isSelf && message.sender_name && (
+        <span className="text-[10.5px] text-text-muted mb-0.5 ml-1.5 font-medium select-none">
+          {message.sender_name}
+        </span>
+      )}
+
       {/* Quoted Parent Reply Preview Box */}
       {parentMessage && (
         <div
@@ -225,7 +238,7 @@ export function ChatBubble({
         >
           <CornerDownRight className="h-3 w-3 text-primary shrink-0" />
           <span className="truncate italic">
-            "{parentMessage.content}"
+            &quot;{parentMessage.content}&quot;
           </span>
         </div>
       )}
@@ -363,7 +376,7 @@ export function ChatBubble({
             message.is_deleted
               ? "bg-bg-card/40 border border-border/40 text-text-muted italic rounded-2xl"
               : isSelf
-              ? "bg-primary text-white rounded-br-none font-medium"
+              ? "bg-primary text-primary-foreground rounded-br-none font-medium"
               : "bg-bg-card border border-border/80 text-text-primary rounded-bl-none"
           )}
         >
@@ -522,6 +535,6 @@ export function ChatBubble({
           </span>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

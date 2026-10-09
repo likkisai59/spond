@@ -10,7 +10,7 @@ from src.exceptions.handlers import AppException, NotFoundError
 from src.database.base_repository import BaseRepository
 from src.repositories import UserRepository
 from src.services.notification_service import NotificationService
-
+from src.services.message_service import MessageService
 def _to_utc(dt: datetime | str | None) -> datetime | None:
     """Normalize any datetime or ISO string to a timezone-aware UTC datetime."""
     if not dt:
@@ -907,7 +907,7 @@ class BandService:
 
         return True
 
-    async def create_booking(self, customer_id: str, request: Any) -> Dict:
+    async def create_booking(self, customer_id: str, request: Any, requester_type: str = "client") -> Dict:
         if hasattr(request, "model_dump"):
             doc = request.model_dump(exclude_unset=True)
         elif isinstance(request, dict):
@@ -966,6 +966,7 @@ class BandService:
             "venue_id": provider_id if ptype_lower == "venue" else doc.get("venue_id"),
             "artist_id": provider_id if ptype_lower in ("artist", "solo") else doc.get("artist_id"),
             "provider_owner_id": str(provider_owner_id) if provider_owner_id else None,
+            "requester_type": requester_type,
             "status": BookingStatus.REQUESTED.value,
             "booking_status": BookingStatus.REQUESTED.value,
             "payment_status": PaymentStatus.UNPAID.value,
@@ -1155,12 +1156,14 @@ class BandService:
                 
                 # Fetch provider name
                 provider = None
-                if provider_type == "artist":
-                    provider = await self.artists.find_by_id(provider_id or "")
-                elif provider_type == "band":
-                    provider = await self.bands.find_by_id(provider_id or "")
-                elif provider_type == "venue":
-                    provider = await self.venues.find_by_id(provider_id or "")
+                if provider_type:
+                    p_type = str(provider_type).lower()
+                    if p_type == "artist":
+                        provider = await self.artists.find_by_id(provider_id or "")
+                    elif p_type == "band":
+                        provider = await self.bands.find_by_id(provider_id or "")
+                    elif p_type == "venue":
+                        provider = await self.venues.find_by_id(provider_id or "")
                 
                 provider_name = "The provider"
                 if provider:
@@ -1176,10 +1179,19 @@ class BandService:
                     module="band"
                 )
                 
-                # Auto-Chat Creation Mock
-                # In a fully implemented chat system, this is where we would call:
-                # await self.chat_service.create_conversation(customer_id, provider.get("created_by"), booking_id)
                 if status.value.upper() == "ACCEPTED":
+                    # Auto-Chat Creation
+                    try:
+                        from src.schemas.messages import CreateConversationPayload
+                        msg_service = MessageService()
+                        await msg_service.create_conversation(
+                            CreateConversationPayload(booking_id=booking_id),
+                            customer_id
+                        )
+                    except Exception as e:
+                        import logging
+                        logging.error(f"Failed to auto-create chat thread: {e}")
+
                     chat_msg = f"A direct chat thread has been opened with {provider_name} to discuss your event details."
                     await self.notifications.create_notification(
                         user_id=customer_id,
@@ -1191,6 +1203,7 @@ class BandService:
 
             return await self.bookings.find_by_id(booking_id)
         return None
+
 
     async def update_payment_status(self, booking_id: str, payment_status: PaymentStatus) -> Optional[Dict]:
         now = datetime.now(timezone.utc)
@@ -1444,10 +1457,8 @@ class BandService:
         if not deleted:
             raise NotFoundError("Band not found")
 
-    async def delete_booking(self, booking_id: str) -> None:
-        deleted = await self.bookings.delete_by_id(booking_id)
-        if not deleted:
-            raise NotFoundError("Booking not found")
+    async def delete_booking(self, booking_id: str) -> bool:
+        return bool(await self.bookings.update_by_id(booking_id, {"is_deleted": True}))
 
     async def onboard_provider(self, user_id: str, data: ProviderOnboardingRequest) -> dict:
         now = datetime.now(timezone.utc)

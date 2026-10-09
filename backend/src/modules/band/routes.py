@@ -274,7 +274,7 @@ async def create_artist_venue_booking(
 ):
     try:
         # Currently identical to create_booking, but allows distinct logic later if needed
-        booking = await service.create_booking(current_user["id"], request)
+        booking = await service.create_booking(current_user["id"], request, requester_type="artist")
         return _ok(booking)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -285,7 +285,7 @@ async def create_venue_talent_booking(
     current_user: dict = Depends(get_current_user)
 ):
     try:
-        booking = await service.create_booking(current_user["id"], request)
+        booking = await service.create_booking(current_user["id"], request, requester_type="venue")
         return _ok(booking)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -317,6 +317,30 @@ async def get_booking(
 
     return _ok(booking)
 
+@router.delete("/bookings/{booking_id}")
+async def delete_booking(
+    booking_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    booking = await service.get_booking_by_id(booking_id)
+    if not booking:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    user_id_str = str(current_user["id"])
+    profile_ids = await service.get_all_profile_ids_for_user(user_id_str)
+    
+    c_id = str(booking.get("customer_id"))
+    p_id = str(booking.get("provider_id") or booking.get("band_id") or booking.get("venue_id"))
+    p_owner = str(booking.get("provider_owner_id"))
+    
+    if c_id != user_id_str and p_id not in profile_ids and p_owner != user_id_str:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this booking")
+
+    success = await service.delete_booking(booking_id)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to delete booking")
+    return _ok({"success": True})
+
 @router.put("/bookings/{booking_id}/status")
 async def update_booking_status(
     booking_id: str,
@@ -329,7 +353,10 @@ async def update_booking_status(
         raise HTTPException(status_code=404, detail="Booking not found")
 
     profile_ids = await service.get_all_profile_ids_for_user(current_user["id"])
-    if booking.get("provider_id") not in profile_ids:
+    provider_id = booking.get("provider_id") or booking.get("band_id") or booking.get("venue_id")
+    provider_id_str = str(provider_id) if provider_id else None
+    
+    if provider_id_str not in profile_ids and str(booking.get("provider_owner_id")) != str(current_user["id"]):
         raise HTTPException(status_code=403, detail="Only provider can update booking status")
 
     updated = await service.update_booking_status(booking_id, status, payload=payload)

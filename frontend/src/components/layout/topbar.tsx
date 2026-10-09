@@ -155,7 +155,6 @@ function SettingsButton() {
 }
 
 function UserMenu() {
-  const router = useRouter();
   const { user, logout } = useAuth();
   const [mounted, setMounted] = React.useState(false);
 
@@ -172,7 +171,7 @@ function UserMenu() {
 
   const handleLogout = () => {
     logout();
-    router.push(ROUTES.LOGIN);
+    window.location.href = ROUTES.LOGIN;
   };
 
   return (

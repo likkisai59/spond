@@ -93,12 +93,12 @@ export function BookingInformationCard({ booking, className }: BookingInformatio
             <Users className="h-4.5 w-4.5 text-muted-foreground mt-0.5 shrink-0" />
             <div>
               <p className="text-[10px] text-muted-foreground">Client / Host</p>
-              <p className="text-xs font-bold text-foreground">{booking.client.name}</p>
+              <p className="text-xs font-bold text-foreground">{booking.client?.name || "Client"}</p>
               <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
                 <Phone className="h-3 w-3" />
                 <span>
                   {maskPhoneNumber(
-                    booking.customer_phone || booking.client.phone,
+                    booking.customer_phone || booking.client?.phone,
                     ["accepted", "confirmed", "completed"].includes(booking.status)
                   )}
                 </span>

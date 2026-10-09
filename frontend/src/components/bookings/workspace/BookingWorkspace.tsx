@@ -17,6 +17,8 @@ interface RawBooking extends Booking {
   band_name?: string;
   customer_name?: string;
   customer_email?: string;
+  requester_type?: string;
+  provider_owner_id?: string;
 }
 import { BookingInboxTab } from "./BookingInboxTab";
 import { EventCalendarTab } from "./EventCalendarTab";
@@ -36,6 +38,8 @@ function normalizeBandBooking(b: RawBooking): BookingRequestDetail {
     b.band_name ||
     "Performer";
 
+  const isVenue = (b.provider_type || "").toLowerCase() === "venue";
+
   return {
     id: b.id,
     event_name: `Booking #${b.id.slice(-6).toUpperCase()}`,
@@ -52,9 +56,11 @@ function normalizeBandBooking(b: RawBooking): BookingRequestDetail {
       name: b.customer_name || "Client",
       email: b.customer_email || ""
     },
-    artist: { id: b.provider_id || "", display_name: pName, bio: null, base_rate: 0, rating: 0 },
-    artist_name: pName,
-    venue: null,
+    artist: isVenue ? null : { id: b.provider_id || "", display_name: pName, bio: null, base_rate: 0, rating: 0 },
+    artist_name: isVenue ? null : pName,
+    venue: isVenue ? { id: b.provider_id || "", name: pName, address: "", capacity: 0, base_price: 0 } : null,
+    venue_name: isVenue ? pName : null,
+    provider_owner_id: b.provider_owner_id,
     timeline: [],
     booking_notes: [],
     timeline_events: [],
@@ -125,13 +131,18 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
     router.push(path, { scroll: false });
   };
 
-  const fetchBookings = React.useCallback(async () => {
-    setLoading(true);
+  const fetchBookings = React.useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       if (role === "client") {
         // Client bookings from the band service
         const raw = await bandService.getMyBookings("customer");
-        setBookings(Array.isArray(raw) ? raw.map(normalizeBandBooking) : []);
+        const rawArr = Array.isArray(raw) ? raw : [];
+        const filtered = rawArr.filter((b: RawBooking) => {
+          const reqType = (b.requester_type || "").toLowerCase();
+          return reqType === "client" || reqType === "";
+        });
+        setBookings(filtered.map(normalizeBandBooking));
       } else if (role === "admin") {
         const res = await bookingService.adminGetBookings({ limit: 100 });
         setBookings(res.bookings || []);
@@ -145,21 +156,57 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
         const providerArr = Array.isArray(rawProvider) ? rawProvider : [];
         const customerArr = Array.isArray(rawCustomer) ? rawCustomer : [];
         
-        // Combine and deduplicate by ID just in case
         const combinedMap = new Map();
         [...providerArr, ...customerArr].forEach(b => {
           if (b && b.id) combinedMap.set(b.id, b);
         });
         
-        const combined = Array.from(combinedMap.values());
+        let combined = Array.from(combinedMap.values());
+        
+        const userId = user?.id;
+
+        // Filter by current role so venue inbox doesn't show artist bookings and vice-versa
+        if (role === "artist") {
+          combined = combined.filter((b: RawBooking) => {
+             const isIncoming = b.provider_owner_id === userId;
+             const isOutgoing = b.customer_id === userId;
+             const pType = (b.provider_type || "").toLowerCase();
+             const rType = (b.requester_type || "").toLowerCase();
+             
+             if (isIncoming && (pType === "artist" || pType === "band" || pType === "solo")) return true;
+             if (isOutgoing && rType === "artist") return true;
+             
+             return false;
+          });
+        } else if (role === "venue") {
+          combined = combined.filter((b: RawBooking) => {
+             const isIncoming = b.provider_owner_id === userId;
+             const isOutgoing = b.customer_id === userId;
+             const pType = (b.provider_type || "").toLowerCase();
+             const rType = (b.requester_type || "").toLowerCase();
+             
+             if (isIncoming && pType === "venue") return true;
+             if (isOutgoing && rType === "venue") return true;
+             
+             return false;
+          });
+        } else if (role === "client") {
+          combined = combined.filter((b: RawBooking) => {
+             const isOutgoing = b.customer_id === userId;
+             const rType = (b.requester_type || "").toLowerCase();
+             if (isOutgoing && (rType === "" || rType === "client")) return true;
+             return false;
+          });
+        }
+
         setBookings(combined.map(normalizeBandBooking));
       }
     } catch {
       toast.error("Failed to load booking details.");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [role]);
+  }, [role, user?.id]);
 
   const fetchAvailability = React.useCallback(async () => {
     if (role !== "artist") return;
@@ -171,8 +218,8 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
     }
   }, [role]);
 
-  const reloadAll = React.useCallback(async () => {
-    await Promise.all([fetchBookings(), fetchAvailability()]);
+  const reloadAll = React.useCallback(async (silent = false) => {
+    await Promise.all([fetchBookings(silent), fetchAvailability()]);
   }, [fetchBookings, fetchAvailability]);
 
   React.useEffect(() => {
@@ -238,7 +285,7 @@ export function BookingWorkspace({ role }: BookingWorkspaceProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={reloadAll}
+            onClick={() => reloadAll(false)}
             className="flex items-center gap-1.5 text-[10px] h-9 cursor-pointer border-[#333] bg-[#161212] text-gray-400 hover:text-white hover:bg-[#222] font-bold uppercase tracking-wider rounded transition-colors"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />

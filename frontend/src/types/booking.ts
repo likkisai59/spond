@@ -45,8 +45,8 @@ export interface BookingRequestDetail {
   artist_name?: string | null;
   venue_name?: string | null;
   timeline: TimelineItem[];
-  booking_notes: any[];
-  timeline_events: any[];
+  booking_notes: Record<string, unknown>[];
+  timeline_events: BookingTimelineEvent[];
   event_title?: string;
   event_type?: string;
   duration?: number;
@@ -58,6 +58,7 @@ export interface BookingRequestDetail {
   country?: string;
   google_maps_coords?: string | null;
   special_requests?: string | null;
+  provider_owner_id?: string | null;
   payment_status?: string | null;
   advance_amount?: number | null;
   venue_id?: string | null;

@@ -38,6 +38,10 @@ export function EventCalendarTab({
   const [subTab, setSubTab] = React.useState<CalendarSubTab>("calendar");
   const [selectedBookingId, setSelectedBookingId] = React.useState<string | null>(null);
 
+  const handleCloseDialog = React.useCallback(() => {
+    setSelectedBookingId(null);
+  }, []);
+
   const confirmedBookings = React.useMemo(() => {
     return bookings.filter((b) =>
       ["accepted", "confirmed", "completed"].includes(b.status.toLowerCase())
@@ -243,7 +247,7 @@ export function EventCalendarTab({
         <BookingDetailsDialog
           bookingId={selectedBookingId}
           isOpen={!!selectedBookingId}
-          onClose={() => setSelectedBookingId(null)}
+          onClose={handleCloseDialog}
           onRefresh={onRefresh}
           role={role}
         />

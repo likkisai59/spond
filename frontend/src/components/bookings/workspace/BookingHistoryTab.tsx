@@ -44,6 +44,10 @@ export function BookingHistoryTab({
   const [page, setPage] = React.useState(1);
   const limit = 12;
 
+  const handleCloseDialog = React.useCallback(() => {
+    setSelectedBookingId(null);
+  }, []);
+
   // Filter historical status items (completed, cancelled, expired)
   const historyBookings = React.useMemo(() => {
     return bookings.filter((b) =>
@@ -294,7 +298,7 @@ export function BookingHistoryTab({
         <BookingDetailsDialog
           bookingId={selectedBookingId}
           isOpen={!!selectedBookingId}
-          onClose={() => setSelectedBookingId(null)}
+          onClose={handleCloseDialog}
           onRefresh={onRefresh}
           role={role}
         />

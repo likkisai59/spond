@@ -104,7 +104,7 @@ export function ForwardMessageDialog({
             size="sm"
             onClick={handleSubmit}
             disabled={!selectedConvId || forwarding}
-            className="text-xs h-8 bg-primary text-white font-semibold gap-1.5"
+            className="text-xs h-8 bg-primary text-primary-foreground font-semibold gap-1.5"
           >
             {forwarding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Forward className="h-3.5 w-3.5" />}
             <span>Forward</span>

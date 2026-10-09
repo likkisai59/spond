@@ -218,13 +218,24 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
 
 
   const onFormError = (formErrors: FieldErrors<VenueProfileUpdateFormData>) => {
-    console.error("[VenueProfileEdit] Form validation error:", formErrors);
+    console.warn("[VenueProfileEdit] Form validation error:", formErrors);
     const errorKeys = Object.keys(formErrors) as Array<keyof VenueProfileUpdateFormData>;
     if (errorKeys.length > 0) {
       const firstErrorKey = errorKeys[0];
       const firstError = formErrors[firstErrorKey];
-      const message = firstError?.message || `Please check the ${String(firstErrorKey)} field.`;
-      toast.error(message as string);
+      // Sometimes errors are nested (like weekly_schedule)
+      let message = "Please check the highlighted fields.";
+      if (firstError?.message) {
+        message = firstError.message as string;
+      } else if (firstErrorKey === "weekly_schedule") {
+        message = "Please check your weekly schedule times.";
+      } else {
+        message = `Please check the ${String(firstErrorKey)} field.`;
+      }
+      toast.error(message);
+    } else {
+      // Fallback if keys are empty but it's still invalid
+      toast.error("Form is invalid. Please check all fields.");
     }
   };
 

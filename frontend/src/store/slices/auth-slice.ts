@@ -60,7 +60,7 @@ const authSlice = createSlice({
       state.user = null;
       state.accessToken = null;
       state.refreshToken = null;
-      state.status = "idle";
+      state.status = "failed";
       state.error = null;
       storage.remove(STORAGE_KEYS.ACCESS_TOKEN);
       storage.remove(STORAGE_KEYS.REFRESH_TOKEN);

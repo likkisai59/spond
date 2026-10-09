@@ -40,6 +40,10 @@ export function BookingInboxTab({
   const [search, setSearch] = React.useState("");
   const [selectedBookingId, setSelectedBookingId] = React.useState<string | null>(null);
 
+  const handleCloseDialog = React.useCallback(() => {
+    setSelectedBookingId(null);
+  }, []);
+
   // Active non-historical statuses
   const activeBookings = React.useMemo(() => {
     return bookings.filter(
@@ -52,6 +56,7 @@ export function BookingInboxTab({
       // Subtab filter
       const st = b.status.toLowerCase();
       const isOutgoing = userId ? b.client?.id === userId : false;
+      const isIncoming = userId ? b.provider_owner_id === userId : false;
       
       let matchesTab = false;
       if (subTab === "all") {
@@ -61,7 +66,6 @@ export function BookingInboxTab({
           // For client, "Sent Requests" means all statuses — they sent it and want to track any state
           matchesTab = st === "requested" || st === "received" || st === "created";
         } else {
-          const isIncoming = !isOutgoing;
           matchesTab = isIncoming && (st === "requested" || st === "received" || st === "created");
         }
       } else if (subTab === "countered") {
@@ -97,9 +101,9 @@ export function BookingInboxTab({
       all: activeBookings.length,
       incoming: activeBookings.filter((b) => {
         const st = b.status.toLowerCase();
-        const isOutgoing = userId ? b.client?.id === userId : false;
+        const isIncoming = userId ? b.provider_owner_id === userId : false;
         if (role === "client") return ["requested", "received", "created"].includes(st);
-        return !isOutgoing && ["requested", "received", "created"].includes(st);
+        return isIncoming && ["requested", "received", "created"].includes(st);
       }).length,
       countered: activeBookings.filter((b) =>
         ["countered", "counter_offered"].includes(b.status.toLowerCase())
@@ -344,7 +348,7 @@ export function BookingInboxTab({
         <BookingDetailsDialog
           bookingId={selectedBookingId}
           isOpen={!!selectedBookingId}
-          onClose={() => setSelectedBookingId(null)}
+          onClose={handleCloseDialog}
           onRefresh={onRefresh}
           role={role}
         />

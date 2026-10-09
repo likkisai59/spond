@@ -390,19 +390,29 @@ export default function VenuesMarketplacePage() {
                 venue.profile_image ||
                 (typeof venue.gallery?.[0] === "string" ? venue.gallery[0] : (venue.gallery?.[0] as any)?.url) ||
                 (Array.isArray(venue.images) && venue.images[0]) ||
-                "https://images.unsplash.com/photo-1519167758481-83f550bb49b3";
+                null;
               const venueLogo = venue.metadata_fields?.logo || venue.logo || null;
               return (
                 <Link key={venue.id} href={`/band/marketplace/venues/${venue.id}`}>
                   <Card className="bg-card/45 backdrop-blur-md border border-border/70 overflow-hidden hover:border-primary/45 transition-all duration-300 group h-full flex flex-col">
                     {/* Image */}
-                    <div className="relative h-52 w-full overflow-hidden">
-                      <img
-                        src={formatImageUrl(coverImage)}
-                        alt={venueDisplayName}
-                        className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500 brightness-90"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-bg-card via-transparent to-transparent" />
+                    <div className="relative h-52 w-full overflow-hidden bg-gradient-to-tr from-[#1a1414] to-[#2a2424] flex flex-col items-center justify-center">
+                      {coverImage ? (
+                        <>
+                          <img
+                            src={formatImageUrl(coverImage)}
+                            alt={venueDisplayName}
+                            className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500 brightness-90"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-bg-card via-transparent to-transparent" />
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-muted-foreground/50 h-full w-full">
+                          <Building2 className="h-10 w-10 mb-2 opacity-20" />
+                          <span className="text-[10px] font-bold tracking-widest uppercase opacity-40">No Cover Image</span>
+                          <div className="absolute inset-0 bg-gradient-to-t from-bg-card via-transparent to-transparent" />
+                        </div>
+                      )}
 
                       {/* Badges */}
                       <div className="absolute top-3 left-3 flex items-center gap-1.5">

@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { MessageSquare, ArrowDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface MessageListProps {
   messages: Message[];
@@ -15,6 +16,7 @@ interface MessageListProps {
   hasMore?: boolean;
   loadingMore?: boolean;
   pinnedMessageId?: string | null;
+  typingText?: string | null;
   onLoadOlder?: () => void;
   onReply?: (message: Message) => void;
   onEdit?: (message: Message) => void;
@@ -44,6 +46,7 @@ export function MessageList({
   hasMore = false,
   loadingMore = false,
   pinnedMessageId,
+  typingText,
   onLoadOlder,
   onReply,
   onEdit,
@@ -159,7 +162,7 @@ export function MessageList({
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 p-4 space-y-4 overflow-y-auto max-h-[480px] scrollbar-none"
+        className="flex-1 p-4 space-y-2 overflow-y-auto max-h-[480px] scrollbar-none"
       >
         {/* Loading Spinner for older messages */}
         {loadingMore && (
@@ -169,6 +172,7 @@ export function MessageList({
           </div>
         )}
 
+        <AnimatePresence initial={false}>
         {groupedMessages.map((group, gIdx) => (
           <React.Fragment key={`group-${gIdx}`}>
             <div className="flex items-center justify-center my-3">
@@ -211,6 +215,27 @@ export function MessageList({
             ))}
           </React.Fragment>
         ))}
+        </AnimatePresence>
+
+        {/* Dynamic Typing Indicator */}
+        <AnimatePresence>
+          {typingText && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="flex items-center gap-2 text-text-muted mt-2 ml-4"
+            >
+              <div className="flex gap-1">
+                <motion.div className="w-1.5 h-1.5 bg-primary rounded-full" animate={{ y: [0, -5, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0 }} />
+                <motion.div className="w-1.5 h-1.5 bg-primary rounded-full" animate={{ y: [0, -5, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }} />
+                <motion.div className="w-1.5 h-1.5 bg-primary rounded-full" animate={{ y: [0, -5, 0] }} transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }} />
+              </div>
+              <span className="text-[11px] italic">{typingText}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div ref={bottomRef} />
       </div>
 
@@ -218,7 +243,7 @@ export function MessageList({
       {showJumpToLatest && (
         <Button
           onClick={() => scrollToBottom(true)}
-          className="absolute bottom-4 right-4 h-9 rounded-full px-3 text-xs shadow-xl font-bold bg-primary hover:bg-primary/90 text-white flex items-center gap-1.5 animate-bounce"
+          className="absolute bottom-4 right-4 h-9 rounded-full px-3 text-xs shadow-xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-1.5 animate-bounce"
         >
           <ArrowDown className="h-4 w-4" />
           <span>Jump to Latest</span>

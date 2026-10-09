@@ -45,11 +45,11 @@ class MessageService:
             doc["id"] = str(doc.pop("_id"))
             
             # Format datetime fields
-            if doc.get("created_at"):
+            if doc.get("created_at") and hasattr(doc["created_at"], 'isoformat'):
                 doc["created_at"] = doc["created_at"].isoformat()
-            if doc.get("updated_at"):
+            if doc.get("updated_at") and hasattr(doc["updated_at"], 'isoformat'):
                 doc["updated_at"] = doc["updated_at"].isoformat()
-            if doc.get("last_message_at"):
+            if doc.get("last_message_at") and hasattr(doc["last_message_at"], 'isoformat'):
                 doc["last_message_at"] = doc["last_message_at"].isoformat()
                 
             # If there's a pinned message, format it
@@ -69,11 +69,11 @@ class MessageService:
         if doc.get("client_id") != user_id and doc.get("band_id") != user_id and doc.get("venue_owner_id") != user_id:
             raise PermissionError("Not authorized to access this conversation")
             
-        if doc.get("created_at"):
+        if doc.get("created_at") and hasattr(doc["created_at"], 'isoformat'):
             doc["created_at"] = doc["created_at"].isoformat()
-        if doc.get("updated_at"):
+        if doc.get("updated_at") and hasattr(doc["updated_at"], 'isoformat'):
             doc["updated_at"] = doc["updated_at"].isoformat()
-        if doc.get("last_message_at"):
+        if doc.get("last_message_at") and hasattr(doc["last_message_at"], 'isoformat'):
             doc["last_message_at"] = doc["last_message_at"].isoformat()
             
         return doc
@@ -82,7 +82,11 @@ class MessageService:
         # Check if conversation for this booking already exists
         existing = await self.conversations.find_one({"booking_id": payload.booking_id})
         if existing:
-            raise ValueError(f"Conversation for booking {payload.booking_id} already exists")
+            existing["id"] = str(existing.pop("_id", existing.get("id")))
+            existing["created_at"] = existing["created_at"].isoformat() if hasattr(existing["created_at"], 'isoformat') else existing["created_at"]
+            existing["updated_at"] = existing["updated_at"].isoformat() if hasattr(existing["updated_at"], 'isoformat') else existing["updated_at"]
+            existing["last_message_at"] = existing["last_message_at"].isoformat() if hasattr(existing["last_message_at"], 'isoformat') else existing["last_message_at"]
+            return existing
             
         # Fetch the booking to get client_id, band_id, venue_owner_id
         client_id = user_id
@@ -90,27 +94,47 @@ class MessageService:
         venue_owner_id = None
         event_name = f"Event for {payload.booking_id}"
         
+        from bson import ObjectId
+        
+        def is_valid_objectid(val: str) -> bool:
+            try:
+                ObjectId(val)
+                return True
+            except:
+                return False
+
         # Try band_bookings
-        booking = await self.band_bookings.find_by_id(payload.booking_id)
+        query: dict = {"$or": [{"id": payload.booking_id}]}
+        if is_valid_objectid(payload.booking_id):
+            query["$or"].append({"_id": ObjectId(payload.booking_id)})
+            
+        booking = await self.band_bookings.find_one(query)
         if booking:
-            client_id = booking.get("client_id") or user_id
-            band_id = booking.get("artist_id")
-            event_name = booking.get("event_title") or event_name
+            client_id = booking.get("customer_id") or user_id
+            band_id = booking.get("provider_owner_id")
+            event_name = booking.get("event_name") or booking.get("title") or booking.get("provider_name") or event_name
         else:
             # Try band_venue_bookings
-            booking = await self.venue_bookings.find_by_id(payload.booking_id)
+            booking = await self.venue_bookings.find_one(query)
             if booking:
-                client_id = booking.get("client_id") or user_id
-                venue_owner_id = booking.get("venue_id")
-                event_name = booking.get("event_title") or event_name
+                client_id = booking.get("customer_id") or booking.get("client_id") or user_id
+                venue_owner_id = booking.get("provider_owner_id") or booking.get("venue_id")
+                event_name = booking.get("event_name") or booking.get("event_title") or booking.get("title") or booking.get("provider_name") or event_name
             else:
                 # Try eventhub_events
-                booking = await self.events.find_by_id(payload.booking_id)
+                booking = await self.events.find_one(query)
                 if booking:
                     client_id = booking.get("customer_id") or user_id
                     band_id = booking.get("artist_id")
                     venue_owner_id = booking.get("venue_id")
-                    event_name = booking.get("event_name") or event_name
+                    event_name = booking.get("event_name") or booking.get("title") or event_name
+                    
+        # Fallback names if missing
+        if event_name == f"Event for {payload.booking_id}":
+            if band_id:
+                event_name = "Artist Booking"
+            elif venue_owner_id:
+                event_name = "Venue Booking"
 
         now = utc_now()
         doc = {
@@ -127,6 +151,7 @@ class MessageService:
         }
         
         created = await self.conversations.insert(doc)
+        created["id"] = str(created.pop("_id", created.get("id")))
         created["created_at"] = created["created_at"].isoformat()
         created["updated_at"] = created["updated_at"].isoformat()
         created["last_message_at"] = created["last_message_at"].isoformat()
@@ -165,11 +190,15 @@ class MessageService:
         return messages_docs
 
     async def save_message(self, conversation_id: str, sender_id: str, payload: SendMessagePayload, message_type: str = "TEXT", attachment_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        from src.repositories import UserRepository
+        sender = await UserRepository().find_by_id(sender_id)
+        sender_name = sender.get("full_name", "Unknown User") if sender else "Unknown User"
         now = utc_now()
         
         msg_doc = {
             "conversation_id": conversation_id,
             "sender_id": sender_id,
+            "sender_name": sender_name,
             "message_type": message_type,
             "content": payload.content,
             "reply_to_message_id": payload.reply_to_message_id,
@@ -191,8 +220,10 @@ class MessageService:
             "last_message_at": now
         })
         
-        created_msg["created_at"] = created_msg["created_at"].isoformat()
-        created_msg["updated_at"] = created_msg["updated_at"].isoformat()
+        if created_msg.get("created_at") and hasattr(created_msg["created_at"], 'isoformat'):
+            created_msg["created_at"] = created_msg["created_at"].isoformat()
+        if created_msg.get("updated_at") and hasattr(created_msg["updated_at"], 'isoformat'):
+            created_msg["updated_at"] = created_msg["updated_at"].isoformat()
         
         # Broadcast real-time message
         from src.services.websocket_manager import manager
@@ -304,9 +335,19 @@ class MessageService:
         if updated:
             if updated.get("created_at"): updated["created_at"] = updated["created_at"].isoformat()
             if updated.get("updated_at"): updated["updated_at"] = updated["updated_at"].isoformat()
+            
+            from src.services.websocket_manager import manager
+            conv = await self.conversations.find_by_id(updated.get("conversation_id", ""))
+            if conv:
+                participants = [p for p in [conv.get("client_id"), conv.get("band_id"), conv.get("venue_owner_id")] if p]
+                for p in set(participants):
+                    await manager.send_personal_message(
+                        {"type": "messaging", "event": "message.deleted", "data": updated},
+                        p
+                    )
             return updated
         return {}
-        
+
     async def add_reaction(self, message_id: str, user_id: str, emoji: str) -> Dict[str, Any]:
         msg = await self.messages.find_by_id(message_id)
         if not msg:

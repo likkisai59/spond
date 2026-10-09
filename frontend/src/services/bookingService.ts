@@ -100,6 +100,11 @@ export const bookingService = {
     return response.data.data;
   },
 
+  deleteBooking: async (bookingId: string): Promise<void> => {
+    if (isPreviewActive()) return toastMutationBlocked();
+    await api.delete(`/band/bookings/${bookingId}`);
+  },
+
   // ── Venue bookings (same endpoint, provider role) ────────────────────────────
   getVenueBookings: async (params: {
     status?: string;

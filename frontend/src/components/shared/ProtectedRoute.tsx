@@ -51,7 +51,8 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     // If real authenticated session exists
     if (user) {
       const userRole = String(user.role || "").toLowerCase();
-      if (allowedRoles && userRole && !allowedRoles.map((r) => r.toLowerCase()).includes(userRole)) {
+      // Allow base "user" role to access everything, or check specific roles
+      if (allowedRoles && userRole && userRole !== "user" && !allowedRoles.map((r) => r.toLowerCase()).includes(userRole)) {
         router.replace("/");
       }
       return;
@@ -73,6 +74,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     if (user) {
       if (!allowedRoles) return true;
       const userRole = String(user.role || "").toLowerCase();
+      if (userRole === "user") return true;
       return Boolean(userRole && allowedRoles.map((r) => r.toLowerCase()).includes(userRole));
     }
 

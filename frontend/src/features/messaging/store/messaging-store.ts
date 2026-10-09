@@ -1,4 +1,4 @@
-// @ts-nocheck
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
 import { Conversation, Message, MessageReaction, PresenceState } from "../types";
 import { messagingClient } from "../api/client";
@@ -127,14 +127,27 @@ export const useMessagingStore = create<MessagingState>((set, get) => ({
     set({ loadingConversations: true, error: null });
     try {
       const data = await messagingClient.listConversations();
-      set({ conversations: data, loadingConversations: false });
       
       const currentActive = get().activeConversation;
+      let nextActive = currentActive;
+
+      if (!currentActive && data.length > 0) {
+        nextActive = data[0];
+      } else if (currentActive) {
+        // Update the active conversation with fresh data if it exists in the fetched list
+        const updatedConv = data.find(c => c.id === currentActive.id);
+        if (updatedConv) {
+          nextActive = updatedConv;
+        }
+      }
+
+      set({ conversations: data, loadingConversations: false, activeConversation: nextActive });
+      
       if (!currentActive && data.length > 0) {
         get().selectConversation(data[0]);
       }
-    } catch (err: any) {
-      const msg = err.response?.data?.detail || "Failed to load conversations.";
+    } catch (err) {
+      const msg = (err as any).response?.data?.detail || "Failed to load conversations.";
       set({ error: msg, loadingConversations: false });
     }
   },
@@ -411,7 +424,7 @@ export const useMessagingStore = create<MessagingState>((set, get) => ({
         selectedSearchIndex: res.messages.length > 0 ? 0 : -1,
         isSearching: false,
       });
-    } catch (err: any) {
+    } catch {
       toast.error("Search failed.");
       set({ isSearching: false, searchResults: [], selectedSearchIndex: -1 });
     }
@@ -482,7 +495,7 @@ export const useMessagingStore = create<MessagingState>((set, get) => ({
     }
 
     const convIndex = conversations.findIndex((c) => c.id === newMsg.conversation_id);
-    let updatedConversations = [...conversations];
+    const updatedConversations = [...conversations];
 
     if (convIndex !== -1) {
       const targetConv = {

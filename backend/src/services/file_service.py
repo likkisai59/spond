@@ -23,9 +23,11 @@ class FileService:
 
     @property
     def session(self) -> aioboto3.Session:
+        key_id = settings.AWS_ACCESS_KEY_ID.strip() or None
+        secret_key = settings.AWS_SECRET_ACCESS_KEY.strip() or None
         return aioboto3.Session(
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID.strip(),
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY.strip(),
+            aws_access_key_id=key_id,
+            aws_secret_access_key=secret_key,
             region_name=self.region
         )
 
@@ -186,10 +188,15 @@ class FileService:
             if len(parts) >= 4 and parts[1] == 's3':
                 region = parts[2]
             
+            clean_name = os.path.basename(key)
             async with self.session.client("s3", region_name=region, config=botocore.client.Config(signature_version="s3v4", s3={"addressing_style": "virtual"}), endpoint_url=f"https://s3.{region}.amazonaws.com") as s3:  # pyright: ignore
                 url = await s3.generate_presigned_url(
                     'get_object',
-                    Params={'Bucket': self.bucket, 'Key': key},
+                    Params={
+                        'Bucket': self.bucket,
+                        'Key': key,
+                        'ResponseContentDisposition': f'attachment; filename="{clean_name}"'
+                    },
                     ExpiresIn=3600
                 )
                 return str(url)

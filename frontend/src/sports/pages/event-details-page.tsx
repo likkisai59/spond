@@ -177,13 +177,6 @@ function PageHeaderLikeTitle({
         </h1>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2">
-        {event.type === "Match" ? (
-          <Button asChild variant="accent">
-            <Link href={`${ROUTES.SPORTS}/matches/${event.id}/summary`}>
-              Match summary
-            </Link>
-          </Button>
-        ) : null}
         <Button
           variant="destructive"
           onClick={onDelete}

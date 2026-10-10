@@ -18,13 +18,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import {
   IndianRupee,
   MessageSquare,
-  Send,
   X,
   Check,
   Ban,
@@ -33,7 +31,6 @@ import {
   MessageSquarePlus,
   Trash2,
 } from "lucide-react";
-import { format } from "date-fns";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { useMessagingStore } from "@/features/messaging/store/messaging-store";
@@ -101,7 +98,6 @@ export function BookingDetailsDialog({
   const [booking, setBooking] = React.useState<BookingRequestDetail | null>(null);
   const [loading, setLoading] = React.useState<boolean>(true);
   const [actioning, setActioning] = React.useState<boolean>(false);
-  const [newComment, setNewComment] = React.useState<string>("");
   const [cancelConfirmOpen, setCancelConfirmOpen] = React.useState<boolean>(false);
   const [cancelReason, setCancelReason] = React.useState<string>("");
   const [cancelReasonError, setCancelReasonError] = React.useState<string | null>(null);
@@ -237,22 +233,6 @@ export function BookingDetailsDialog({
     }
   };
 
-  const handleAddComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-    setActioning(true);
-    try {
-      await bookingService.addBookingNote(bookingId, newComment.trim());
-      setNewComment("");
-      toast.success("Comment added.");
-      const updated = await bookingService.getBookingDetails(bookingId);
-      setBooking(updated);
-    } catch {
-      toast.error("Failed to add comment.");
-    } finally {
-      setActioning(false);
-    }
-  };
 
   const handleReviewSubmit = async (data: any) => {
     const created = await createReview(data);

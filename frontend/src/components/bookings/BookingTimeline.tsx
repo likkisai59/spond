@@ -2,7 +2,7 @@
 
 import { BookingTimelineEvent } from "@/types/booking";
 import { format } from "date-fns";
-import { AlertCircle, CheckCircle2, Clock, MessageSquare } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock } from "lucide-react";
 
 interface BookingTimelineProps {
   events: BookingTimelineEvent[];

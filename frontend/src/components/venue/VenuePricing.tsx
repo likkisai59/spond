@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, @next/next/no-img-element */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 "use client";
 
 import * as React from "react";
@@ -12,7 +12,6 @@ import {
   Trash2, 
   Plus, 
   Scale, 
-  Gift,
   Building,
   Save
 } from "lucide-react";
@@ -44,14 +43,7 @@ export function VenuePricing({ data, onSave }: VenuePricingProps) {
   const [cancellationCharges, setCancellationCharges] = React.useState(data.cancellation_charges || 0);
   const [taxPercentage, setTaxPercentage] = React.useState(data.tax_percentage || 0);
 
-  const [discounts, setDiscounts] = React.useState<VenueDiscountData[]>(data.discounts || []);
-
   const [saving, setSaving] = React.useState(false);
-
-  // New discount inputs
-  const [newDiscName, setNewDiscName] = React.useState("");
-  const [newDiscType, setNewDiscType] = React.useState("percentage");
-  const [newDiscValue, setNewDiscValue] = React.useState(0);
 
   const selectedCurrency = CURRENCIES.find(c => c.code === currency) || CURRENCIES[0];
   const symbol = selectedCurrency.symbol;
@@ -71,7 +63,7 @@ export function VenuePricing({ data, onSave }: VenuePricingProps) {
         cleaning_charges: Number(cleaningCharges),
         cancellation_charges: Number(cancellationCharges),
         tax_percentage: Number(taxPercentage),
-        discounts
+        discounts: data.discounts || []
       });
       toast.success("Venue pricing rules saved successfully!");
     } catch {
@@ -81,39 +73,7 @@ export function VenuePricing({ data, onSave }: VenuePricingProps) {
     }
   };
 
-  const handleAddDiscount = () => {
-    if (!newDiscName.trim()) {
-      toast.error("Discount program name is required.");
-      return;
-    }
-    if (newDiscValue <= 0) {
-      toast.error("Discount value must be greater than zero.");
-      return;
-    }
-    if (newDiscType === "percentage" && newDiscValue > 100) {
-      toast.error("Percentage discount cannot exceed 100%.");
-      return;
-    }
 
-    const newItem: VenueDiscountData = {
-      name: newDiscName.trim(),
-      type: newDiscType,
-      value: Number(newDiscValue)
-    };
-
-    setDiscounts(prev => [...prev, newItem]);
-    setNewDiscName("");
-    setNewDiscValue(0);
-    toast.success(`Discount "${newItem.name}" added!`);
-  };
-
-  const handleRemoveDiscount = (idx: number) => {
-    setDiscounts(prev => {
-      const copy = [...prev];
-      copy.splice(idx, 1);
-      return copy;
-    });
-  };
 
   return (
     <div className="space-y-8 bg-card/45 backdrop-blur-md border border-border p-6 md:p-8 rounded-3xl shadow-xl">
@@ -328,91 +288,6 @@ export function VenuePricing({ data, onSave }: VenuePricingProps) {
           </Card>
         </div>
 
-      </div>
-
-      {/* DISCOUNTS BUILDER SECTION */}
-      <div className="pt-6 border-t border-border space-y-4">
-        <div className="space-y-1">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-            <Gift className="h-4.5 w-4.5 text-primary" />
-            Promo Discounts Manager
-          </h3>
-          <p className="text-[11px] text-muted-foreground">Configure early bird discounts, off-season rates, or corporate package deals.</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end p-4 border border-border bg-accent/15 rounded-2xl">
-          <div className="space-y-1.5 md:col-span-2">
-            <Label htmlFor="disc_name">Discount Program Title</Label>
-            <Input 
-              id="disc_name" 
-              placeholder="e.g. Weekday Early Bird Deal" 
-              value={newDiscName}
-              onChange={e => setNewDiscName(e.target.value)}
-              className="h-9.5 text-xs"
-            />
-          </div>
-
-          <div className="space-y-1.5 md:col-span-1">
-            <Label>Type</Label>
-            <select
-              value={newDiscType}
-              onChange={e => setNewDiscType(e.target.value)}
-              className="w-full h-9.5 px-3 rounded-lg border border-border bg-card text-foreground text-xs"
-            >
-              <option value="percentage">Percentage (%)</option>
-              <option value="flat">Flat Value ({symbol})</option>
-            </select>
-          </div>
-
-          <div className="space-y-1.5 md:col-span-1">
-            <Label htmlFor="disc_val">Discount Value</Label>
-            <div className="relative">
-              <span className="absolute right-3.5 top-2.5 text-xs text-muted-foreground">{newDiscType === "percentage" ? "%" : symbol}</span>
-              <Input 
-                id="disc_val" 
-                type="number"
-                value={newDiscValue}
-                onChange={e => setNewDiscValue(Number(e.target.value))}
-                className="pr-9 h-8 text-xs font-bold"
-              />
-            </div>
-          </div>
-
-          <Button type="button" onClick={handleAddDiscount} className="bg-primary text-primary-foreground h-8 font-bold flex items-center justify-center gap-1 md:col-span-4">
-            <Plus className="h-4 w-4" />
-            <span>Register Discount Offer</span>
-          </Button>
-        </div>
-
-        {/* Active discounts tags list */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-2">
-          {discounts.map((disc, idx) => (
-            <div key={idx} className="p-3.5 border border-border bg-card/80 rounded-2xl flex items-start justify-between relative group shadow">
-              <div className="space-y-1">
-                <Badge className="bg-primary/10 text-primary border border-primary/20 text-[9px] py-0.5 uppercase font-bold">
-                  Active Promo
-                </Badge>
-                <p className="text-xs font-bold text-foreground">{disc.name}</p>
-                <p className="text-sm font-black text-foreground pt-1">
-                  {disc.type === "percentage" ? `-${disc.value}%` : `-${symbol}${disc.value}`}
-                </p>
-              </div>
-
-              <button 
-                type="button"
-                onClick={() => handleRemoveDiscount(idx)}
-                className="text-error hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
-          {discounts.length === 0 && (
-            <div className="col-span-full py-8 text-center text-xs text-muted-foreground italic border border-dashed border-border rounded-xl">
-              No custom promo discounts registered yet.
-            </div>
-          )}
-        </div>
       </div>
 
     </div>

@@ -45,9 +45,9 @@ export function StatsCards({ stats }: StatsCardsProps) {
       bg: "bg-yellow-500/10 border-yellow-500/20"
     },
     {
-      title: "Profile Views",
-      value: stats.profile_views,
-      description: "Views in the last 30 days",
+      title: "Pending Requests",
+      value: stats.pending_requests_count,
+      description: "Awaiting your response",
       icon: Eye,
       color: "text-pink-400",
       bg: "bg-pink-500/10 border-pink-500/20"

@@ -110,6 +110,7 @@ export interface ArtistDashboardData {
   recent_reviews: ReviewSummary[];
   notifications: NotificationSummary[];
   revenue_chart: ChartDataPoint[];
+  profile_completion_details?: { name: string; completed: boolean }[];
 }
 
 export interface AvailabilityData {

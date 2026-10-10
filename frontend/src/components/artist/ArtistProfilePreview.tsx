@@ -23,7 +23,10 @@ import {
 import { formatCurrency } from "@/utils/format-currency";
 import { formatImageUrl, maskPhoneNumber } from "@/utils/helpers";
 import { FavoriteButton } from "@/components/shared/FavoriteButton";
-import { Phone } from "lucide-react";
+import { Phone, Star } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useReviews } from "@/hooks/use-reviews";
+import { ReviewList } from "@/components/reviews/ReviewList";
 
 interface ArtistProfilePreviewProps {
   profile: ArtistProfile;
@@ -31,8 +34,19 @@ interface ArtistProfilePreviewProps {
 }
 
 export function ArtistProfilePreview({ profile, isMaskedPhone = false }: ArtistProfilePreviewProps) {
+  const { user } = useAuth();
+  const isOwner = user && (
+    user.id === profile.user_id || 
+    user.id === (profile as any).user?._id || 
+    user.id === (profile as any).user?.id || 
+    user.id === (profile as any).created_by
+  );
+  
   const hasSocials = profile.social_links && Object.values(profile.social_links).some(Boolean);
   const achievements = profile.achievements || [];
+  
+  const artistUserId = profile.user_id || (profile as any).user?._id || (profile as any).user?.id || (profile as any).created_by;
+  const { reviews, loading: reviewsLoading } = useReviews(artistUserId, true);
 
   return (
     <div className="space-y-6">
@@ -48,22 +62,24 @@ export function ArtistProfilePreview({ profile, isMaskedPhone = false }: ArtistP
             </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-bg-card via-transparent to-transparent" />
-          <div className="absolute top-4 right-4 z-10">
-            <FavoriteButton 
-              className="bg-black/40 hover:bg-black/60 border-none text-white shadow-xl"
-              item={{
-                id: profile.id || (profile as any)._id,
-                name: (profile as unknown as Record<string, { name?: string }>).user?.name || (profile as unknown as Record<string, string>).name || profile.display_name || "Performer",
-                type: "artist",
-                category: profile.band_type || "Artist",
-                location: profile.city || profile.state || "Not specified",
-                rating: typeof (profile as any).rating === "number" ? (profile as any).rating : 5.0,
-                reviewCount: (profile as any).review_count || 0,
-                priceStartingAt: profile.base_rate || 0,
-                image: formatImageUrl(profile.cover_image || profile.profile_image || "https://images.unsplash.com/photo-1516280440502-6c2e8c26bbec")
-              }}
-            />
-          </div>
+          {!isOwner && (
+            <div className="absolute top-4 right-4 z-10">
+              <FavoriteButton 
+                className="bg-black/40 hover:bg-black/60 border-none text-white shadow-xl"
+                item={{
+                  id: profile.id || (profile as any)._id,
+                  name: (profile as unknown as Record<string, { name?: string }>).user?.name || (profile as unknown as Record<string, string>).name || profile.display_name || "Performer",
+                  type: "artist",
+                  category: profile.band_type || "Artist",
+                  location: profile.city || profile.state || "Not specified",
+                  rating: typeof (profile as any).rating === "number" ? (profile as any).rating : 5.0,
+                  reviewCount: (profile as any).review_count || 0,
+                  priceStartingAt: profile.base_rate || 0,
+                  image: formatImageUrl(profile.cover_image || profile.profile_image || "https://images.unsplash.com/photo-1516280440502-6c2e8c26bbec")
+                }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Profile Info Overlay */}
@@ -191,13 +207,13 @@ export function ArtistProfilePreview({ profile, isMaskedPhone = false }: ArtistP
                     const imgUrl = typeof item === "string" ? item : item.url;
                     if (!imgUrl) return null;
                     return (
-                      <div key={idx} className="relative aspect-square rounded-xl overflow-hidden group border border-border/50">
+                      <a href={formatImageUrl(imgUrl)} target="_blank" rel="noopener noreferrer" key={idx} className="relative aspect-square rounded-xl overflow-hidden group border border-border/50 block">
                         <img 
                           src={formatImageUrl(imgUrl)} 
                           alt={`Gallery image ${idx + 1}`} 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                         />
-                      </div>
+                      </a>
                     );
                   })}
                 </div>
@@ -215,8 +231,16 @@ export function ArtistProfilePreview({ profile, isMaskedPhone = false }: ArtistP
                 </h3>
                 <div className="space-y-3">
                   {profile.youtube_links.map((link: string, idx: number) => {
-                    const videoId = link.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/)?.[1];
-                    if (!videoId) return null;
+                    const videoId = link.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|shorts\/|watch\?v=|watch\?.+&v=))([^&?]+)/)?.[1];
+                    if (!videoId) {
+                      return (
+                        <div key={idx} className="p-3 bg-accent/30 rounded-xl border border-border truncate text-xs">
+                          <a href={link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                            {link}
+                          </a>
+                        </div>
+                      );
+                    }
                     return (
                       <div key={idx} className="relative aspect-video rounded-xl overflow-hidden border border-border/50 shadow-sm">
                         <iframe 
@@ -370,6 +394,29 @@ export function ArtistProfilePreview({ profile, isMaskedPhone = false }: ArtistP
         </div>
 
       </div>
+
+      {/* Reviews Section */}
+      <Card className="bg-card/45 backdrop-blur-md border border-border rounded-2xl shadow-xl mt-6">
+        <CardContent className="p-6 sm:p-8 space-y-6">
+          <div className="flex items-center gap-3 border-b border-border/50 pb-4">
+            <div className="p-2.5 bg-yellow-500/10 rounded-xl">
+              <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-foreground">Client Reviews & Feedback</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Read what others have said about this artist&apos;s performances.</p>
+            </div>
+          </div>
+          <div className="pt-2">
+            <ReviewList 
+              reviews={reviews} 
+              loading={reviewsLoading} 
+              emptyTitle="No reviews yet"
+              emptyMessage="This artist hasn't received any reviews yet. Be the first to leave a review after a booking!"
+            />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

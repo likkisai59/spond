@@ -172,7 +172,29 @@ export default function ClientPaymentsPage() {
   };
 
   const handleDownloadInvoice = (txn: Transaction) => {
-    toast.success(`Downloading invoice receipt for ${txn.id}...`);
+    toast.success(`Generating invoice receipt for ${txn.id}...`);
+    
+    const headers = ["Invoice ID", "Booking ID", "Event", "Provider", "Milestone", "Amount (INR)", "Date", "Status"];
+    const row = [
+      txn.id,
+      txn.bookingId,
+      `"${txn.eventName || 'N/A'}"`,
+      `"${txn.providerName || 'N/A'}"`,
+      txn.milestone,
+      txn.amount,
+      txn.date,
+      txn.status
+    ];
+    
+    const csvContent = [headers.join(","), row.join(",")].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `EventHub_Invoice_${txn.id}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const filteredTransactions = transactions.filter((t) => {

@@ -67,7 +67,7 @@ export function getDefaultRouteForRole(role: string): string {
     case "band":
       return "/band/artist/dashboard";
     case "venue_owner":
-      return "/band/venue/profile"; // Redirect to profile instead of dashboard for venue
+      return "/band/venue/dashboard";
     case "admin":
     case "super_admin":
       return ROUTES.ADMIN;

@@ -103,22 +103,31 @@ export default function ArtistDashboardPage() {
             </div>
 
             <div className="space-y-3 mt-2">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span className="text-[13px] text-foreground">Basic details</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                <span className="text-[13px] text-foreground">Profile photos</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
-                <span className="text-[13px] text-muted-foreground">Pricing & packages</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
-                <span className="text-[13px] text-muted-foreground">Availability hours</span>
-              </div>
+              {data.profile_completion_details ? data.profile_completion_details.map((item, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className={`w-1.5 h-1.5 rounded-full ${item.completed ? "bg-primary" : "bg-muted-foreground/40"}`} />
+                  <span className={`text-[13px] ${item.completed ? "text-foreground" : "text-muted-foreground"}`}>{item.name}</span>
+                </div>
+              )) : (
+                <>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    <span className="text-[13px] text-foreground">Basic details</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    <span className="text-[13px] text-foreground">Profile photos</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
+                    <span className="text-[13px] text-muted-foreground">Pricing & packages</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
+                    <span className="text-[13px] text-muted-foreground">Availability hours</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

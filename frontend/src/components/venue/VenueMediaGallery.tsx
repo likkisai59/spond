@@ -17,7 +17,6 @@ const ALBUMS = ["Main Hall", "Dining Area", "Exterior/Garden", "Lobby", "General
 const VIDEO_CATEGORIES = ["Walkthrough", "Event Setup", "Aerial View", "General"];
 
 export function VenueMediaGallery({ media, onSave }: VenueMediaGalleryProps) {
-  const [virtualTour, setVirtualTour] = React.useState<string | null>(media.virtual_tour || null);
 
   return (
     <ProviderMediaGallery
@@ -43,39 +42,10 @@ export function VenueMediaGallery({ media, onSave }: VenueMediaGalleryProps) {
           gallery,
           videos,
           youtube_links: youtubeLinks,
-          virtual_tour: virtualTour,
+          virtual_tour: null,
         });
         toast.success("Venue gallery and media saved successfully!");
       }}
-      extraSections={
-        <div className="pt-4 border-t border-border space-y-4">
-          <div className="space-y-1">
-            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
-              <Compass className="h-5 w-5 text-emerald-400" />
-              Matterport 360° Virtual Tour Link
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Provide an iframe embed or shareable URL from Matterport to allow guest tours.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="virtual_tour">360° Tour Shareable Link</Label>
-            <Input
-              id="virtual_tour"
-              placeholder="https://my.matterport.com/show/?m=..."
-              value={virtualTour || ""}
-              onChange={e => setVirtualTour(e.target.value || null)}
-            />
-            {virtualTour && (
-              <div className="p-3 bg-accent/20 border border-border rounded-xl space-y-2 text-xs">
-                <p className="text-emerald-400 font-bold">Virtual tour active!</p>
-                <p className="text-[10px] text-muted-foreground break-all">{virtualTour}</p>
-              </div>
-            )}
-          </div>
-        </div>
-      }
     />
   );
 }

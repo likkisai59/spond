@@ -202,10 +202,11 @@ class BandService:
     async def get_artist_dashboard(self, user_id: str) -> Dict:
         artist = await self.get_artist_by_owner(user_id)
         artist_id = artist.get("id")
-        bookings = await self.bookings.find_many({"provider_id": artist_id}) if artist_id else []
+        bookings = await self.bookings.find_many({"provider_id": artist_id, "is_deleted": {"$ne": True}}) if artist_id else []
         
         upcoming_events = []
         recent_requests = []
+        transactions = []
         total_earnings = 0
         monthly_revenue = 0
         
@@ -232,6 +233,14 @@ class BandService:
             
             if status == BookingStatus.COMPLETED.value:
                 total_earnings += amt
+                transactions.append({
+                    "id": str(b.get("id") or b.get("_id", "")),
+                    "created_at": b.get("created_at") or b.get("updated_at") or datetime.now(timezone.utc).isoformat(),
+                    "description": f"Payment for {b.get('event_name', 'Event')}",
+                    "type": "credit",
+                    "amount": amt,
+                    "status": "completed"
+                })
                 if b_month == current_month:
                     monthly_revenue += amt
                 
@@ -240,6 +249,14 @@ class BandService:
                     monthly_data[b_month]["bookings"] += 1
             
             elif status in (BookingStatus.CONFIRMED.value, BookingStatus.ACCEPTED.value):
+                transactions.append({
+                    "id": str(b.get("id") or b.get("_id", "")),
+                    "created_at": b.get("created_at") or b.get("updated_at") or datetime.now(timezone.utc).isoformat(),
+                    "description": f"Payment for {b.get('event_name', 'Event')}",
+                    "type": "credit",
+                    "amount": amt,
+                    "status": "pending"
+                })
                 upcoming_events.append({
                     "id": b.get("id", ""),
                     "client_name": "Client",
@@ -263,6 +280,20 @@ class BandService:
         revenue_chart = list(monthly_data.values())
         revenue_chart.reverse()
         
+        has_basic = bool(artist.get("bio") and artist.get("base_rate"))
+        has_photos = bool(artist.get("gallery") and len(artist.get("gallery", [])) > 0)
+        has_pricing = bool(artist.get("pricing_details"))
+        has_availability = bool(artist.get("availability") and artist.get("availability", {}).get("weekly_schedule"))
+        
+        completion_items = [
+            {"name": "Basic details", "completed": has_basic},
+            {"name": "Profile photos", "completed": has_photos},
+            {"name": "Pricing & packages", "completed": has_pricing},
+            {"name": "Availability hours", "completed": has_availability},
+        ]
+        completed_count = sum(1 for item in completion_items if item["completed"])
+        profile_completion = int((completed_count / 4) * 100)
+        
         return {
             "total_bookings": len(bookings),
             "upcoming_events_count": len(upcoming_events),
@@ -270,12 +301,14 @@ class BandService:
             "monthly_revenue": monthly_revenue,
             "total_earnings": total_earnings,
             "average_rating": artist.get("rating", 0.0),
-            "profile_completion": 90 if artist.get("bio") and artist.get("gallery") else 65,
+            "profile_completion": profile_completion,
+            "profile_completion_details": completion_items,
             "profile_views": 0,
             "upcoming_events": upcoming_events,
             "recent_booking_requests": recent_requests,
             "recent_reviews": [],
             "notifications": [],
+            "transactions": sorted(transactions, key=lambda x: x["created_at"], reverse=True),
             "revenue_chart": revenue_chart
         }
 
@@ -358,7 +391,7 @@ class BandService:
     async def get_artist_analytics(self, user_id: str) -> Dict:
         artist = await self.get_artist_by_owner(user_id)
         artist_id = artist.get("id")
-        bookings = await self.bookings.find_many({"provider_id": artist_id}) if artist_id else []
+        bookings = await self.bookings.find_many({"provider_id": artist_id, "is_deleted": {"$ne": True}}) if artist_id else []
         
         now = datetime.now(timezone.utc)
         
@@ -518,13 +551,117 @@ class BandService:
 
         if results:
             existing = results[0]
-            updated = await self.venues.update_by_id(existing["id"], data)
+            
+            # Map flat incoming fields to the nested structure the frontend expects on read
+            metadata_fields = existing.get("metadata_fields", {})
+            metadata_fields.update({
+                "contact_person": data.get("contact_person", metadata_fields.get("contact_person")),
+                "gst_number": data.get("gst_number", metadata_fields.get("gst_number")),
+                "pan_number": data.get("pan_number", metadata_fields.get("pan_number")),
+                "established_year": data.get("established_year", metadata_fields.get("established_year")),
+                "indoor_outdoor": data.get("indoor_outdoor", metadata_fields.get("indoor_outdoor")),
+                "district": data.get("district", metadata_fields.get("district")),
+                "area": data.get("area", metadata_fields.get("area")),
+                "landmark": data.get("landmark", metadata_fields.get("landmark")),
+                "latitude": data.get("latitude", metadata_fields.get("latitude")),
+                "longitude": data.get("longitude", metadata_fields.get("longitude")),
+                "youtube_links": data.get("youtube_links", metadata_fields.get("youtube_links")),
+            })
+            
+            availability_rules = existing.get("availability_rules", {})
+            availability_rules.update({
+                "weekly_schedule": data.get("weekly_schedule", availability_rules.get("weekly_schedule")),
+                "blocked_dates": data.get("blocked_dates", availability_rules.get("blocked_dates")),
+                "maintenance_days": data.get("maintenance_days", availability_rules.get("maintenance_days")),
+                "public_holidays": data.get("public_holidays", availability_rules.get("public_holidays")),
+                "booking_buffer_time": data.get("booking_buffer_time", availability_rules.get("booking_buffer_time")),
+            })
+            
+            documents = existing.get("documents", {})
+            documents.update({
+                "doc_pan": data.get("doc_pan", documents.get("doc_pan")),
+                "doc_gst": data.get("doc_gst", documents.get("doc_gst")),
+                "doc_ownership_proof": data.get("doc_ownership_proof", documents.get("doc_ownership_proof")),
+                "doc_government_id": data.get("doc_government_id", documents.get("doc_government_id")),
+                "doc_business_license": data.get("doc_business_license", documents.get("doc_business_license")),
+            })
+            
+            # Clean up the mapped fields from the root 'data' object so we don't store duplicates at the root
+            root_fields = {
+                k: v for k, v in data.items()
+                if k not in ["contact_person", "gst_number", "pan_number", "established_year", "indoor_outdoor",
+                             "district", "area", "landmark", "latitude", "longitude", "youtube_links",
+                             "weekly_schedule", "blocked_dates", "maintenance_days", "public_holidays", "booking_buffer_time",
+                             "doc_pan", "doc_gst", "doc_ownership_proof", "doc_government_id", "doc_business_license"]
+            }
+            
+            # Additional root mappings based on what VenueResponseData expects
+            if "venue_name" in root_fields:
+                root_fields["name"] = root_fields.pop("venue_name")
+            if "max_capacity" in root_fields:
+                root_fields["capacity"] = root_fields.pop("max_capacity")
+                
+            update_data = {
+                **root_fields,
+                "metadata_fields": metadata_fields,
+                "availability_rules": availability_rules,
+                "documents": documents
+            }
+
+            updated = await self.venues.update_by_id(existing["id"], update_data)
             if updated:
                 updated["user"] = user_obj
                 return updated
             return await self.get_venue_by_owner(user_id)
         else:
-            doc = {**data, "created_by": user_id, "rating": 0.0, "reviews_count": 0,
+            metadata_fields = {
+                "contact_person": data.get("contact_person", ""),
+                "gst_number": data.get("gst_number", ""),
+                "pan_number": data.get("pan_number", ""),
+                "established_year": data.get("established_year", None),
+                "indoor_outdoor": data.get("indoor_outdoor", "Both"),
+                "district": data.get("district", ""),
+                "area": data.get("area", ""),
+                "landmark": data.get("landmark", ""),
+                "latitude": data.get("latitude", None),
+                "longitude": data.get("longitude", None),
+                "youtube_links": data.get("youtube_links", []),
+            }
+            
+            availability_rules = {
+                "weekly_schedule": data.get("weekly_schedule", {}),
+                "blocked_dates": data.get("blocked_dates", []),
+                "maintenance_days": data.get("maintenance_days", []),
+                "public_holidays": data.get("public_holidays", []),
+                "booking_buffer_time": data.get("booking_buffer_time", 0),
+            }
+            
+            documents = {
+                "doc_pan": data.get("doc_pan", ""),
+                "doc_gst": data.get("doc_gst", ""),
+                "doc_ownership_proof": data.get("doc_ownership_proof", ""),
+                "doc_government_id": data.get("doc_government_id", ""),
+                "doc_business_license": data.get("doc_business_license", ""),
+            }
+            
+            root_fields = {
+                k: v for k, v in data.items()
+                if k not in ["contact_person", "gst_number", "pan_number", "established_year", "indoor_outdoor",
+                             "district", "area", "landmark", "latitude", "longitude", "youtube_links",
+                             "weekly_schedule", "blocked_dates", "maintenance_days", "public_holidays", "booking_buffer_time",
+                             "doc_pan", "doc_gst", "doc_ownership_proof", "doc_government_id", "doc_business_license"]
+            }
+            
+            if "venue_name" in root_fields:
+                root_fields["name"] = root_fields.pop("venue_name")
+            if "max_capacity" in root_fields:
+                root_fields["capacity"] = root_fields.pop("max_capacity")
+
+            doc = {**root_fields, 
+                   "metadata_fields": metadata_fields,
+                   "availability_rules": availability_rules,
+                   "documents": documents,
+                   "created_by": user_id, "rating": 0.0, "reviews_count": 0,
                    "is_deleted": False, "created_at": now, "updated_at": now}
             created = await self.venues.insert(doc)
             if created:
@@ -535,10 +672,11 @@ class BandService:
     async def get_venue_dashboard(self, user_id: str) -> Dict:
         venue = await self.get_venue_by_owner(user_id)
         venue_id = venue.get("id")
-        bookings = await self.bookings.find_many({"provider_id": venue_id}) if venue_id else []
+        bookings = await self.bookings.find_many({"provider_id": venue_id, "is_deleted": {"$ne": True}}) if venue_id else []
         
         upcoming_events = []
         recent_requests = []
+        transactions = []
         total_earnings = 0
         monthly_revenue = 0
         
@@ -565,6 +703,14 @@ class BandService:
             
             if status == BookingStatus.COMPLETED.value:
                 total_earnings += amt
+                transactions.append({
+                    "id": str(b.get("id") or b.get("_id", "")),
+                    "created_at": b.get("created_at") or b.get("updated_at") or datetime.now(timezone.utc).isoformat(),
+                    "description": f"Payment for {b.get('event_name', 'Event')}",
+                    "type": "credit",
+                    "amount": amt,
+                    "status": "completed"
+                })
                 if b_month == current_month:
                     monthly_revenue += amt
                 
@@ -573,6 +719,14 @@ class BandService:
                     monthly_data[b_month]["bookings"] += 1
             
             elif status in (BookingStatus.CONFIRMED.value, BookingStatus.ACCEPTED.value):
+                transactions.append({
+                    "id": str(b.get("id") or b.get("_id", "")),
+                    "created_at": b.get("created_at") or b.get("updated_at") or datetime.now(timezone.utc).isoformat(),
+                    "description": f"Payment for {b.get('event_name', 'Event')}",
+                    "type": "credit",
+                    "amount": amt,
+                    "status": "pending"
+                })
                 upcoming_events.append({
                     "id": b.get("id", ""),
                     "client_name": "Client",
@@ -609,6 +763,7 @@ class BandService:
             "recent_booking_requests": recent_requests,
             "recent_reviews": [],
             "notifications": [],
+            "transactions": sorted(transactions, key=lambda x: x["created_at"], reverse=True),
             "revenue_chart": revenue_chart
         }
 
@@ -703,7 +858,7 @@ class BandService:
     async def get_venue_analytics(self, user_id: str) -> Dict:
         venue = await self.get_venue_by_owner(user_id)
         venue_id = venue.get("id")
-        bookings = await self.bookings.find_many({"provider_id": venue_id}) if venue_id else []
+        bookings = await self.bookings.find_many({"provider_id": venue_id, "is_deleted": {"$ne": True}}) if venue_id else []
         
         now = datetime.now(timezone.utc)
         

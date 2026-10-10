@@ -68,9 +68,7 @@ async def check_my_artist_conflict(
 ):
     return _ok({"has_conflict": False, "reason": None})
 
-@router.get("/artists/me/analytics")
-async def get_my_artist_analytics(current_user: dict = Depends(get_current_user)):
-    return _ok(await service.get_artist_analytics(current_user["id"]))
+
 
 @router.get("/artists/me", response_model=Dict[str, Any])
 async def get_my_artist_profile(current_user: dict = Depends(get_current_user)):

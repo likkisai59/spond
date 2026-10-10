@@ -29,9 +29,9 @@ export const bandService = {
   // Venues
   getVenues: async (): Promise<any[]> => {
     const { data } = await api.get<any>("/band/venues");
-    const payload = data?.data;
-    const items = Array.isArray(payload) ? payload : (payload?.items ?? payload?.venues ?? []);
-    return Array.isArray(data) ? data : items;
+    // Backend wraps in { status, data: [...] }
+    const items = Array.isArray(data) ? data : (data?.data ?? []);
+    return items;
   },
   getVenue: async (id: string): Promise<Venue> => {
     const { data } = await api.get<any>(`/band/venues/${id}`);

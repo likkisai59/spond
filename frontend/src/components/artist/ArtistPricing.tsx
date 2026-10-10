@@ -1,13 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { PricingData, PackageItem, SpecialOfferItem } from "@/types/artist";
+import { PricingData, PackageItem } from "@/types/artist";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Trash2, Save, DollarSign, Percent, Gift, Briefcase } from "lucide-react";
+import { Plus, Trash2, Save, DollarSign, Briefcase } from "lucide-react";
 import toast from "react-hot-toast";
 
 interface ArtistPricingProps {
@@ -35,12 +35,11 @@ export function ArtistPricing({ pricing, onSave }: ArtistPricingProps) {
     setter(sanitized === "" ? 0 : Number(sanitized));
   };
   
-  const [weekendSurcharge, setWeekendSurcharge] = React.useState(pricing.weekend_surcharge || 0);
-  const [holidaySurcharge, setHolidaySurcharge] = React.useState(pricing.holiday_surcharge || 0);
+  const weekendSurcharge = pricing.weekend_surcharge || 0;
+  const holidaySurcharge = pricing.holiday_surcharge || 0;
 
   // Lists
   const [packages, setPackages] = React.useState<PackageItem[]>(pricing.packages || []);
-  const [offers, setOffers] = React.useState<SpecialOfferItem[]>(pricing.special_offers || []);
 
   const [saving, setSaving] = React.useState(false);
 
@@ -48,10 +47,6 @@ export function ArtistPricing({ pricing, onSave }: ArtistPricingProps) {
   const [pkgName, setPkgName] = React.useState("");
   const [pkgPrice, setPkgPrice] = React.useState(0);
   const [pkgDesc, setPkgDesc] = React.useState("");
-
-  const [offTitle, setOffTitle] = React.useState("");
-  const [offDiscount, setOffDiscount] = React.useState(0);
-  const [offDesc, setOffDesc] = React.useState("");
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +62,7 @@ export function ArtistPricing({ pricing, onSave }: ArtistPricingProps) {
         weekend_surcharge: weekendSurcharge,
         holiday_surcharge: holidaySurcharge,
         packages,
-        special_offers: offers
+        special_offers: pricing.special_offers || []
       });
       toast.success("Pricing configurations saved successfully!");
     } catch {
@@ -103,31 +98,6 @@ export function ArtistPricing({ pricing, onSave }: ArtistPricingProps) {
     });
   };
 
-  // Special Offers list methods
-  const addOffer = () => {
-    if (!offTitle.trim() || offDiscount <= 0 || offDiscount > 100) {
-      toast.error("Please enter a valid offer title and discount percentage (1-100).");
-      return;
-    }
-    const newItem: SpecialOfferItem = {
-      title: offTitle.trim(),
-      discount: offDiscount,
-      description: offDesc.trim() || undefined
-    };
-    setOffers(prev => [...prev, newItem]);
-    setOffTitle("");
-    setOffDiscount(0);
-    setOffDesc("");
-    toast.success("Promo offer added!");
-  };
-
-  const removeOffer = (idx: number) => {
-    setOffers(prev => {
-      const current = [...prev];
-      current.splice(idx, 1);
-      return current;
-    });
-  };
 
   return (
     <form onSubmit={handleSave} className="space-y-8">
@@ -204,50 +174,7 @@ export function ArtistPricing({ pricing, onSave }: ArtistPricingProps) {
         </CardContent>
       </Card>
 
-      {/* Surcharge Adjustments */}
-      <Card className="bg-card/45 backdrop-blur-md border border-border shadow-xl">
-        <CardHeader className="pb-3 border-b border-border">
-          <CardTitle className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-            <Percent className="h-4.5 w-4.5 text-primary" />
-            Special Day Surcharges (%)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="space-y-1.5">
-              <Label htmlFor="weekend_surcharge">Weekend Booking Surcharge (%)</Label>
-              <Input
-                id="weekend_surcharge"
-                type="text"
-                inputMode="numeric"
-                placeholder="0"
-                value={weekendSurcharge || ""}
-                onChange={handleNumericChange(setWeekendSurcharge)}
-                onBlur={() => {
-                  if (!weekendSurcharge || isNaN(weekendSurcharge)) setWeekendSurcharge(0);
-                }}
-              />
-              <span className="text-[10px] text-muted-foreground">Applied to events falling on Saturdays or Sundays.</span>
-            </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="holiday_surcharge">Festival / Holiday Surcharge (%)</Label>
-              <Input
-                id="holiday_surcharge"
-                type="text"
-                inputMode="numeric"
-                placeholder="0"
-                value={holidaySurcharge || ""}
-                onChange={handleNumericChange(setHolidaySurcharge)}
-                onBlur={() => {
-                  if (!holidaySurcharge || isNaN(holidaySurcharge)) setHolidaySurcharge(0);
-                }}
-              />
-              <span className="text-[10px] text-muted-foreground">Applied to events falling on calendar holidays.</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Custom Packages list builder */}
       <Card className="bg-card/45 backdrop-blur-md border border-border shadow-xl">
@@ -327,83 +254,7 @@ export function ArtistPricing({ pricing, onSave }: ArtistPricingProps) {
         </CardContent>
       </Card>
 
-      {/* Special Offers (placeholder list builder) */}
-      <Card className="bg-card/45 backdrop-blur-md border border-border shadow-xl">
-        <CardHeader className="pb-3 border-b border-border">
-          <CardTitle className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-            <Gift className="h-4.5 w-4.5 text-primary" />
-            Special Offers & Promos
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-5 space-y-4">
-          <div className="p-4 border border-border bg-accent/10 rounded-2xl space-y-3.5">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label>Promo Name</Label>
-                <Input 
-                  placeholder="E.g. Early Bird Booking Discount" 
-                  value={offTitle}
-                  onChange={e => setOffTitle(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Discount (%)</Label>
-                <Input 
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="0"
-                  value={offDiscount || ""}
-                  onChange={handleNumericChange(setOffDiscount)}
-                  onBlur={() => {
-                    if (!offDiscount || isNaN(offDiscount)) setOffDiscount(0);
-                  }}
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Discount Terms / Code Description</Label>
-              <Textarea 
-                rows={2} 
-                placeholder="E.g. 10% off for all shows booked at least 3 months in advance of the gig date." 
-                value={offDesc}
-                onChange={e => setOffDesc(e.target.value)}
-              />
-            </div>
-            <Button type="button" onClick={addOffer} className="bg-primary text-primary-foreground h-9 px-4">
-              <Plus className="h-4 w-4 mr-1" /> Add Promo Offer
-            </Button>
-          </div>
 
-          {/* Render List */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-            {offers.map((off, idx) => (
-              <div key={idx} className="p-4 rounded-xl border border-border bg-accent/25 flex flex-col justify-between relative group">
-                <button
-                  type="button"
-                  onClick={() => removeOffer(idx)}
-                  className="absolute top-2 right-2 p-1 text-error hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-                <div className="space-y-1">
-                  <span className="text-xs font-bold text-foreground block">{off.title}</span>
-                  <span className="text-xs font-black text-amber-400 block">
-                    {off.discount}% OFF Booking Rate
-                  </span>
-                  {off.description && (
-                    <p className="text-[11px] text-muted-foreground leading-relaxed pt-1.5 border-t border-border mt-1">
-                      {off.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-            {offers.length === 0 && (
-              <p className="text-xs text-muted-foreground italic">No promo discount codes created yet.</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       <Button
         type="submit"

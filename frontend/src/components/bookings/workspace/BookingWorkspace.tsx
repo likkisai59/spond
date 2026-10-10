@@ -15,6 +15,7 @@ interface RawBooking extends Booking {
   artist_name?: string;
   venue_name?: string;
   band_name?: string;
+  event_name?: string;
   customer_name?: string;
   customer_email?: string;
   requester_type?: string;
@@ -42,7 +43,7 @@ function normalizeBandBooking(b: RawBooking): BookingRequestDetail {
 
   return {
     id: b.id,
-    event_name: `Booking #${b.id.slice(-6).toUpperCase()}`,
+    event_name: b.event_name || b.customer_name || pName || `Booking #${b.id.slice(-6).toUpperCase()}`,
     event_date: b.event_date,
     start_time: b.event_time,
     end_time: b.event_time,

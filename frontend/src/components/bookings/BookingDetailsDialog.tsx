@@ -54,7 +54,7 @@ interface BookingDetailsDialogProps {
 function normalizeBandBooking(raw: any): BookingRequestDetail {
   return {
     id: raw.id,
-    event_name: `Booking #${String(raw.id).slice(-6).toUpperCase()}`,
+    event_name: raw.event_name || raw.customer_name || `Booking #${String(raw.id).slice(-6).toUpperCase()}`,
     event_date: raw.event_date,
     start_time: raw.event_time,
     end_time: raw.event_time,
@@ -102,9 +102,6 @@ export function BookingDetailsDialog({
   const [loading, setLoading] = React.useState<boolean>(true);
   const [actioning, setActioning] = React.useState<boolean>(false);
   const [newComment, setNewComment] = React.useState<string>("");
-  const [showCounterBox, setShowCounterBox] = React.useState<boolean>(false);
-  const [counterPrice, setCounterPrice] = React.useState<string>("");
-  const [counterReason, setCounterReason] = React.useState<string>("");
   const [cancelConfirmOpen, setCancelConfirmOpen] = React.useState<boolean>(false);
   const [cancelReason, setCancelReason] = React.useState<string>("");
   const [cancelReasonError, setCancelReasonError] = React.useState<string | null>(null);
@@ -166,7 +163,7 @@ export function BookingDetailsDialog({
           toast.success("Booking request accepted!");
           try {
             const conversation = await createConversation(bookingId);
-            if (conversation) router.push("/messages");
+            if (conversation) router.push(`/band/${role}/messages`);
           } catch {
             // ignore chat errors
           }
@@ -240,32 +237,6 @@ export function BookingDetailsDialog({
     }
   };
 
-  const handleCounterSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const price = Number(counterPrice);
-    if (!price || price <= 0) {
-      toast.error("Please enter a valid counter price.");
-      return;
-    }
-    setActioning(true);
-    try {
-      const res = await bookingService.counterOffer(bookingId, price, counterReason);
-      toast.success("Counter offer submitted successfully!");
-      setBooking(res);
-      setShowCounterBox(false);
-      setCounterPrice("");
-      setCounterReason("");
-      if (onRefresh) onRefresh();
-    } catch (err) {
-      const error = err as { response?: { data?: { error?: { message?: string } } } };
-      const msg =
-        error.response?.data?.error?.message || "Failed to submit counter offer.";
-      toast.error(msg);
-    } finally {
-      setActioning(false);
-    }
-  };
-
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim()) return;
@@ -294,12 +265,11 @@ export function BookingDetailsDialog({
   };
 
   // Accept/reject: band bookings use "requested"; old flow uses "pending" etc.
-  const actionableStatuses = ["pending", "under_review", "negotiation", "requested"];
+  const actionableStatuses = ["pending", "under_review", "requested"];
   const canAccept =
     booking && actionableStatuses.includes(booking.status) && role !== "client";
   const canReject =
     booking && actionableStatuses.includes(booking.status) && role !== "client";
-  const canCounter = booking && actionableStatuses.includes(booking.status);
   const canCancel =
     booking &&
     [...actionableStatuses, "accepted", "confirmed"].includes(booking.status);
@@ -379,62 +349,6 @@ export function BookingDetailsDialog({
                 <div className="lg:col-span-2 space-y-6">
                   <BookingInformationCard booking={booking} />
 
-                  {/* Counter offer sub form box */}
-                  {showCounterBox && (
-                    <form
-                      onSubmit={handleCounterSubmit}
-                      className="bg-accent/40 border border-primary/20 rounded-2xl p-4 space-y-4 animate-in fade-in slide-in-from-top-1"
-                    >
-                      <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                        <IndianRupee className="h-4 w-4 text-primary" />
-                        Submit Price Counter Offer
-                      </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div className="space-y-1.5 sm:col-span-1">
-                          <Label htmlFor="counter_price">Counter Rate (INR)</Label>
-                          <Input
-                            id="counter_price"
-                            type="number"
-                            placeholder="e.g. 18000"
-                            value={counterPrice}
-                            onChange={(e) => setCounterPrice(e.target.value)}
-                            className="text-foreground text-xs bg-card border-border h-9"
-                            required
-                          />
-                        </div>
-                        <div className="space-y-1.5 sm:col-span-2">
-                          <Label htmlFor="counter_reason">Note/Reason for counter</Label>
-                          <Input
-                            id="counter_reason"
-                            placeholder="e.g. Travel cost adjustment or extended performance duration."
-                            value={counterReason}
-                            onChange={(e) => setCounterReason(e.target.value)}
-                            className="text-foreground text-xs bg-card border-border h-9"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowCounterBox(false)}
-                          className="font-bold text-[10px] h-8"
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="submit"
-                          size="sm"
-                          disabled={actioning}
-                          className="font-bold text-[10px] h-8 px-3"
-                        >
-                          {actioning ? "Sending..." : "Submit Counter"}
-                        </Button>
-                      </div>
-                    </form>
-                  )}
-
                   {/* Action Buttons */}
                   <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-border">
                     {!isBandRole && booking.payment_status === "ADVANCE_PENDING" && (
@@ -488,23 +402,6 @@ export function BookingDetailsDialog({
                         <span>Reject Inquiry</span>
                       </Button>
                     )}
-                    {canCounter && !showCounterBox && !isBandRole && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setCounterPrice(
-                            String(booking.counter_price || booking.proposed_price)
-                          );
-                          setShowCounterBox(true);
-                        }}
-                        disabled={actioning}
-                        className="border-blue-500/30 hover:bg-blue-500/10 text-blue-400 font-bold h-9 text-xs flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <IndianRupee className="h-4 w-4" />
-                        <span>Counter Offer</span>
-                      </Button>
-                    )}
                     {canComplete && (
                       <Button
                         size="sm"
@@ -553,61 +450,6 @@ export function BookingDetailsDialog({
                       <Trash2 className="h-4 w-4" />
                       <span>Delete</span>
                     </Button>
-                  </div>
-
-                  {/* Comment / Note Thread */}
-                  <div className="space-y-4 pt-4 border-t border-border">
-                    <h4 className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
-                      <MessageSquare className="h-4 w-4 text-primary" />
-                      Negotiation Thread &amp; Comments
-                    </h4>
-                    <div className="space-y-3 max-h-55 overflow-y-auto pr-1">
-                      {!booking.booking_notes?.length ? (
-                        <p className="text-[10px] text-muted-foreground italic py-2">
-                          No comment notes posted yet. Submit a message below to start
-                          negotiation chat.
-                        </p>
-                      ) : (
-                        (Array.isArray(booking?.booking_notes) ? booking.booking_notes : []).map((note: any) => (
-                          <div
-                            key={note.id}
-                            className={`p-3 rounded-xl border flex flex-col gap-1 ${
-                              note.author_role === role
-                                ? "bg-primary/5 border-primary/20 self-end ml-10"
-                                : "bg-accent/40 border-border mr-10"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-[9px] font-bold text-foreground capitalize">
-                                {note.author_role}
-                              </span>
-                              <span className="text-[8px] text-muted-foreground">
-                                {format(new Date(note.created_at), "PPp")}
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                              {note.content}
-                            </p>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                    <form onSubmit={handleAddComment} className="flex gap-2 items-center">
-                      <Input
-                        placeholder="Type a negotiation comment or message..."
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        className="text-foreground text-xs bg-card border-border flex-1 h-9"
-                      />
-                      <Button
-                        type="submit"
-                        disabled={actioning || !newComment.trim()}
-                        size="icon"
-                        className="h-9 w-9 shrink-0 cursor-pointer"
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </form>
                   </div>
                 </div>
 

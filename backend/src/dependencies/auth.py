@@ -38,6 +38,13 @@ async def get_current_user(request: Request) -> dict:
     return user_details
 
 
+async def get_optional_current_user(request: Request) -> dict | None:
+    """Same as get_current_user, but returns None if not authenticated."""
+    try:
+        return await get_current_user(request)
+    except UnauthorizedError:
+        return None
+
 def require_roles(*roles: str):
     async def _dependency(user: dict = Depends(get_current_user)) -> dict:
         if user["role"] not in roles:

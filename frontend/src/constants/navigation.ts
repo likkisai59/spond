@@ -155,7 +155,6 @@ export const BAND_ARTIST_NAV: NavSection[] = [
       { label: "Reviews", href: "/band/artist/reviews", icon: MessageSquare },
       { label: "Messages", href: "/band/artist/messages", icon: Inbox },
       { label: "Payments", href: "/band/artist/earnings", icon: IndianRupee },
-      { label: "Analytics", href: "/band/artist/analytics", icon: BarChart3 },
     ],
   },
   {

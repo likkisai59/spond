@@ -9,33 +9,26 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import toast from "react-hot-toast";
 
-import { favoritesService, FavoriteItem } from "@/services/favoritesService";
+import { useFavoritesStore } from "@/store/favorites-store";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function ClientFavoritesPage() {
-  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
+  const { user } = useAuth();
+  const { favorites, loaded, loading, fetchFavorites, removeFavorite: storeRemoveFavorite } =
+    useFavoritesStore();
   const [filterType, setFilterType] = useState<"all" | "artist" | "venue">("all");
-  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const fetchFavorites = async () => {
-      try {
-        const data = await favoritesService.getFavorites();
-        setFavorites(data);
-      } catch (err) {
-        toast.error("Failed to load favorites");
-      } finally {
-        setIsLoaded(true);
-      }
-    };
-    fetchFavorites();
-  }, []);
+    if (user) {
+      fetchFavorites();
+    }
+  }, [user, fetchFavorites]);
 
   const removeFavorite = async (id: string, name: string) => {
     try {
-      await favoritesService.removeFavorite(id);
-      setFavorites((prev) => prev.filter((item) => item.id !== id));
+      await storeRemoveFavorite(id);
       toast.success(`Removed "${name}" from your favorites`);
-    } catch (err) {
+    } catch {
       toast.error(`Failed to remove "${name}"`);
     }
   };
@@ -45,7 +38,7 @@ export default function ClientFavoritesPage() {
     return item.type === filterType;
   });
 
-  if (!isLoaded) {
+  if (!loaded && loading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />

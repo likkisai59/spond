@@ -13,15 +13,18 @@ export async function downloadFile(file: SportsFile) {
   if (file.id) {
     try {
       const res = await apiClient.get(`/api/v1/files/download/${file.id}`);
-      if (res.data?.data?.download_url) {
-        targetUrl = res.data.data.download_url;
+      const downloadUrl = res.data?.data?.downloadUrl || res.data?.data?.download_url;
+      if (downloadUrl) {
+        targetUrl = downloadUrl;
       }
     } catch (_err) {
       // fallback to file.fileUrl
     }
   }
 
-  if (targetUrl.startsWith("/")) {
+  if (targetUrl.includes("amazonaws.com") && !targetUrl.includes("X-Amz-Signature")) {
+    targetUrl = `${API_BASE_URL}/api/v1/files/redirect?url=${encodeURIComponent(targetUrl)}`;
+  } else if (targetUrl.startsWith("/")) {
     targetUrl = `${API_BASE_URL}${targetUrl}`;
   }
 
@@ -52,6 +55,16 @@ export async function downloadFile(file: SportsFile) {
       anchor.remove();
       return;
     }
+
+    const anchor = document.createElement("a");
+    anchor.href = targetUrl;
+    anchor.download = file.name;
+    anchor.target = "_blank";
+    anchor.rel = "noopener noreferrer";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    return;
   }
 
   const content = `[Unify demo] "${file.name}"\nType: ${file.type}\nSize: ${formatFileSize(file.sizeKb)}\nFolder: ${file.folder}\nUploaded by: ${file.uploadedBy}\n`;

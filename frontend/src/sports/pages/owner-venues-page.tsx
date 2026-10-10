@@ -294,7 +294,7 @@ export function OwnerVenuesPage() {
             description="You haven't listed any venues yet. Add one to start receiving bookings."
           />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {venues.map((venue) => (
               <VenueCard
                 key={venue.id}

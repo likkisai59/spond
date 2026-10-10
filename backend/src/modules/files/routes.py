@@ -59,7 +59,7 @@ async def delete_file(id: str, user: dict = Depends(get_current_user)) -> dict:
 @router.get("/download/{id}")
 async def download_file(id: str, _: dict = Depends(get_current_user)) -> dict:
     url = await service.download_file_url(id)
-    return {"status": "success", "data": {"download_url": url}}
+    return {"status": "success", "data": {"download_url": url, "downloadUrl": url}}
 
 
 

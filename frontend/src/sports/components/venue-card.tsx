@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, MapPin, Pencil, Star, Users } from "lucide-react";
+import { Building2, MapPin, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/shared/card";
@@ -18,7 +18,7 @@ export function VenueCard({ venue, className, href, onEdit }: VenueCardProps) {
   return (
     <Card
       interactive
-      className={cn("flex h-full flex-col p-5 sm:p-6 animate-fade-in-up", className)}
+      className={cn("flex h-full w-full max-w-[420px] flex-col p-5 animate-fade-in-up", className)}
     >
       <div className="flex items-start gap-4">
         <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-gradient-soft">
@@ -60,17 +60,6 @@ export function VenueCard({ venue, className, href, onEdit }: VenueCardProps) {
       <p className="mt-4 line-clamp-2 flex-1 text-sm leading-relaxed text-muted-foreground">
         {venue.description}
       </p>
-
-      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-muted/50 px-3.5 py-2.5 text-xs font-semibold text-muted-foreground">
-        <span className="inline-flex items-center gap-1.5">
-          <Star className="h-4 w-4 text-accent" />
-          {(venue.rating || 0).toFixed(1)} ({venue.reviewCount || 0})
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <Users className="h-4 w-4 text-accent" />
-          Fits {venue.capacity}
-        </span>
-      </div>
 
       <Button asChild variant="outline" className="mt-4 w-full rounded-full">
         <Link href={href || `${ROUTES.SPORTS_VENUES}/${venue.id}`}>View details</Link>

@@ -410,7 +410,7 @@ export function BookingRequestForm({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="proposed_price" className="text-[10px] text-[#f03e65] uppercase font-bold tracking-wider">Proposed Budget (INR)</Label>
+                  <Label htmlFor="proposed_price" className="text-[10px] text-[#f03e65] uppercase font-bold tracking-wider">Booking Price (INR)</Label>
                   <Input
                     id="proposed_price"
                     type="number"

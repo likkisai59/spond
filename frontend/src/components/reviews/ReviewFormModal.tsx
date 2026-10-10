@@ -21,6 +21,8 @@ export interface ReviewableBooking {
   venue_name?: string;
   event_title?: string;
   event_name?: string;
+  customer_name?: string;
+  provider_name?: string;
   event_date: string;
 }
 
@@ -100,11 +102,14 @@ export function ReviewFormModal({ isOpen, onClose, onSubmit, initialData, isLoad
                     ) : (
                       <>
                         <option value="">-- Choose a booking --</option>
-                        {eligibleBookings.map((b) => (
-                          <option key={b.id} value={b.id}>
-                            {b.artist?.display_name || b.artist_name || b.venue_name || b.event_title || b.event_name || "Booking"} • {new Date(b.event_date).toLocaleDateString()}
-                          </option>
-                        ))}
+                        {eligibleBookings.map((b) => {
+                          const displayName = b.event_title || b.event_name || b.customer_name || b.provider_name || b.artist?.display_name || b.artist_name || b.venue_name || "Booking";
+                          return (
+                            <option key={b.id} value={b.id}>
+                              {displayName} • {new Date(b.event_date).toLocaleDateString()}
+                            </option>
+                          );
+                        })}
                       </>
                     )}
                   </select>

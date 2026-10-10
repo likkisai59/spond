@@ -18,7 +18,7 @@ export function NotificationPreferencesCard() {
     system_enabled: true,
     realtime_enabled: true,
   });
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
 
   React.useEffect(() => {
     if (user?.notification_preferences) {
@@ -48,9 +48,13 @@ export function NotificationPreferencesCard() {
   const handleSave = async () => {
     setLoading(true);
     try {
-      await api.patch("/auth/me", {
+      const response = await api.patch("/auth/me", {
         notification_preferences: localPrefs,
       });
+      if (user) {
+        // Update Redux state with the merged data so it persists across reloads
+        setUser({ ...user, notification_preferences: localPrefs });
+      }
       toast.success("Notification preferences updated successfully");
     } catch {
       toast.error("Failed to save notification preferences");

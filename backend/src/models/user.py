@@ -45,6 +45,14 @@ def public_user(document: dict) -> dict:
         "accessible_modules": document.get("accessible_modules", []),
         "is_active": document.get("is_active", True),
         "is_verified": document.get("is_verified", False),
+        "notification_preferences": document.get("notification_preferences", {
+            "booking_enabled": True,
+            "payment_enabled": True,
+            "review_enabled": True,
+            "message_enabled": True,
+            "system_enabled": True,
+            "realtime_enabled": True,
+        }),
         "created_at": document["created_at"],
         "updated_at": document["updated_at"],
     }

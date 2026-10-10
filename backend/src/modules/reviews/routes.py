@@ -1,6 +1,6 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from src.dependencies.auth import get_current_user
+from src.dependencies.auth import get_current_user, get_optional_current_user
 from src.schemas.review import ReviewSchema, CreateReviewPayload, UpdateReviewPayload
 from src.services.review_service import ReviewService
 
@@ -11,10 +11,16 @@ def get_service() -> ReviewService:
 
 @router.get("", response_model=Dict[str, Any])
 async def get_reviews(
-    current_user: dict = Depends(get_current_user),
+    user_id: Optional[str] = None,
+    reviewee_only: bool = False,
+    current_user: Optional[dict] = Depends(get_optional_current_user),
     service: ReviewService = Depends(get_service)
 ):
-    reviews = await service.get_reviews_for_user(current_user["id"])
+    target_id = user_id or (current_user["id"] if current_user else None)
+    if not target_id:
+        raise HTTPException(status_code=401, detail="Authentication required or target user_id missing")
+        
+    reviews = await service.get_reviews_for_user(target_id, reviewee_only=reviewee_only)
     return {"status": "success", "data": reviews}
 
 @router.post("", response_model=Dict[str, Any])

@@ -26,7 +26,7 @@ interface BookingInboxTabProps {
   onRefresh: () => void;
 }
 
-type SubTab = "all" | "incoming" | "countered" | "pending" | "accepted" | "rejected";
+type SubTab = "all" | "incoming" | "pending" | "accepted" | "rejected";
 
 export function BookingInboxTab({
   role,
@@ -68,8 +68,6 @@ export function BookingInboxTab({
         } else {
           matchesTab = isIncoming && (st === "requested" || st === "received" || st === "created");
         }
-      } else if (subTab === "countered") {
-        matchesTab = st === "countered" || st === "counter_offered";
       } else if (subTab === "pending") {
         if (role !== "client" && isOutgoing && (st === "requested" || st === "received" || st === "created")) {
           matchesTab = true;
@@ -105,9 +103,6 @@ export function BookingInboxTab({
         if (role === "client") return ["requested", "received", "created"].includes(st);
         return isIncoming && ["requested", "received", "created"].includes(st);
       }).length,
-      countered: activeBookings.filter((b) =>
-        ["countered", "counter_offered"].includes(b.status.toLowerCase())
-      ).length,
       pending: activeBookings.filter((b) => {
         const st = b.status.toLowerCase();
         const isOutgoing = userId ? b.client?.id === userId : false;
@@ -176,28 +171,7 @@ export function BookingInboxTab({
             </Badge>
           </Button>
 
-          <Button
-            variant={subTab === "countered" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setSubTab("countered")}
-            className={`text-[10px] h-8 font-bold gap-1.5 rounded uppercase tracking-wider transition-all ${
-              subTab === "countered"
-                ? "bg-[#f03e65] text-white shadow hover:bg-[#d83558]"
-                : "text-gray-400 hover:text-white hover:bg-[#1a1414]"
-            }`}
-          >
-            <span>Counter Offers</span>
-            <Badge
-              variant="secondary"
-              className={`text-[9px] px-1.5 py-0 font-extrabold ${
-                subTab === "countered"
-                  ? "bg-white text-black"
-                  : "bg-[#222] text-gray-400 border border-[#333]"
-              }`}
-            >
-              {subTabCounts.countered}
-            </Badge>
-          </Button>
+
 
           <Button
             variant={subTab === "pending" ? "default" : "ghost"}

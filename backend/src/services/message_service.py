@@ -111,14 +111,40 @@ class MessageService:
         booking = await self.band_bookings.find_one(query)
         if booking:
             client_id = booking.get("customer_id") or user_id
-            band_id = booking.get("provider_owner_id")
+            # Try multiple fields to get the provider's user/owner id
+            band_id = (
+                booking.get("provider_owner_id") or
+                booking.get("provider_user_id") or
+                booking.get("owner_id")
+            )
+            # If provider_owner_id is missing, try to resolve via provider_id (artist record's created_by)
+            if not band_id and booking.get("provider_id"):
+                from src.database.base_repository import BaseRepository
+                class _ArtistRepo(BaseRepository):
+                    collection_name = "band_artists"
+                artist_rec = await _ArtistRepo().find_by_id(booking["provider_id"])
+                if artist_rec:
+                    band_id = artist_rec.get("created_by") or artist_rec.get("user_id")
             event_name = booking.get("event_name") or booking.get("title") or booking.get("provider_name") or event_name
         else:
             # Try band_venue_bookings
             booking = await self.venue_bookings.find_one(query)
             if booking:
                 client_id = booking.get("customer_id") or booking.get("client_id") or user_id
-                venue_owner_id = booking.get("provider_owner_id") or booking.get("venue_id")
+                venue_owner_id = (
+                    booking.get("provider_owner_id") or
+                    booking.get("provider_user_id") or
+                    booking.get("venue_owner_id") or
+                    booking.get("venue_id")
+                )
+                # If still missing, resolve via venue record
+                if not venue_owner_id and booking.get("provider_id"):
+                    from src.database.base_repository import BaseRepository
+                    class _VenueRepo(BaseRepository):
+                        collection_name = "band_venues"
+                    venue_rec = await _VenueRepo().find_by_id(booking["provider_id"])
+                    if venue_rec:
+                        venue_owner_id = venue_rec.get("created_by") or venue_rec.get("user_id")
                 event_name = booking.get("event_name") or booking.get("event_title") or booking.get("title") or booking.get("provider_name") or event_name
             else:
                 # Try eventhub_events

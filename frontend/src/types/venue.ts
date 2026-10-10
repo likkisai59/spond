@@ -51,6 +51,7 @@ export interface VenueDashboardData {
   pending_requests_count: number;
   monthly_revenue: number;
   total_revenue: number;
+  total_earnings?: number;
   average_rating: number;
   profile_completion: number;
   venue_views: number;

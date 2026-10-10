@@ -72,41 +72,34 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
   // Document upload state
   const [uploadingDoc, setUploadingDoc] = React.useState<Record<string, boolean>>({});
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors, isSubmitting, isDirty }
-  } = useForm<VenueProfileUpdateFormData>({
-    resolver: zodResolver(venueProfileUpdateSchema),
-    defaultValues: {
-      owner_name: profile.user.name || "",
-      mobile_number: profile.user.phone || profile.user.mobile_number || (profile as VenueResponseData & { mobile_number?: string }).mobile_number || "",
-      business_name: profile.business_name || "",
-      contact_person: profile.metadata_fields?.contact_person || "",
-      gst_number: profile.metadata_fields?.gst_number || "",
-      pan_number: profile.metadata_fields?.pan_number || "",
-      venue_name: profile.name || "",
-      venue_type: (profile.venue_type as VenueProfileUpdateFormData["venue_type"]) || "Banquet Hall",
-      description: profile.description || "",
-      established_year: profile.metadata_fields?.established_year || null,
-      indoor_outdoor: (profile.metadata_fields?.indoor_outdoor as VenueProfileUpdateFormData["indoor_outdoor"]) || "Both",
-      country: profile.country || "",
-      state: profile.state || "",
-      district: profile.metadata_fields?.district || "",
-      city_id: profile.city_id || "",
-      area: profile.metadata_fields?.area || "",
-      address: profile.address || "",
-      landmark: profile.metadata_fields?.landmark || "",
-      pincode: profile.pincode || "",
-      latitude: profile.metadata_fields?.latitude || null,
-      longitude: profile.metadata_fields?.longitude || null,
-      google_map_location: profile.google_map_location || "",
-      facilities: profile.facilities || [],
-      min_capacity: profile.min_capacity || 0,
-      max_capacity: profile.capacity || 0,
-      weekly_schedule: profile.availability_rules?.weekly_schedule || {
+  const getFormValuesFromProfile = React.useCallback(
+    (p: VenueResponseData): VenueProfileUpdateFormData => ({
+      owner_name: p.user?.name || "",
+      mobile_number: p.user?.phone || p.user?.mobile_number || (p as VenueResponseData & { mobile_number?: string }).mobile_number || "",
+      business_name: p.business_name || "",
+      contact_person: p.metadata_fields?.contact_person || "",
+      gst_number: p.metadata_fields?.gst_number || "",
+      pan_number: p.metadata_fields?.pan_number || "",
+      venue_name: p.name || "",
+      venue_type: (p.venue_type as VenueProfileUpdateFormData["venue_type"]) || "Banquet Hall",
+      description: p.description || "",
+      established_year: p.metadata_fields?.established_year || null,
+      indoor_outdoor: (p.metadata_fields?.indoor_outdoor as VenueProfileUpdateFormData["indoor_outdoor"]) || "Both",
+      country: p.country || "",
+      state: p.state || "",
+      district: p.metadata_fields?.district || "",
+      city_id: p.city_id || "",
+      area: p.metadata_fields?.area || "",
+      address: p.address || "",
+      landmark: p.metadata_fields?.landmark || "",
+      pincode: p.pincode || "",
+      latitude: p.metadata_fields?.latitude || null,
+      longitude: p.metadata_fields?.longitude || null,
+      google_map_location: p.google_map_location || "",
+      facilities: p.facilities || [],
+      min_capacity: p.min_capacity || 0,
+      max_capacity: p.capacity || 0,
+      weekly_schedule: p.availability_rules?.weekly_schedule || {
         Monday: { available: true, start: "09:00", end: "22:00" },
         Tuesday: { available: true, start: "09:00", end: "22:00" },
         Wednesday: { available: true, start: "09:00", end: "22:00" },
@@ -115,20 +108,39 @@ export function VenueProfileEdit({ profile, onSuccess }: VenueProfileEditProps) 
         Saturday: { available: true, start: "09:00", end: "23:00" },
         Sunday: { available: true, start: "09:00", end: "22:00" }
       },
-      blocked_dates: profile.availability_rules?.blocked_dates || [],
-      maintenance_days: profile.availability_rules?.maintenance_days || [],
-      public_holidays: profile.availability_rules?.public_holidays || [],
-      booking_buffer_time: profile.availability_rules?.booking_buffer_time || 0,
-      doc_pan: profile.documents?.doc_pan || "",
-      doc_gst: profile.documents?.doc_gst || "",
-      doc_ownership_proof: profile.documents?.doc_ownership_proof || "",
-      doc_government_id: profile.documents?.doc_government_id || "",
-      doc_business_license: profile.documents?.doc_business_license || "",
-      youtube_links: profile.metadata_fields?.youtube_links || []
-    } as unknown as VenueProfileUpdateFormData
+      blocked_dates: p.availability_rules?.blocked_dates || [],
+      maintenance_days: p.availability_rules?.maintenance_days || [],
+      public_holidays: p.availability_rules?.public_holidays || [],
+      booking_buffer_time: p.availability_rules?.booking_buffer_time || 0,
+      doc_pan: p.documents?.doc_pan || "",
+      doc_gst: p.documents?.doc_gst || "",
+      doc_ownership_proof: p.documents?.doc_ownership_proof || "",
+      doc_government_id: p.documents?.doc_government_id || "",
+      doc_business_license: p.documents?.doc_business_license || "",
+      youtube_links: p.metadata_fields?.youtube_links || []
+    } as unknown as VenueProfileUpdateFormData),
+    []
+  );
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    reset,
+    formState: { errors, isSubmitting, isDirty }
+  } = useForm<VenueProfileUpdateFormData>({
+    resolver: zodResolver(venueProfileUpdateSchema),
+    defaultValues: getFormValuesFromProfile(profile)
   });
 
   useUnsavedChangesWarning(isDirty);
+
+  React.useEffect(() => {
+    if (profile) {
+      reset(getFormValuesFromProfile(profile));
+    }
+  }, [profile, reset, getFormValuesFromProfile]);
 
   const watchedWeeklySchedule = watch("weekly_schedule") || {};
   const watchedYoutubeLinks = watch("youtube_links") || [];

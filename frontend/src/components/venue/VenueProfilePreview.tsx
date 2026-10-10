@@ -13,14 +13,16 @@ import {
   Users, 
   Sparkles, 
   Calendar, 
-  Video,
   FileCheck,
   CheckCircle2,
   Phone,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Star
 } from "lucide-react";
 import { formatImageUrl, maskPhoneNumber } from "@/utils/helpers";
 import { FavoriteButton } from "@/components/shared/FavoriteButton";
+import { useReviews } from "@/hooks/use-reviews";
+import { ReviewList } from "@/components/reviews/ReviewList";
 
 const FACILITY_OPTIONS = [
   { id: "parking", label: "Parking Space" },
@@ -32,6 +34,7 @@ const FACILITY_OPTIONS = [
   { id: "green_room", label: "Green Room / Makeup Space" },
   { id: "dining_hall", label: "Dining Hall" },
   { id: "kitchen", label: "Kitchen Space" },
+  { id: "rooms", label: "Guest Rooms" },
   { id: "rest_rooms", label: "Rest Rooms" },
   { id: "wheelchair_access", label: "Wheelchair Access" },
   { id: "lift", label: "Passenger Lift" },
@@ -49,10 +52,12 @@ interface VenueProfilePreviewProps {
 }
 
 export function VenueProfilePreview({ profile, isMaskedPhone = false }: VenueProfilePreviewProps) {
-  const weeklySchedule = profile.availability_rules?.weekly_schedule || {};
-  const blockedDates = profile.availability_rules?.blocked_dates || [];
-  const maintenanceDays = profile.availability_rules?.maintenance_days || [];
-  const youtubeLinks = profile.metadata_fields?.youtube_links || [];
+  const weeklySchedule = profile.availability_rules?.weekly_schedule || (profile as any).weekly_schedule || {};
+  const blockedDates = profile.availability_rules?.blocked_dates || (profile as any).blocked_dates || [];
+  const maintenanceDays = profile.availability_rules?.maintenance_days || (profile as any).maintenance_days || [];
+
+  const venueUserId = profile.user_id || (profile as any).user?._id || (profile as any).user?.id || (profile as any).created_by;
+  const { reviews, loading: reviewsLoading } = useReviews(venueUserId, true);
 
   return (
     <div className="space-y-6">
@@ -97,7 +102,7 @@ export function VenueProfilePreview({ profile, isMaskedPhone = false }: VenuePro
         <CardContent className="p-6 relative pt-0 flex flex-col sm:flex-row items-center sm:items-end gap-5 -mt-16 sm:-mt-20">
           <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl border-4 border-bg-card overflow-hidden bg-accent/90 shadow-lg shrink-0 flex items-center justify-center relative">
             {profile.metadata_fields?.logo ? (
-              <img src={formatImageUrl(profile.metadata_fields.logo)} alt="Venue Logo" className="w-full h-full object-cover" />
+              <img src={formatImageUrl(profile.metadata_fields.logo as string)} alt="Venue Logo" className="w-full h-full object-cover" />
             ) : (
               <Building2 className="h-12 w-12 text-primary" />
             )}
@@ -232,49 +237,19 @@ export function VenueProfilePreview({ profile, isMaskedPhone = false }: VenuePro
                     const imgUrl = typeof item === "string" ? item : item.url;
                     if (!imgUrl) return null;
                     return (
-                      <div key={idx} className="relative aspect-square rounded-xl overflow-hidden group border border-border/50">
+                      <a href={formatImageUrl(imgUrl)} target="_blank" rel="noopener noreferrer" key={idx} className="relative aspect-square rounded-xl overflow-hidden group border border-border/50 block">
                         <img 
                           src={formatImageUrl(imgUrl)} 
                           alt={`Gallery image ${idx + 1}`} 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                         />
-                      </div>
+                      </a>
                     );
                   })}
                 </div>
               </CardContent>
             </Card>
           )}
-
-          {/* Youtube videos list */}
-          {youtubeLinks.length > 0 && (
-            <Card className="bg-card/45 backdrop-blur-md border border-border rounded-2xl shadow-xl">
-              <CardContent className="p-5 space-y-3">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
-                  <Video className="h-4 w-4 text-red-500" />
-                  YouTube Walkthrough Media
-                </h3>
-                <div className="space-y-3 pt-2">
-                  {youtubeLinks.map((url: string, idx: number) => {
-                    const videoId = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/)?.[1];
-                    if (!videoId) return null;
-                    return (
-                      <div key={idx} className="relative aspect-video rounded-xl overflow-hidden border border-border/50 shadow-sm">
-                        <iframe 
-                          src={`https://www.youtube.com/embed/${videoId}`} 
-                          title={`YouTube walkthrough ${idx + 1}`} 
-                          className="w-full h-full absolute top-0 left-0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                          allowFullScreen
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
         </div>
 
         {/* Right Column: Location, Capacity & Contact info */}
@@ -289,8 +264,8 @@ export function VenueProfilePreview({ profile, isMaskedPhone = false }: VenuePro
               </h3>
               <div className="space-y-2.5 text-xs text-muted-foreground">
                 <p className="leading-relaxed font-medium text-foreground">{profile.address}</p>
-                {profile.metadata_fields?.landmark && <p>Landmark: {profile.metadata_fields.landmark}</p>}
-                <p>City / Area: {profile.city?.name || "N/A"}, {profile.metadata_fields?.area || "N/A"}</p>
+                {!!profile.metadata_fields?.landmark && <p>Landmark: {profile.metadata_fields.landmark as string}</p>}
+                <p>City / Area: {profile.city?.name || "N/A"}, {(profile.metadata_fields?.area as string) || "N/A"}</p>
                 <p>State / Pin: {profile.state || "N/A"}, {profile.pincode || "N/A"}</p>
                 {profile.google_map_location && (
                   <a 
@@ -325,7 +300,7 @@ export function VenueProfilePreview({ profile, isMaskedPhone = false }: VenuePro
                 </div>
                 <div className="flex justify-between items-center text-xs pt-1">
                   <span className="text-muted-foreground">Buffer time</span>
-                  <span className="font-black text-foreground">{profile.availability_rules?.booking_buffer_time || 0} Hours</span>
+                  <span className="font-black text-foreground">{(profile.availability_rules?.booking_buffer_time as number) || 0} Hours</span>
                 </div>
               </div>
             </CardContent>
@@ -348,6 +323,11 @@ export function VenueProfilePreview({ profile, isMaskedPhone = false }: VenuePro
                     </Badge>
                   );
                 })}
+                {profile.facilities?.filter((f: string) => f.startsWith("Custom:")).map((fac: string, idx: number) => (
+                  <Badge key={`custom-${idx}`} variant="outline" className="text-[10px] py-1 font-semibold border-primary/50 text-primary">
+                    {fac.replace("Custom:", "")}
+                  </Badge>
+                ))}
                 {(!profile.facilities || profile.facilities.length === 0) && (
                   <span className="text-xs text-muted-foreground italic">No facilities configured</span>
                 )}
@@ -368,8 +348,8 @@ export function VenueProfilePreview({ profile, isMaskedPhone = false }: VenuePro
                   <span className="font-bold text-foreground">{profile.user?.name || "Unknown Representative"}</span>
                 </div>
                 {profile.business_name && <p className="pl-6">Business Name: {profile.business_name}</p>}
-                {profile.metadata_fields?.contact_person && (
-                  <p className="pl-6">Representative: {profile.metadata_fields.contact_person}</p>
+                {!!profile.metadata_fields?.contact_person && (
+                  <p className="pl-6">Representative: {profile.metadata_fields.contact_person as string}</p>
                 )}
                 <div className="flex items-center gap-2 pl-6 pt-1">
                   <Phone className="h-3.5 w-3.5 text-muted-foreground" />
@@ -382,6 +362,29 @@ export function VenueProfilePreview({ profile, isMaskedPhone = false }: VenuePro
         </div>
 
       </div>
+
+      {/* Reviews Section */}
+      <Card className="bg-card/45 backdrop-blur-md border border-border rounded-2xl shadow-xl mt-6">
+        <CardContent className="p-6 sm:p-8 space-y-6">
+          <div className="flex items-center gap-3 border-b border-border/50 pb-4">
+            <div className="p-2.5 bg-yellow-500/10 rounded-xl">
+              <Star className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-foreground">Client Reviews & Feedback</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Read what others have said about this venue&apos;s services.</p>
+            </div>
+          </div>
+          <div className="pt-2">
+            <ReviewList 
+              reviews={reviews} 
+              loading={reviewsLoading} 
+              emptyTitle="No reviews yet"
+              emptyMessage="This venue hasn't received any reviews yet. Be the first to leave a review after your event!"
+            />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

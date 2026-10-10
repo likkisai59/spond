@@ -2,7 +2,7 @@
 
 import { BookingTimelineEvent } from "@/types/booking";
 import { format } from "date-fns";
-import { AlertCircle, CheckCircle2, Clock, MessageSquare } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock } from "lucide-react";
 
 interface BookingTimelineProps {
   events: BookingTimelineEvent[];
@@ -13,8 +13,6 @@ export function BookingTimeline({ events }: BookingTimelineProps) {
     switch (type.toLowerCase()) {
       case "request_created":
         return <CheckCircle2 className="h-5 w-5 text-primary" />;
-      case "negotiation":
-        return <MessageSquare className="h-5 w-5 text-blue-400" />;
       case "accepted":
       case "confirmed":
         return <CheckCircle2 className="h-5 w-5 text-emerald-400" />;

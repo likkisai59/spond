@@ -27,7 +27,6 @@ import { fetchPaymentsThunk } from "@/store/sports/payments-slice";
 import {
   selectActivePolls,
   selectPendingPayments,
-  selectRecentActivity,
   selectUpcomingEvents,
   selectAllGroups,
   selectSportsStats,
@@ -39,7 +38,6 @@ import {
   MOCK_PAYMENT_TREND,
 } from "@/data";
 import {
-  ActivityFeed,
   AttendanceChart,
   EventCard,
   PaymentCard,
@@ -123,7 +121,6 @@ export function SportsDashboardPage() {
 
   const groups = useAppSelector(selectAllGroups);
   const upcomingEvents = useAppSelector(selectUpcomingEvents);
-  const recentActivity = useAppSelector(selectRecentActivity);
   const activePolls = useAppSelector(selectActivePolls);
   const pendingPayments = useAppSelector(selectPendingPayments);
   const storeStats = useAppSelector(selectSportsStats);
@@ -221,8 +218,8 @@ export function SportsDashboardPage() {
         </Card>
       </div>
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-3">
-        <section className="space-y-4 xl:col-span-2">
+      <div className="mt-8">
+        <section className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-extrabold tracking-tight">
               Upcoming events
@@ -267,8 +264,6 @@ export function SportsDashboardPage() {
             />
           )}
         </section>
-
-        <ActivityFeed activities={recentActivity} max={6} />
       </div>
 
       <div className="mt-8 grid gap-6 xl:grid-cols-3">

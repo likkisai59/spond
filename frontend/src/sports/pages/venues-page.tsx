@@ -14,14 +14,12 @@ import { ROUTES } from "@/constants";
 import { cn } from "@/utils/cn";
 import { INDIA_STATES_DATA } from "@/utils/indiaStates";
 
-const SURFACE_FILTERS = ["All", "Turf", "Grass", "Indoor"] as const;
 const CITIES = Array.from(new Set(INDIA_STATES_DATA.states.flatMap(s => s.districts))).sort();
 
 export function VenuesPage() {
   const [venues, setVenues] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [surface, setSurface] = useState<string>("All");
   const debouncedSearch = useDebounce(search, 250);
 
   useEffect(() => {
@@ -34,14 +32,13 @@ export function VenuesPage() {
   const filteredVenues = useMemo(() => {
     const query = debouncedSearch.trim().toLowerCase();
     return venues.filter((venue) => {
-      const matchesSurface = surface === "All" || venue.surface === surface || venue.sport_type?.includes(surface) || (!venue.surface && !venue.sport_type);
       const matchesQuery =
         query.length === 0 ||
         venue.name?.toLowerCase().includes(query) ||
         venue.city?.toLowerCase().includes(query);
-      return matchesSurface && matchesQuery;
+      return matchesQuery;
     });
-  }, [venues, debouncedSearch, surface]);
+  }, [venues, debouncedSearch]);
 
   return (
     <PageContainer as="main">
@@ -75,28 +72,6 @@ export function VenuesPage() {
              {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </datalist>
         </div>
-        <div
-          className="flex gap-2 overflow-x-auto pb-1 lg:pb-0"
-          role="group"
-          aria-label="Filter by surface"
-        >
-          {SURFACE_FILTERS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setSurface(option)}
-              aria-pressed={surface === option}
-              className={cn(
-                "shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors",
-                surface === option
-                  ? "border-transparent bg-primary text-primary-foreground"
-                  : "border-input text-muted-foreground hover:border-accent/40 hover:text-foreground"
-              )}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
         <p className="text-xs font-semibold text-muted-foreground lg:ml-auto">
           {filteredVenues.length} of {venues.length} venues
         </p>
@@ -117,7 +92,7 @@ export function VenuesPage() {
             description="Try a different name, city or surface."
           />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {filteredVenues.map((venue) => (
               <VenueCard key={venue.id} venue={venue} />
             ))}

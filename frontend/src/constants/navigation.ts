@@ -37,11 +37,6 @@ export const SPORTS_NAV: NavSection[] = [
         href: ROUTES.SPORTS_DASHBOARD,
         icon: LayoutDashboard,
       },
-      {
-        label: "Statistics",
-        href: ROUTES.SPORTS_STATISTICS,
-        icon: BarChart3,
-      },
     ],
   },
   {

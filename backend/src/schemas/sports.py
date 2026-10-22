@@ -39,6 +39,7 @@ class GroupResponse(CamelModel):
     updated_at: datetime
     member_count: int = 0
     members: list[GroupMemberResponse] = []
+    role_permissions: dict | None = None
 
 class GroupCreateRequest(CamelModel):
     name: str = Field(min_length=2, max_length=100)
@@ -63,6 +64,9 @@ class GroupUpdateRequest(CamelModel):
     logo: str | None = None
     logo_url: str | None = None
     cover_image: str | None = None
+
+class UpdateGroupPermissionsRequest(CamelModel):
+    role_permissions: dict
 
 # --- Members ---
 class AddMemberRequest(CamelModel):
@@ -292,6 +296,4 @@ class PollCreateRequest(CamelModel):
 
 class PollVoteRequest(CamelModel):
     option_id: str
-
-
 

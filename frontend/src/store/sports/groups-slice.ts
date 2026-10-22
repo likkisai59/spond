@@ -6,6 +6,7 @@ import {
 import type {
   GroupCategory,
   GroupMember,
+  GroupRolePermissions,
   GroupVisibility,
   MemberRole,
   SportType,
@@ -74,6 +75,37 @@ export const deleteGroupThunk = createAsyncThunk(
   async (groupId: string) => {
     await groupsService.delete(groupId);
     return groupId;
+  }
+);
+
+export const updateMemberRoleThunk = createAsyncThunk(
+  "sports/groups/updateMemberRole",
+  async ({
+    groupId,
+    memberId,
+    role,
+  }: {
+    groupId: string;
+    memberId: string;
+    role: MemberRole;
+  }) => {
+    await groupsService.updateMemberRole(groupId, memberId, role);
+    return { groupId, memberId, role };
+  }
+);
+
+export const updateGroupPermissionsThunk = createAsyncThunk(
+  "sports/groups/updatePermissions",
+  async ({
+    groupId,
+    permissions,
+  }: {
+    groupId: string;
+    permissions: GroupRolePermissions;
+  }) => {
+    const response = await groupsService.updatePermissions(groupId, permissions);
+    const data = response.data as any;
+    return { groupId, group: data?.data || data, permissions };
   }
 );
 
@@ -154,6 +186,30 @@ const groupsSlice = createSlice({
       })
       .addCase(deleteGroupThunk.fulfilled, (state, action) => {
         state.groups = state.groups.filter((g) => g.id !== action.payload);
+      })
+      .addCase(updateMemberRoleThunk.fulfilled, (state, action) => {
+        const { groupId, memberId, role } = action.payload;
+        const group = state.groups.find((g) => g.id === groupId);
+        if (group) {
+          const member = group.members.find((m) => m.id === memberId);
+          if (member) {
+            member.role = role;
+          }
+          group.updatedAt = new Date().toISOString();
+        }
+      })
+      .addCase(updateGroupPermissionsThunk.fulfilled, (state, action) => {
+        const { groupId, group: updatedGroup, permissions } = action.payload;
+        const group = state.groups.find((g) => g.id === groupId);
+        if (group) {
+          group.rolePermissions = permissions;
+          group.role_permissions = permissions;
+          if (updatedGroup) {
+            if (updatedGroup.rolePermissions) group.rolePermissions = updatedGroup.rolePermissions;
+            if (updatedGroup.role_permissions) group.role_permissions = updatedGroup.role_permissions;
+          }
+          group.updatedAt = new Date().toISOString();
+        }
       });
   },
 });

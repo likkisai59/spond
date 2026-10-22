@@ -15,7 +15,7 @@ export default function SportsRouteLayout({
 }) {
   return (
   <Suspense fallback={null}>
-    <ProtectedRoute allowedRoles={["user", "admin", "member", "sports_venue_owner"]}>
+    <ProtectedRoute allowedRoles={["user", "admin", "member", "sports_venue_owner", "player", "client"]}>
       <SportsDashboardLayout>{children}</SportsDashboardLayout>
     </ProtectedRoute>
   </Suspense>

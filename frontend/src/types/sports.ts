@@ -43,11 +43,28 @@ export type MemberStatus = (typeof MEMBER_STATUSES)[number];
 
 export interface GroupMember {
   id: string;
+  userId?: string;
+  user_id?: string;
   name: string;
   email: string;
   role: MemberRole;
   status: MemberStatus;
   joinedAt: string;
+}
+
+export interface FeatureToggles {
+  events: boolean;
+  polls: boolean;
+  payments: boolean;
+  files: boolean;
+  chat: boolean;
+}
+
+export interface GroupRolePermissions {
+  member: FeatureToggles;
+  coach: FeatureToggles;
+  treasurer: FeatureToggles;
+  admin: FeatureToggles;
 }
 
 export interface SportsGroup extends BaseEntity {
@@ -59,10 +76,14 @@ export interface SportsGroup extends BaseEntity {
   members: GroupMember[];
   sportType?: SportType;
   visibility?: GroupVisibility;
+  createdBy?: string;
+  created_by?: string;
   logo?: string;
   logoUrl?: string;
   coverImage?: string;
   cover_image?: string;
+  role_permissions?: GroupRolePermissions;
+  rolePermissions?: GroupRolePermissions;
 }
 
 export const EVENT_TYPES = [

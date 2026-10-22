@@ -12,7 +12,7 @@ async def get_current_user(user: dict = Depends(_get_current_user)) -> dict:
 
 from src.services.sports_service import SportsService
 from src.schemas.sports import (
-    GroupCreateRequest, GroupUpdateRequest,
+    GroupCreateRequest, GroupUpdateRequest, UpdateGroupPermissionsRequest,
     AddMemberRequest, UpdateMemberRoleRequest,
     EventCreateRequest, EventUpdateRequest,
     RsvpRequest, MarkAttendanceRequest,
@@ -45,6 +45,11 @@ async def get_group(id: str, _: dict = Depends(get_current_user)) -> dict:
 @router.put("/groups/{id}")
 async def update_group(id: str, data: GroupUpdateRequest, _: dict = Depends(get_current_user)) -> dict:
     group = await service.update_group(id, data)
+    return {"status": "success", "data": group}
+
+@router.patch("/groups/{id}/permissions")
+async def update_group_permissions(id: str, data: UpdateGroupPermissionsRequest, user: dict = Depends(get_current_user)) -> dict:
+    group = await service.update_group_permissions(id, data.role_permissions, user)
     return {"status": "success", "data": group}
 
 @router.delete("/groups/{id}")
@@ -116,6 +121,16 @@ async def respond_to_invite(token: str, action: str = "accept", format: str = No
 @router.post("/groups/invite/respond")
 async def respond_to_invite_post(token: str, action: str = "accept") -> dict:
     result = await service.respond_to_invitation(token, action)
+    return {"status": "success", "data": result}
+
+@router.get("/invitations/{token}")
+async def get_invitation_preview(token: str) -> dict:
+    result = await service.get_invitation_preview(token)
+    return {"status": "success", "data": result}
+
+@router.post("/invitations/{token}/accept")
+async def accept_invitation(token: str, user: dict = Depends(get_current_user)) -> dict:
+    result = await service.accept_invitation(token, user)
     return {"status": "success", "data": result}
 
 @router.post("/groups/{id}/members")

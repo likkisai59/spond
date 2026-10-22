@@ -2,6 +2,7 @@ import json
 import uuid
 import asyncio
 import logging
+from datetime import datetime, timezone, timedelta
 from src.database.redis import RedisClient
 from src.database.mongo import utc_now
 from src.repositories.sports import (
@@ -182,6 +183,26 @@ class SportsService:
         await self.members.collection.delete_many({"group_id": group_id})
         await self.events.collection.delete_many({"group_id": group_id})
 
+    async def update_group_permissions(self, group_id: str, permissions: dict, user: dict = None) -> dict:
+        group = await self.groups.find_by_id(group_id)
+        if not group:
+            raise NotFoundError("Group not found")
+
+        try:
+            redis = RedisClient.get_client()
+            keys_to_del = ["analytics:sports:dashboard:overview"]
+            if user and "id" in user:
+                keys_to_del.append(f"analytics:sports:dashboard:overview:{user['id']}")
+            await redis.delete(*keys_to_del)
+        except Exception:
+            pass
+
+        await self.groups.update_by_id(group_id, {
+            "role_permissions": permissions,
+            "updated_at": utc_now()
+        })
+        return await self.get_group(group_id)
+
     async def add_member(self, group_id: str, data: AddMemberRequest, current_user: dict = None) -> dict:
         actual_user_id = data.user_id
         
@@ -208,6 +229,7 @@ class SportsService:
             raise AppException(400, "User is already a member")
 
         invite_token = uuid.uuid4().hex
+        expires_at = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
             
         await self.members.insert({
             "group_id": group_id,
@@ -217,6 +239,8 @@ class SportsService:
             "role": data.role,
             "status": "Pending",
             "invite_token": invite_token,
+            "expires_at": expires_at,
+            "inviter_id": current_user.get("id") if current_user else None,
             "joined_at": utc_now()
         })
 
@@ -231,6 +255,8 @@ class SportsService:
             pass
 
         group = await self.get_group(group_id)
+        if isinstance(group, dict):
+            group["latest_invite_token"] = invite_token
 
         admin_name = "Club Owner"
         if current_user:
@@ -296,6 +322,116 @@ class SportsService:
         else:
             raise AppException(400, "Invalid action. Must be 'accept' or 'reject'")
 
+    async def get_invitation_preview(self, token: str) -> dict:
+        if not token:
+            raise AppException(400, "Invitation token is required")
+
+        member = await self.members.find_one({"invite_token": token})
+        if not member:
+            raise NotFoundError("Invalid invitation link")
+
+        group = await self.groups.find_by_id(member["group_id"])
+        if not group:
+            raise NotFoundError("Group no longer exists")
+
+        is_expired = False
+        expires_at = member.get("expires_at")
+        if expires_at:
+            try:
+                exp_dt = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+                if exp_dt < datetime.now(timezone.utc):
+                    is_expired = True
+            except Exception:
+                pass
+
+        inviter_name = "Club Coach"
+        if member.get("inviter_id"):
+            inviter = await self.users.find_by_id(member["inviter_id"])
+            if inviter:
+                inviter_name = inviter.get("full_name") or inviter.get("name") or "Club Coach"
+
+        group_id_str = str(group.get("_id") or group.get("id"))
+        return {
+            "token": token,
+            "status": member.get("status", "Pending"),
+            "role": member.get("role", "Member"),
+            "is_expired": is_expired,
+            "invited_email": member.get("email"),
+            "member_name": member.get("name"),
+            "inviter_name": inviter_name,
+            "group": {
+                "id": group_id_str,
+                "name": group.get("name", "Sports Group"),
+                "logo": group.get("logo") or group.get("logoUrl") or group.get("logo_url"),
+                "cover_image": group.get("coverImage") or group.get("cover_image"),
+                "sport_type": group.get("sportType") or group.get("sport_type") or "Sports",
+                "category": group.get("category", "General"),
+                "location": group.get("location", ""),
+                "description": group.get("description", ""),
+                "member_count": group.get("memberCount") or group.get("member_count") or 1,
+            }
+        }
+
+    async def accept_invitation(self, token: str, current_user: dict) -> dict:
+        if not token:
+            raise AppException(400, "Invitation token is required")
+
+        member = await self.members.find_one({"invite_token": token})
+        if not member:
+            raise NotFoundError("Invalid invitation link")
+
+        group_id = member["group_id"]
+        group = await self.groups.find_by_id(group_id)
+        if not group:
+            raise NotFoundError("Group no longer exists")
+
+        expires_at = member.get("expires_at")
+        if expires_at:
+            try:
+                exp_dt = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+                if exp_dt < datetime.now(timezone.utc):
+                    raise AppException(400, "This invitation link has expired")
+            except AppException:
+                raise
+            except Exception:
+                pass
+
+        user_id = current_user["id"]
+
+        existing = await self.members.find_one({"group_id": group_id, "user_id": user_id, "status": "Confirmed"})
+        if existing:
+            return {
+                "status": "success",
+                "action": "already_member",
+                "group_id": group_id,
+                "group_name": group.get("name", "Sports Group"),
+                "message": "You are already a member of this group"
+            }
+
+        await self.members.collection.update_one(
+            {"invite_token": token},
+            {"$set": {
+                "user_id": user_id,
+                "status": "Confirmed",
+                "name": current_user.get("full_name") or member.get("name"),
+                "joined_at": utc_now()
+            }}
+        )
+
+        try:
+            redis = RedisClient.get_client()
+            await redis.delete("analytics:sports:dashboard:overview", f"analytics:sports:dashboard:overview:{user_id}")
+        except Exception:
+            pass
+
+        return {
+            "status": "success",
+            "action": "accepted",
+            "group_id": group_id,
+            "group_name": group.get("name", "Sports Group"),
+            "member_name": current_user.get("full_name") or member.get("name")
+        }
+
     async def remove_member(self, group_id: str, member_id: str) -> None:
         from src.database.base_repository import to_object_id
         or_conditions: list[dict] = [{"user_id": member_id}]
@@ -308,11 +444,18 @@ class SportsService:
             raise NotFoundError("Member not found in group")
 
     async def update_member_role(self, group_id: str, member_id: str, data: UpdateMemberRoleRequest) -> None:
+        from src.database.base_repository import to_object_id
+        or_conditions: list[dict] = [{"user_id": member_id}]
+        try:
+            or_conditions.append({"_id": to_object_id(member_id)})
+        except Exception:
+            pass
+
         updated = await self.members.collection.update_one(
-            {"group_id": group_id, "user_id": member_id},
-            {"$set": {"role": data.role}}
+            {"group_id": group_id, "$or": or_conditions},
+            {"$set": {"role": data.role, "updated_at": utc_now().isoformat()}}
         )
-        if updated.modified_count == 0:
+        if updated.matched_count == 0:
             raise NotFoundError("Member not found in group")
 
     # Events

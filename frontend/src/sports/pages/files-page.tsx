@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { EmptyCard } from "@/components/cards";
 import { Input } from "@/components/ui/input";
-import { useDebounce } from "@/hooks";
+import { useAuth, useDebounce } from "@/hooks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { filesAdded, fileRemoved, fetchFilesThunk } from "@/store/sports/files-slice";
@@ -52,10 +52,30 @@ function guessFileType(fileName: string): FileType {
 
 export function FilesPage() {
   const dispatch = useAppDispatch();
+  const { user: currentUser } = useAuth();
   const files = useAppSelector(selectAllFiles);
   const recentFiles = useAppSelector(selectRecentFiles);
   const groups = useAppSelector(selectAllGroups);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const isClubAdmin = useMemo(() => {
+    if (!currentUser) return false;
+    if (currentUser.role === "admin" || currentUser.role === "super_admin") return true;
+    const currentUserId = currentUser.id || (currentUser as any)._id;
+    const currentUserEmail = currentUser.email?.toLowerCase().trim();
+
+    return groups.some((g) => {
+      if (g.createdBy === currentUserId || g.created_by === currentUserId) return true;
+      const m = (g.members ?? []).find((member: any) => {
+        if (member.userId && member.userId === currentUserId) return true;
+        if (member.user_id && member.user_id === currentUserId) return true;
+        if (member.id && member.id === currentUserId) return true;
+        if (member.email && currentUserEmail && member.email.toLowerCase().trim() === currentUserEmail) return true;
+        return false;
+      });
+      return m && ["Owner", "Admin"].includes(m.role);
+    });
+  }, [currentUser, groups]);
 
   const [selectedGroupId, setSelectedGroupId] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -197,19 +217,21 @@ export function FilesPage() {
         tabIndex={-1}
       />
 
-      <button
-        type="button"
-        onClick={handleUploadClick}
-        className="mt-6 flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-input bg-card px-4 py-10 transition-all hover:border-accent/50 hover:bg-brand-gradient-soft sm:py-12 animate-fade-in-up"
-      >
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-gradient shadow-elevated">
-          <UploadCloud className="h-7 w-7 text-white" />
-        </span>
-        <span className="text-sm font-bold">Upload files</span>
-        <span className="text-xs text-muted-foreground">
-          Click to browse — images, documents, spreadsheets and videos
-        </span>
-      </button>
+      {isClubAdmin && (
+        <button
+          type="button"
+          onClick={handleUploadClick}
+          className="mt-6 flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-input bg-card px-4 py-10 transition-all hover:border-accent/50 hover:bg-brand-gradient-soft sm:py-12 animate-fade-in-up"
+        >
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-gradient shadow-elevated">
+            <UploadCloud className="h-7 w-7 text-white" />
+          </span>
+          <span className="text-sm font-bold">Upload files</span>
+          <span className="text-xs text-muted-foreground">
+            Click to browse — images, documents, spreadsheets and videos
+          </span>
+        </button>
+      )}
 
       {fileError && (
         <p className="mt-2 text-center text-xs sm:text-sm font-semibold text-destructive animate-fade-in">
@@ -303,10 +325,12 @@ export function FilesPage() {
             title="No files found"
             description="Upload files or adjust the search and folder filters."
             action={
-              <Button variant="accent" onClick={handleUploadClick}>
-                <UploadCloud />
-                Upload files
-              </Button>
+              isClubAdmin ? (
+                <Button variant="accent" onClick={handleUploadClick}>
+                  <UploadCloud />
+                  Upload files
+                </Button>
+              ) : undefined
             }
            />
          )}
@@ -319,7 +343,7 @@ export function FilesPage() {
           if (!open) setPreviewFile(null);
         }}
         onDownload={handleDownload}
-        onDelete={handleDeleteRequest}
+        onDelete={isClubAdmin ? handleDeleteRequest : undefined}
       />
 
       <FileDetailsDrawer
@@ -329,7 +353,7 @@ export function FilesPage() {
           if (!open) setDetailsFile(null);
         }}
         onDownload={handleDownload}
-        onDelete={handleDeleteRequest}
+        onDelete={isClubAdmin ? handleDeleteRequest : undefined}
       />
 
       <ConfirmationModal

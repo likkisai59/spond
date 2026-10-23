@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useDebounce } from "@/hooks";
+import { useAuth, useDebounce } from "@/hooks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchPaymentsThunk } from "@/store/sports/payments-slice";
 import { fetchGroupsThunk } from "@/store/sports/groups-slice";
@@ -27,6 +27,7 @@ import { ROUTES } from "@/constants";
 
 export function PaymentsPage() {
   const dispatch = useAppDispatch();
+  const { user: currentUser } = useAuth();
   const payments = useAppSelector(selectAllPayments);
   const groups = useAppSelector(selectAllGroups);
   const [search, setSearch] = useState("");
@@ -44,6 +45,26 @@ export function PaymentsPage() {
       dispatch(fetchGroupsThunk());
     }
   }, [dispatch, paymentsStatus, groupsStatus]);
+
+  const isClubAdmin = useMemo(() => {
+    if (!currentUser) return false;
+    if (currentUser.role === "player" || currentUser.role === "member") return false;
+    if (currentUser.role === "admin" || currentUser.role === "super_admin" || currentUser.role === "sports_admin") return true;
+    const currentUserId = currentUser.id || (currentUser as any)._id;
+    const currentUserEmail = currentUser.email?.toLowerCase().trim();
+
+    return groups.some((g) => {
+      if (g.createdBy === currentUserId || g.created_by === currentUserId) return true;
+      const m = (g.members ?? []).find((member: any) => {
+        if (member.userId && member.userId === currentUserId) return true;
+        if (member.user_id && member.user_id === currentUserId) return true;
+        if (member.id && member.id === currentUserId) return true;
+        if (member.email && currentUserEmail && member.email.toLowerCase().trim() === currentUserEmail) return true;
+        return false;
+      });
+      return m && ["Owner", "Admin", "Treasurer"].includes(m.role);
+    });
+  }, [currentUser, groups]);
 
   const groupNames = useMemo(
     () => Object.fromEntries(groups.map((g) => [g.id, g.name])),
@@ -92,12 +113,14 @@ export function PaymentsPage() {
         title="Payments"
         description="Payment requests, collection progress and outstanding balances."
         actions={
-          <Button asChild variant="accent">
-            <Link href={ROUTES.SPORTS_PAYMENTS_CREATE}>
-              <Plus />
-              Request payment
-            </Link>
-          </Button>
+          isClubAdmin ? (
+            <Button asChild variant="accent">
+              <Link href={ROUTES.SPORTS_PAYMENTS_CREATE}>
+                <Plus />
+                Request payment
+              </Link>
+            </Button>
+          ) : undefined
         }
       />
 
@@ -156,11 +179,13 @@ export function PaymentsPage() {
             title="No payment requests"
             description="Create a payment request to start collecting membership or event fees."
             action={
-              <Button asChild variant="accent">
-                <Link href={ROUTES.SPORTS_PAYMENTS_CREATE}>
-                  Request payment
-                </Link>
-              </Button>
+              isClubAdmin ? (
+                <Button asChild variant="accent">
+                  <Link href={ROUTES.SPORTS_PAYMENTS_CREATE}>
+                    Request payment
+                  </Link>
+                </Button>
+              ) : undefined
             }
           />
         ) : filteredPayments.length === 0 ? (

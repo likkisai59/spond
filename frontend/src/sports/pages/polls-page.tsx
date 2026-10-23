@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Plus, Vote } from "lucide-react";
+import { useAuth } from "@/hooks";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
@@ -20,11 +21,26 @@ import { PollCard } from "../components/poll-card";
 import { ROUTES } from "@/constants";
 
 export function PollsPage() {
+  const { user: currentUser } = useAuth();
   const dispatch = useAppDispatch();
   const activePolls = useAppSelector(selectActivePolls);
   const closedPolls = useAppSelector(selectClosedPolls);
   const groups = useAppSelector(selectAllGroups);
   const groupNames = Object.fromEntries(groups.map((g) => [g.id, g.name]));
+
+  const isClubAdmin = useMemo(() => {
+    if (!currentUser) return false;
+    if (currentUser.role === "player" || currentUser.role === "member") return false;
+    if (currentUser.role === "admin" || currentUser.role === "super_admin" || currentUser.role === "sports_admin") return true;
+    const currentUserId = currentUser.id || (currentUser as any)._id;
+    return groups.some((g) => {
+      if (g.createdBy === currentUserId || g.created_by === currentUserId) return true;
+      const m = (g.members ?? []).find((member: any) =>
+        member.userId === currentUserId || member.user_id === currentUserId || member.id === currentUserId
+      );
+      return m && ["Owner", "Admin"].includes(m.role);
+    });
+  }, [currentUser, groups]);
 
   useEffect(() => {
     dispatch(fetchPollsThunk());
@@ -45,12 +61,14 @@ export function PollsPage() {
         title="Polls"
         description="Gather votes from members on venues, kits, tour destinations and more."
         actions={
-          <Button asChild variant="accent">
-            <Link href={ROUTES.SPORTS_POLLS_CREATE}>
-              <Plus />
-              Create poll
-            </Link>
-          </Button>
+          isClubAdmin ? (
+            <Button asChild variant="accent">
+              <Link href={ROUTES.SPORTS_POLLS_CREATE}>
+                <Plus />
+                Create poll
+              </Link>
+            </Button>
+          ) : undefined
         }
       />
 
@@ -77,9 +95,11 @@ export function PollsPage() {
               title="No active polls"
               description="Create a poll and members can vote instantly."
               action={
-                <Button asChild variant="accent">
-                  <Link href={ROUTES.SPORTS_POLLS_CREATE}>Create poll</Link>
-                </Button>
+                isClubAdmin ? (
+                  <Button asChild variant="accent">
+                    <Link href={ROUTES.SPORTS_POLLS_CREATE}>Create poll</Link>
+                  </Button>
+                ) : undefined
               }
             />
           )}

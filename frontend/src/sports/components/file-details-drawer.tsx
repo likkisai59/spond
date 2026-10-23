@@ -22,7 +22,7 @@ export interface FileDetailsDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDownload: (file: SportsFile) => void;
-  onDelete: (file: SportsFile) => void;
+  onDelete?: (file: SportsFile) => void;
 }
 
 export function FileDetailsDrawer({
@@ -95,14 +95,16 @@ export function FileDetailsDrawer({
               Open full page
             </Link>
           </Button>
-          <Button
-            variant="outline"
-            className="rounded-full"
-            onClick={() => onDelete(file)}
-          >
-            <Trash2 />
-            Delete
-          </Button>
+          {onDelete && (
+            <Button
+              variant="outline"
+              className="rounded-full"
+              onClick={() => onDelete(file)}
+            >
+              <Trash2 />
+              Delete
+            </Button>
+          )}
           <Button
             variant="accent"
             className="rounded-full"

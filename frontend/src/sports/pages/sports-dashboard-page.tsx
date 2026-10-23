@@ -40,6 +40,7 @@ import {
 import {
   AttendanceChart,
   EventCard,
+  MemberDashboardView,
   PaymentCard,
   PaymentTrendChart,
   PollCard,
@@ -138,6 +139,8 @@ export function SportsDashboardPage() {
   const dashboardPolls = activePolls.slice(0, 2);
   const dueAmount = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
 
+  const isMember = user?.role === "player" || user?.role === "member";
+
   if (user?.role === "venue_owner" || user?.role === "sports_venue_owner") {
     return null;
   }
@@ -154,26 +157,52 @@ export function SportsDashboardPage() {
       />
 
       <PageHeader
-        title={`Welcome back, ${mounted && user?.fullName ? user.fullName.split(" ")[0] : "Coach"}`}
-        description="Here's what's happening across your groups today."
+        title={`Welcome back, ${mounted && user?.fullName ? user.fullName.split(" ")[0] : isMember ? "Player" : "Coach"}`}
+        description={
+          isMember
+            ? "Here's your upcoming schedule, team polls, and membership fees."
+            : "Here's what's happening across your groups today."
+        }
         actions={
-          <>
+          isMember ? (
             <Button asChild variant="outline">
-              <Link href={ROUTES.SPORTS_EVENTS_CREATE}>
-                <CalendarPlus />
-                New event
+              <Link href={ROUTES.SPORTS_MESSAGES}>
+                <MessageSquare />
+                Team chat
               </Link>
             </Button>
-            <Button asChild variant="accent">
-              <Link href={ROUTES.SPORTS_GROUPS_CREATE}>
-                <UserPlus />
-                New group
-              </Link>
-            </Button>
-          </>
+          ) : (
+            <>
+              <Button asChild variant="outline">
+                <Link href={ROUTES.SPORTS_EVENTS_CREATE}>
+                  <CalendarPlus />
+                  New event
+                </Link>
+              </Button>
+              <Button asChild variant="accent">
+                <Link href={ROUTES.SPORTS_GROUPS_CREATE}>
+                  <UserPlus />
+                  New group
+                </Link>
+              </Button>
+            </>
+          )
         }
       />
 
+      {isMember ? (
+        <div className="mt-8">
+          <MemberDashboardView
+            userName={user?.fullName}
+            groups={groups}
+            upcomingEvents={upcomingEvents}
+            pendingPayments={pendingPayments}
+            activePolls={activePolls}
+            unreadMessagesCount={displayStats.unreadMessages}
+          />
+        </div>
+      ) : (
+        <>
       <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
         <StatsCard label="Groups" value={displayStats.groups} icon={Users} className="animate-fade-in-up" />
         <StatsCard
@@ -333,6 +362,8 @@ export function SportsDashboardPage() {
           </div>
         </section>
       </div>
+        </>
+      )}
     </PageContainer>
   );
 }

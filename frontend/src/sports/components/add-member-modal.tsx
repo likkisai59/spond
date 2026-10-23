@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Modal,
   ModalContent,
@@ -19,7 +20,6 @@ import { selectGroupById } from "@/store/sports/selectors";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { addMemberThunk } from "@/store/sports/groups-slice";
 import { addMemberSchema, type AddMemberFormData } from "../schemas";
-import { MEMBER_ROLES } from "@/types";
 
 export interface AddMemberModalProps {
   open: boolean;
@@ -36,6 +36,9 @@ export function AddMemberModal({
 }: AddMemberModalProps) {
   const dispatch = useAppDispatch();
   const group = useAppSelector((state) => selectGroupById(state, groupId));
+
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const form = useForm<AddMemberFormData>({
     resolver: zodResolver(addMemberSchema),
@@ -69,7 +72,11 @@ export function AddMemberModal({
   }, [emailValue, group?.members, setError, clearErrors, errors.email?.message]);
 
   const handleClose = (next: boolean) => {
-    if (!next) reset();
+    if (!next) {
+      reset();
+      setInviteLink(null);
+      setCopied(false);
+    }
     onOpenChange(next);
   };
 
@@ -86,7 +93,7 @@ export function AddMemberModal({
     }
 
     try {
-      await dispatch(
+      const res: any = await dispatch(
         addMemberThunk({
           groupId,
           input: {
@@ -97,15 +104,22 @@ export function AddMemberModal({
         })
       ).unwrap();
 
+      const token = res?.latest_invite_token;
+      if (token && typeof window !== "undefined") {
+        setInviteLink(`${window.location.origin}/sports/invite/${token}`);
+      }
+
       dispatch(
         notificationAdded({
           title: "Invitation sent",
-          message: `An invitation email has been sent to ${data.email.trim()}. Status will show as Pending until accepted.`,
+          message: `An invitation email has been sent to ${data.email.trim()}. You can also copy the direct link.`,
           variant: "success",
         })
       );
-      reset();
-      onOpenChange(false);
+      if (!token) {
+        reset();
+        onOpenChange(false);
+      }
     } catch (error: any) {
       const msg = error?.message || "";
       if (
@@ -138,6 +152,44 @@ export function AddMemberModal({
           </ModalDescription>
         </ModalHeader>
 
+        {inviteLink ? (
+          <div className="space-y-4 py-2 animate-fade-in">
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm">
+              <p className="font-bold text-emerald-600 dark:text-emerald-400">
+                ✓ Invitation generated successfully!
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Share this direct invitation link with the member via WhatsApp or message:
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Input value={inviteLink} readOnly className="font-mono text-xs" />
+              <Button
+                type="button"
+                variant="accent"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard.writeText(inviteLink);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+              >
+                {copied ? <Check className="h-4 w-4 text-white" /> : <Copy className="h-4 w-4" />}
+                {copied ? "Copied" : "Copy"}
+              </Button>
+            </div>
+            <ModalFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleClose(false)}
+              >
+                Done
+              </Button>
+            </ModalFooter>
+          </div>
+        ) : (
+
         <Form {...form}>
           <form
             onSubmit={handleSubmit(onSubmit)}
@@ -164,10 +216,9 @@ export function AddMemberModal({
               name="role"
               label="Role"
               placeholder="Select a role"
-              options={MEMBER_ROLES.map((role) => ({
-                label: role,
-                value: role,
-              }))}
+              options={[
+                { label: "Group Member", value: "Member" },
+              ]}
             />
             <ModalFooter>
               <Button
@@ -185,6 +236,7 @@ export function AddMemberModal({
             </ModalFooter>
           </form>
         </Form>
+        )}
       </ModalContent>
     </Modal>
   );

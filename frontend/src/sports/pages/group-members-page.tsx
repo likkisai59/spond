@@ -29,7 +29,8 @@ import {
 import { useDebounce } from "@/hooks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { selectGroupById } from "@/store/sports/selectors";
-import { memberRoleChanged } from "@/store/sports/groups-slice";
+import { updateMemberRoleThunk } from "@/store/sports/groups-slice";
+import { notificationAdded } from "@/store/slices/notification-slice";
 import { MemberRoleBadge } from "../components/member-role-badge";
 import { StatusBadge } from "../components/status-badge";
 import { formatDate } from "@/utils/date";
@@ -179,8 +180,25 @@ export function GroupMembersPage() {
     );
   }
 
-  const handleRoleChange = (memberId: string, role: MemberRole) => {
-    dispatch(memberRoleChanged({ groupId, memberId, role }));
+  const handleRoleChange = async (memberId: string, role: MemberRole) => {
+    try {
+      await dispatch(updateMemberRoleThunk({ groupId, memberId, role })).unwrap();
+      dispatch(
+        notificationAdded({
+          title: "Role updated",
+          message: `Member role successfully updated to ${role}.`,
+          variant: "success",
+        })
+      );
+    } catch (error: any) {
+      dispatch(
+        notificationAdded({
+          title: "Failed to update role",
+          message: error?.message || "Could not update member role. Please try again.",
+          variant: "error",
+        })
+      );
+    }
   };
 
   return (

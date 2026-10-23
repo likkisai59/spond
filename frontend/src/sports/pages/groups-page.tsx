@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useDebounce } from "@/hooks";
+import { useAuth, useDebounce } from "@/hooks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchGroupsThunk } from "@/store/sports/groups-slice";
 import { selectAllGroups, selectUpcomingEvents } from "@/store/sports/selectors";
@@ -25,6 +25,8 @@ import { GROUP_CATEGORIES, type GroupCategory } from "@/types";
 import { ROUTES } from "@/constants";
 
 export function GroupsPage() {
+  const { user: currentUser } = useAuth();
+  const isClubAdmin = currentUser?.role === "admin" || currentUser?.role === "super_admin" || currentUser?.role === "sports_admin";
   const dispatch = useAppDispatch();
   const groups = useAppSelector(selectAllGroups);
   const status = useAppSelector((state) => state.sports.groups.status);
@@ -74,12 +76,14 @@ export function GroupsPage() {
         title="Groups"
         description="Teams and clubs you manage or belong to."
         actions={
-          <Button asChild variant="accent">
-            <Link href={ROUTES.SPORTS_GROUPS_CREATE}>
-              <Plus />
-              Create group
-            </Link>
-          </Button>
+          isClubAdmin ? (
+            <Button asChild variant="accent">
+              <Link href={ROUTES.SPORTS_GROUPS_CREATE}>
+                <Plus />
+                Create group
+              </Link>
+            </Button>
+          ) : undefined
         }
       />
 
@@ -120,9 +124,11 @@ export function GroupsPage() {
             title="No groups yet"
             description="Create your first group to start organising teams, events and payments."
             action={
-              <Button asChild variant="accent">
-                <Link href={ROUTES.SPORTS_GROUPS_CREATE}>Create group</Link>
-              </Button>
+              isClubAdmin ? (
+                <Button asChild variant="accent">
+                  <Link href={ROUTES.SPORTS_GROUPS_CREATE}>Create group</Link>
+                </Button>
+              ) : undefined
             }
           />
         ) : filteredGroups.length === 0 ? (

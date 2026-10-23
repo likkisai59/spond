@@ -18,9 +18,10 @@ import {
 import { AuthDivider, SocialAuthButtons } from "./social-auth-buttons";
 import { authService } from "@/services";
 import { registerSchema, type RegisterFormData } from "../schemas";
-import { ROUTES } from "@/constants";
+import { getDefaultRouteForRole } from "@/constants";
 import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
+import { credentialsReceived } from "@/store/slices/auth-slice";
 import { PasswordStrengthBar } from "./password-strength-bar";
 
 import toast from "react-hot-toast";
@@ -133,15 +134,19 @@ export function RegisterForm() {
   const searchParams = useSearchParams();
   const dispatch = useAppDispatch();
 
+  const queryEmail = searchParams.get("email") || "";
+  const queryName = searchParams.get("name") || "";
+  const queryRole = (searchParams.get("role") as any) || "client";
+
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     mode: "onChange",
     defaultValues: {
-      name: "",
-      email: "",
+      name: queryName,
+      email: queryEmail,
       password: "",
       confirmPassword: "",
-      role: "client",
+      role: queryRole === "player" ? "player" : queryRole,
       terms: false,
     },
   });
@@ -246,7 +251,7 @@ export function RegisterForm() {
     try {
       const { signup_token } = await authService.verifyOtp({ email: pendingData.email, otp });
       
-      await authService.completeSignup({
+      const session = await authService.completeSignup({
         signup_token,
         full_name: pendingData.name,
         password: pendingData.password,
@@ -254,19 +259,19 @@ export function RegisterForm() {
         accessible_modules: ["sports", "band"],
       });
 
+      // Instantly log in so the user doesn't have to re-enter password
+      dispatch(credentialsReceived(session));
+
       setShowOtpModal(false);
       dispatch(
         notificationAdded({
           title: `Welcome aboard, ${pendingData.name}!`,
-          message: "Your account has been created successfully. Please login to continue.",
+          message: "Your account has been created successfully.",
           variant: "success",
         })
       );
-      let redirectUrl = ROUTES.LOGIN;
       const callbackUrl = searchParams.get("callbackUrl");
-      if (callbackUrl) {
-        redirectUrl += `?callbackUrl=${encodeURIComponent(callbackUrl)}`;
-      }
+      const redirectUrl = callbackUrl || getDefaultRouteForRole(session.user.role);
       router.push(redirectUrl);
     } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : "";
@@ -317,8 +322,8 @@ export function RegisterForm() {
           <FormPassword
             control={control}
             name="password"
-            label="Password"
-            placeholder="Create a password"
+            label="Create password"
+            placeholder="Create a secure password"
             autoComplete="new-password"
           />
           <PasswordStrengthBar password={passwordValue ?? ""} />
@@ -335,6 +340,7 @@ export function RegisterForm() {
           name="role"
           label="Account type"
           options={[
+            { label: "Group Member", value: "player" },
             { label: "Club Owner", value: "member" },
             { label: "Sports Venue Owner (Courts & Grounds)", value: "sports_venue_owner" },
             { label: "Venue Owner (Band)", value: "venue_owner" },

@@ -72,7 +72,8 @@ class EmailService:
             msg["Subject"] = f"Invitation: {admin_name} invited you to join {group_name} on Spond"
 
             backend_url = os.environ.get("BACKEND_URL", "http://localhost:8000")
-            accept_url = f"{backend_url}/api/v1/sports/groups/invite/respond?token={invite_token}&action=accept"
+            frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+            accept_url = f"{frontend_url}/sports/invite/{invite_token}"
             reject_url = f"{backend_url}/api/v1/sports/groups/invite/respond?token={invite_token}&action=reject"
 
             text_body = (

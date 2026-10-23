@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useDebounce } from "@/hooks";
+import { useAuth, useDebounce } from "@/hooks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchEventsThunk } from "@/store/sports/events-slice";
 import { fetchGroupsThunk } from "@/store/sports/groups-slice";
@@ -31,9 +31,10 @@ import { ROUTES } from "@/constants";
 
 export function EventsPage() {
   const dispatch = useAppDispatch();
+  const { user: currentUser } = useAuth();
   const upcoming = useAppSelector(selectUpcomingEvents);
   const past = useAppSelector(selectPastEvents);
-  const _groups = useAppSelector(selectAllGroups);
+  const groups = useAppSelector(selectAllGroups);
   const [search, setSearch] = useState("");
   const [type, setType] = useState<EventType | "all">("all");
   const debouncedSearch = useDebounce(search, 250);
@@ -48,6 +49,26 @@ export function EventsPage() {
       dispatch(fetchGroupsThunk());
     }
   }, [dispatch, eventsStatus, groupsStatus]);
+
+  const isClubAdmin = useMemo(() => {
+    if (!currentUser) return false;
+    if (currentUser.role === "player" || currentUser.role === "member") return false;
+    if (currentUser.role === "admin" || currentUser.role === "super_admin" || currentUser.role === "sports_admin") return true;
+    const currentUserId = currentUser.id || (currentUser as any)._id;
+    const currentUserEmail = currentUser.email?.toLowerCase().trim();
+
+    return groups.some((g) => {
+      if (g.createdBy === currentUserId || g.created_by === currentUserId) return true;
+      const m = (g.members ?? []).find((member: any) => {
+        if (member.userId && member.userId === currentUserId) return true;
+        if (member.user_id && member.user_id === currentUserId) return true;
+        if (member.id && member.id === currentUserId) return true;
+        if (member.email && currentUserEmail && member.email.toLowerCase().trim() === currentUserEmail) return true;
+        return false;
+      });
+      return m && ["Owner", "Admin"].includes(m.role);
+    });
+  }, [currentUser, groups]);
 
   const filterEvents = useMemo(
     () =>
@@ -83,12 +104,14 @@ export function EventsPage() {
         title="Events"
         description="Training sessions, matches, meetings and everything on the calendar."
         actions={
-          <Button asChild variant="accent">
-            <Link href={ROUTES.SPORTS_EVENTS_CREATE}>
-              <CalendarPlus />
-              Create event
-            </Link>
-          </Button>
+          isClubAdmin ? (
+            <Button asChild variant="accent">
+              <Link href={ROUTES.SPORTS_EVENTS_CREATE}>
+                <CalendarPlus />
+                Create event
+              </Link>
+            </Button>
+          ) : undefined
         }
       />
 
@@ -141,9 +164,11 @@ export function EventsPage() {
               title="No matching events"
               description="Adjust the search or filter, or create a new event."
               action={
-                <Button asChild variant="accent">
-                  <Link href={ROUTES.SPORTS_EVENTS_CREATE}>Create event</Link>
-                </Button>
+                isClubAdmin ? (
+                  <Button asChild variant="accent">
+                    <Link href={ROUTES.SPORTS_EVENTS_CREATE}>Create event</Link>
+                  </Button>
+                ) : undefined
               }
             />
           )}

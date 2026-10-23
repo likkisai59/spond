@@ -29,12 +29,15 @@ import type { AttendanceResponse } from "@/types";
 import { cn } from "@/utils/cn";
 import toast from "react-hot-toast";
 
+import { useAuth } from "@/hooks";
+
 const RESPONSE_FILTERS: AttendanceResponse[] = [
   "Present",
   "Absent",
 ];
 
 export function AttendancePage() {
+  const { user: currentUser } = useAuth();
   const dispatch = useAppDispatch();
   const events = useAppSelector(selectAllEvents);
   const groups = useAppSelector(selectAllGroups);
@@ -122,6 +125,19 @@ export function AttendancePage() {
   const selectedGroup = selectedEvent
     ? groups.find((g) => g.id === selectedEvent.groupId)
     : undefined;
+
+  const isGroupAdmin = useMemo(() => {
+    if (!currentUser) return false;
+    if (currentUser.role === "player" || currentUser.role === "member") return false;
+    if (currentUser.role === "admin" || currentUser.role === "super_admin" || currentUser.role === "sports_admin") return true;
+    if (!selectedGroup) return false;
+    const currentUserId = currentUser.id || (currentUser as any)._id;
+    if (selectedGroup.createdBy === currentUserId || selectedGroup.created_by === currentUserId) return true;
+    const m = (selectedGroup.members ?? []).find((mem: any) =>
+      mem.userId === currentUserId || mem.user_id === currentUserId || mem.id === currentUserId
+    );
+    return m && ["Owner", "Admin"].includes(m.role);
+  }, [currentUser, selectedGroup]);
 
   const isRecorded = useMemo(() => {
     if (!selectedEvent) return false;
@@ -384,46 +400,48 @@ export function AttendancePage() {
                             {formatDate(selectedEvent.date)}
                           </p>
                         </div>
-                        <div className="flex shrink-0 gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-full"
-                            onClick={() => {
-                              setIsUnlocked(true);
-                              setOverrides({});
-                              toast.success("Attendance unlocked. You can now modify and re-save records.");
-                            }}
-                            disabled={!isRecorded && Object.keys(overrides).length === 0}
-                          >
-                            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-                            Reset
-                          </Button>
-                          {isAttendanceFinalized ? (
+                        {isGroupAdmin && (
+                          <div className="flex shrink-0 gap-2">
                             <Button
                               variant="outline"
                               size="sm"
-                              className="rounded-full border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
+                              className="rounded-full"
                               onClick={() => {
                                 setIsUnlocked(true);
-                                toast.success("Attendance unlocked for editing.");
+                                setOverrides({});
+                                toast.success("Attendance unlocked. You can now modify and re-save records.");
                               }}
-                              title="Click to unlock and edit attendance"
+                              disabled={!isRecorded && Object.keys(overrides).length === 0}
                             >
-                              <Lock className="mr-1.5 h-3.5 w-3.5" /> Finalized (Unlock & Edit)
+                              <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                              Reset
                             </Button>
-                          ) : (
-                            <Button
-                              variant="accent"
-                              size="sm"
-                              className="rounded-full"
-                              onClick={handleSave}
-                              disabled={Object.keys(overrides).length === 0}
-                            >
-                              <Save className="mr-1.5 h-3.5 w-3.5" /> Save
-                            </Button>
-                          )}
-                        </div>
+                            {isAttendanceFinalized ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="rounded-full border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
+                                onClick={() => {
+                                  setIsUnlocked(true);
+                                  toast.success("Attendance unlocked for editing.");
+                                }}
+                                title="Click to unlock and edit attendance"
+                              >
+                                <Lock className="mr-1.5 h-3.5 w-3.5" /> Finalized (Unlock & Edit)
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="accent"
+                                size="sm"
+                                className="rounded-full"
+                                onClick={handleSave}
+                                disabled={Object.keys(overrides).length === 0}
+                              >
+                                <Save className="mr-1.5 h-3.5 w-3.5" /> Save
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {isAttendanceFinalized && (
@@ -432,16 +450,18 @@ export function AttendancePage() {
                             <Lock className="h-4 w-4 shrink-0 text-amber-500" />
                             <span>Attendance has been recorded and finalized for this session. Editing is locked.</span>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsUnlocked(true);
-                              toast.success("Attendance unlocked for editing.");
-                            }}
-                            className="text-xs font-bold text-accent underline hover:opacity-80"
-                          >
-                            Unlock & Edit
-                          </button>
+                          {isGroupAdmin && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsUnlocked(true);
+                                toast.success("Attendance unlocked for editing.");
+                              }}
+                              className="text-xs font-bold text-accent underline hover:opacity-80"
+                            >
+                              Unlock & Edit
+                            </button>
+                          )}
                         </div>
                       )}
 
@@ -527,7 +547,7 @@ export function AttendancePage() {
                       <AttendanceTable
                         records={filteredRecords}
                         onSetResponse={handleSetResponse}
-                        readOnly={isAttendanceFinalized}
+                        readOnly={!isGroupAdmin || isAttendanceFinalized}
                       />
                     </div>
                   </>

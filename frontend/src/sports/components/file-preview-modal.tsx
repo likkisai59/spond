@@ -39,7 +39,7 @@ export interface FilePreviewModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDownload: (file: SportsFile) => void;
-  onDelete: (file: SportsFile) => void;
+  onDelete?: (file: SportsFile) => void;
 }
 
 export function FilePreviewModal({
@@ -122,10 +122,12 @@ export function FilePreviewModal({
         </div>
 
         <ModalFooter>
-          <Button variant="outline" onClick={() => onDelete(file)}>
-            <Trash2 />
-            Delete
-          </Button>
+          {onDelete && (
+            <Button variant="outline" onClick={() => onDelete(file)}>
+              <Trash2 />
+              Delete
+            </Button>
+          )}
           <Button variant="outline" onClick={handleShare}>
             <Share2 />
             Share

@@ -170,13 +170,13 @@ async def get_event(id: str, _: dict = Depends(get_current_user)) -> dict:
     return {"status": "success", "data": event}
 
 @router.put("/events/{id}")
-async def update_event(id: str, data: EventUpdateRequest, _: dict = Depends(get_current_user)) -> dict:
-    event = await service.update_event(id, data)
+async def update_event(id: str, data: EventUpdateRequest, user: dict = Depends(get_current_user)) -> dict:
+    event = await service.update_event(id, data, user_id=user["id"])
     return {"status": "success", "data": event}
 
 @router.delete("/events/{id}")
-async def delete_event(id: str, _: dict = Depends(get_current_user)) -> dict:
-    await service.delete_event(id)
+async def delete_event(id: str, user: dict = Depends(get_current_user)) -> dict:
+    await service.delete_event(id, user_id=user["id"])
     return {"status": "success"}
 
 # --- RSVP ---

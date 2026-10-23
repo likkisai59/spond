@@ -386,11 +386,13 @@ export function GroupDetailsPage() {
           </div>
           <div className="flex shrink-0 flex-col gap-2">
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Button variant="outline" onClick={handleInvite}>
-                <UserPlus />
-                Invite
-              </Button>
-              {canAccessEvents && (
+              {isOwnerOrAdmin && (
+                <Button variant="outline" onClick={handleInvite}>
+                  <UserPlus />
+                  Invite
+                </Button>
+              )}
+              {isOwnerOrAdmin && canAccessEvents && (
                 <Button asChild variant="accent">
                   <Link href={ROUTES.SPORTS_EVENTS_CREATE}>
                     <CalendarDays />
@@ -549,10 +551,12 @@ export function GroupDetailsPage() {
                   <Table2 className="h-4 w-4" />
                 </button>
               </div>
-              <Button variant="outline" onClick={handleInvite}>
-                <UserPlus />
-                Invite
-              </Button>
+              {isOwnerOrAdmin && (
+                <Button variant="outline" onClick={handleInvite}>
+                  <UserPlus />
+                  Invite
+                </Button>
+              )}
             </div>
           </div>
 
@@ -569,6 +573,7 @@ export function GroupDetailsPage() {
                   key={member.id}
                   member={member}
                   groupId={groupId}
+                  canManage={isOwnerOrAdmin}
                 />
               ))}
             </div>
@@ -576,35 +581,39 @@ export function GroupDetailsPage() {
             <MembersTable
               members={filteredMembers}
               groupId={groupId}
-              onRemove={handleRemoveMember}
+              onRemove={isOwnerOrAdmin ? handleRemoveMember : undefined}
             />
           )}
         </TabsContent>
 
         {canAccessEvents && (
           <TabsContent value="events" className="space-y-4">
-            <div className="flex justify-end">
-              <Button asChild variant="accent" size="sm">
-                <Link href={ROUTES.SPORTS_EVENTS_CREATE}>
-                  <Plus />
-                  New event
-                </Link>
-              </Button>
-            </div>
+            {isOwnerOrAdmin && (
+              <div className="flex justify-end">
+                <Button asChild variant="accent" size="sm">
+                  <Link href={ROUTES.SPORTS_EVENTS_CREATE}>
+                    <Plus />
+                    New event
+                  </Link>
+                </Button>
+              </div>
+            )}
             <EventsTable events={groupEvents} />
           </TabsContent>
         )}
 
         {canAccessPolls && (
           <TabsContent value="polls" className="space-y-4">
-            <div className="flex justify-end">
-              <Button asChild variant="accent" size="sm">
-                <Link href={ROUTES.SPORTS_POLLS_CREATE}>
-                  <Plus />
-                  New poll
-                </Link>
-              </Button>
-            </div>
+            {isOwnerOrAdmin && (
+              <div className="flex justify-end">
+                <Button asChild variant="accent" size="sm">
+                  <Link href={ROUTES.SPORTS_POLLS_CREATE}>
+                    <Plus />
+                    New poll
+                  </Link>
+                </Button>
+              </div>
+            )}
             {groupPolls.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2">
                 {groupPolls.map((poll) => (
@@ -639,14 +648,16 @@ export function GroupDetailsPage() {
 
         {canAccessPayments && (
           <TabsContent value="payments" className="space-y-4">
-            <div className="flex justify-end">
-              <Button asChild variant="accent" size="sm">
-                <Link href={ROUTES.SPORTS_PAYMENTS_CREATE}>
-                  <Plus />
-                  Request payment
-                </Link>
-              </Button>
-            </div>
+            {isOwnerOrAdmin && (
+              <div className="flex justify-end">
+                <Button asChild variant="accent" size="sm">
+                  <Link href={ROUTES.SPORTS_PAYMENTS_CREATE}>
+                    <Plus />
+                    Request payment
+                  </Link>
+                </Button>
+              </div>
+            )}
             <PaymentsTable
               payments={groupPayments}
               groupNameById={{ [group.id]: group.name }}

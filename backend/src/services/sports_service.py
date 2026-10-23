@@ -45,6 +45,10 @@ class SportsService:
         self.email_service = EmailService()
 
     async def create_group(self, user_id: str, data: GroupCreateRequest) -> dict:
+        creator_user = await self.users.find_by_id(user_id)
+        if creator_user and creator_user.get("role") in ["player", "member"]:
+            raise AppException(403, "Regular members or players cannot create groups")
+
         existing = await self.groups.find_one({"name": data.name})
         if existing:
             raise AppException(400, "Group name already exists")
@@ -202,6 +206,33 @@ class SportsService:
             "updated_at": utc_now()
         })
         return await self.get_group(group_id)
+
+    async def check_is_group_admin_or_owner(self, group_id: str, user_id: str) -> bool:
+        if not group_id or not user_id:
+            return False
+        try:
+            user = await self.users.find_by_id(user_id)
+            if user and user.get("role") in ["super_admin", "admin"]:
+                return True
+        except Exception:
+            pass
+
+        group = await self.groups.find_by_id(group_id)
+        if not group:
+            return False
+        if str(group.get("created_by")) == str(user_id):
+            return True
+
+        from src.database.base_repository import to_object_id
+        or_conds = [{"user_id": user_id}]
+        try:
+            or_conds.append({"_id": to_object_id(user_id)})
+        except Exception:
+            pass
+        member = await self.members.find_one({"group_id": group_id, "$or": or_conds})
+        if member and member.get("role") in ["Owner", "Admin"]:
+            return True
+        return False
 
     async def add_member(self, group_id: str, data: AddMemberRequest, current_user: dict = None) -> dict:
         actual_user_id = data.user_id
@@ -460,6 +491,9 @@ class SportsService:
 
     # Events
     async def create_event(self, user_id: str, data: EventCreateRequest) -> dict:
+        if not await self.check_is_group_admin_or_owner(data.group_id, user_id):
+            raise AppException(403, "Only club admins can create events")
+
         event_doc = data.model_dump(exclude_unset=True)
         name_val = data.name or data.title or "Event"
         event_doc["name"] = name_val
@@ -527,7 +561,13 @@ class SportsService:
             event["attendance"] = {"going": going, "maybe": maybe, "not_responded": 0}
         return events
 
-    async def update_event(self, event_id: str, data: EventUpdateRequest) -> dict:
+    async def update_event(self, event_id: str, data: EventUpdateRequest, user_id: str = None) -> dict:
+        event = await self.events.find_by_id(event_id)
+        if not event:
+            raise NotFoundError("Event not found")
+        if user_id and not await self.check_is_group_admin_or_owner(event.get("group_id"), user_id):
+            raise AppException(403, "Only club admins can update events")
+
         update_data = data.model_dump(exclude_unset=True)
         if not update_data:
             return await self.get_event(event_id)
@@ -538,7 +578,13 @@ class SportsService:
             raise NotFoundError("Event not found")
         return await self.get_event(event_id)
 
-    async def delete_event(self, event_id: str) -> None:
+    async def delete_event(self, event_id: str, user_id: str = None) -> None:
+        event = await self.events.find_by_id(event_id)
+        if not event:
+            raise NotFoundError("Event not found")
+        if user_id and not await self.check_is_group_admin_or_owner(event.get("group_id"), user_id):
+            raise AppException(403, "Only club admins can delete events")
+
         deleted = await self.events.delete_by_id(event_id)
         if not deleted:
             raise NotFoundError("Event not found")
@@ -555,6 +601,15 @@ class SportsService:
         return await self.rsvps.find_many({"event_id": event_id})
 
     async def mark_attendance(self, marked_by: str, data: MarkAttendanceRequest) -> dict:
+        event = await self.events.find_by_id(data.event_id)
+        if not event:
+            raise NotFoundError("Event not found")
+        is_admin = await self.check_is_group_admin_or_owner(event.get("group_id"), marked_by)
+        if not is_admin:
+            member = await self.members.find_one({"group_id": event.get("group_id"), "user_id": marked_by})
+            if not member or member.get("role") not in ["Coach", "Owner", "Admin"]:
+                raise AppException(403, "Only club admins or coaches can mark attendance")
+
         await self.attendance.collection.update_one(
             {"event_id": data.event_id, "user_id": data.user_id},
             {"$set": {
@@ -822,6 +877,9 @@ class SportsService:
         return await self.get_booking(booking_id)
 
     async def create_payment_request(self, user_id: str, data: PaymentRequestCreateRequest) -> dict:
+        if not await self.check_is_group_admin_or_owner(data.group_id, user_id):
+            raise AppException(403, "Only club admins can request payments")
+
         group = await self.get_group(data.group_id)
         doc = data.model_dump(exclude_unset=True)
         doc.update({
@@ -868,6 +926,9 @@ class SportsService:
 
     # --- Polls ---
     async def create_poll(self, user_id: str, data: PollCreateRequest) -> dict:
+        if not await self.check_is_group_admin_or_owner(data.group_id, user_id):
+            raise AppException(403, "Only club admins can create polls")
+
         labels = data.option_labels or []
         if not labels and data.options:
             labels = [opt if isinstance(opt, str) else opt.get("label", "") for opt in data.options]

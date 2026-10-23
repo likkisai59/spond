@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyCard } from "@/components/cards";
 import { Card } from "@/components/shared/card";
+import { useAuth } from "@/hooks";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { fetchEventsThunk, deleteEventThunk } from "@/store/sports/events-slice";
@@ -35,12 +36,30 @@ export function EventDetailsPage() {
   const params = useParams<{ eventId: string }>();
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const { user: currentUser } = useAuth();
   const event = useAppSelector((state) => selectEventById(state, params.eventId));
   const group = useAppSelector((state) =>
     selectGroupById(state, event?.groupId ?? "")
   );
   const eventsStatus = useAppSelector((state) => state.sports.events.status);
   const groupsStatus = useAppSelector((state) => state.sports.groups.status);
+
+  const isOwnerOrAdmin = useMemo(() => {
+    if (!group || !currentUser) return false;
+    if (currentUser.role === "admin" || currentUser.role === "super_admin") return true;
+    const currentUserId = currentUser.id || (currentUser as any)._id;
+    const currentUserEmail = currentUser.email?.toLowerCase().trim();
+
+    if (group.createdBy === currentUserId || group.created_by === currentUserId) return true;
+    const member = (group.members ?? []).find((m: any) => {
+      if (m.userId && m.userId === currentUserId) return true;
+      if (m.user_id && m.user_id === currentUserId) return true;
+      if (m.id && m.id === currentUserId) return true;
+      if (m.email && currentUserEmail && m.email.toLowerCase().trim() === currentUserEmail) return true;
+      return false;
+    });
+    return member && ["Owner", "Admin"].includes(member.role);
+  }, [group, currentUser]);
 
   useEffect(() => {
     if (eventsStatus === "idle" || eventsStatus === "failed") {
@@ -119,6 +138,7 @@ export function EventDetailsPage() {
         event={event}
         groupName={group?.name}
         onDelete={handleDeleteEvent}
+        canDelete={isOwnerOrAdmin}
       />
 
       <div className="mt-8 space-y-6">
@@ -157,10 +177,12 @@ function PageHeaderLikeTitle({
   event,
   groupName,
   onDelete,
+  canDelete = false,
 }: {
   event: SportsEvent;
   groupName?: string;
   onDelete?: () => void;
+  canDelete?: boolean;
 }) {
   return (
     <div className="animate-fade-in-up flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -177,14 +199,16 @@ function PageHeaderLikeTitle({
         </h1>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2">
-        <Button
-          variant="destructive"
-          onClick={onDelete}
-          className="flex items-center gap-1.5"
-        >
-          <Trash2 className="h-4 w-4" />
-          Delete event
-        </Button>
+        {canDelete && (
+          <Button
+            variant="destructive"
+            onClick={onDelete}
+            className="flex items-center gap-1.5"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete event
+          </Button>
+        )}
         <Button asChild variant="ghost">
           <Link href={ROUTES.SPORTS_EVENTS}>
             <ArrowLeft />

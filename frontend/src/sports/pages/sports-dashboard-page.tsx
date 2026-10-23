@@ -139,7 +139,7 @@ export function SportsDashboardPage() {
   const dashboardPolls = activePolls.slice(0, 2);
   const dueAmount = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
 
-  const isMember = user?.role === "player" || user?.role === "member";
+  const isMember = user?.role === "player";
 
   if (user?.role === "venue_owner" || user?.role === "sports_venue_owner") {
     return null;

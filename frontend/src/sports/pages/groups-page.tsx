@@ -26,7 +26,7 @@ import { ROUTES } from "@/constants";
 
 export function GroupsPage() {
   const { user: currentUser } = useAuth();
-  const isClubAdmin = currentUser?.role === "admin" || currentUser?.role === "super_admin" || currentUser?.role === "sports_admin";
+  const isClubAdmin = currentUser?.role === "member" || currentUser?.role === "admin" || currentUser?.role === "super_admin" || currentUser?.role === "sports_admin";
   const dispatch = useAppDispatch();
   const groups = useAppSelector(selectAllGroups);
   const status = useAppSelector((state) => state.sports.groups.status);

@@ -128,8 +128,8 @@ export function AttendancePage() {
 
   const isGroupAdmin = useMemo(() => {
     if (!currentUser) return false;
-    if (currentUser.role === "player" || currentUser.role === "member") return false;
-    if (currentUser.role === "admin" || currentUser.role === "super_admin" || currentUser.role === "sports_admin") return true;
+    if (currentUser.role === "player") return false;
+    if (currentUser.role === "member" || currentUser.role === "admin" || currentUser.role === "super_admin" || currentUser.role === "sports_admin") return true;
     if (!selectedGroup) return false;
     const currentUserId = currentUser.id || (currentUser as any)._id;
     if (selectedGroup.createdBy === currentUserId || selectedGroup.created_by === currentUserId) return true;

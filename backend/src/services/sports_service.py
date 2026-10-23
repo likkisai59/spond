@@ -46,8 +46,8 @@ class SportsService:
 
     async def create_group(self, user_id: str, data: GroupCreateRequest) -> dict:
         creator_user = await self.users.find_by_id(user_id)
-        if creator_user and creator_user.get("role") in ["player", "member"]:
-            raise AppException(403, "Regular members or players cannot create groups")
+        if creator_user and creator_user.get("role") == "player":
+            raise AppException(403, "Regular group members cannot create groups")
 
         existing = await self.groups.find_one({"name": data.name})
         if existing:

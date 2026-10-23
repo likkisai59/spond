@@ -52,8 +52,8 @@ export function EventsPage() {
 
   const isClubAdmin = useMemo(() => {
     if (!currentUser) return false;
-    if (currentUser.role === "player" || currentUser.role === "member") return false;
-    if (currentUser.role === "admin" || currentUser.role === "super_admin" || currentUser.role === "sports_admin") return true;
+    if (currentUser.role === "player") return false;
+    if (currentUser.role === "member" || currentUser.role === "admin" || currentUser.role === "super_admin" || currentUser.role === "sports_admin") return true;
     const currentUserId = currentUser.id || (currentUser as any)._id;
     const currentUserEmail = currentUser.email?.toLowerCase().trim();
 

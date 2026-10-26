@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   CalendarDays,
   LayoutGrid,
+  Lock,
   MapPin,
   Plus,
   Search,
@@ -57,6 +58,11 @@ const SETTINGS_FEATURES = [
     key: "events" as const,
     label: "Events & Matches",
     description: "Access and participate in group events, matches, and training schedules.",
+  },
+  {
+    key: "attendance" as const,
+    label: "Attendance Tracking",
+    description: "Track event attendance, mark member presence, and view RSVP records.",
   },
   {
     key: "polls" as const,
@@ -419,61 +425,69 @@ export function GroupDetailsPage() {
         <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="members">Members</TabsTrigger>
-          {canAccessEvents && <TabsTrigger value="events">Events</TabsTrigger>}
-          {canAccessPolls && <TabsTrigger value="polls">Polls</TabsTrigger>}
-          {canAccessFiles && <TabsTrigger value="files">Files</TabsTrigger>}
-          {canAccessPayments && <TabsTrigger value="payments">Payments</TabsTrigger>}
-          {canAccessChat && <TabsTrigger value="posts">Posts</TabsTrigger>}
+          <TabsTrigger value="events">Events</TabsTrigger>
+          <TabsTrigger value="polls">Polls</TabsTrigger>
+          <TabsTrigger value="files">Files</TabsTrigger>
+          <TabsTrigger value="payments">Payments</TabsTrigger>
+          <TabsTrigger value="posts">Posts</TabsTrigger>
           {isOwnerOrAdmin && <TabsTrigger value="settings">Settings</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="space-y-6 lg:col-span-2">
-              {canAccessEvents && (
-                <section>
-                  <h2 className="mb-3 text-lg font-extrabold tracking-tight">
-                    Upcoming events
-                  </h2>
-                  {groupEvents.length > 0 ? (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {groupEvents.slice(0, 2).map((event) => (
-                        <EventCard key={event.id} event={event} />
-                      ))}
-                    </div>
-                  ) : (
-                    <EmptyCard
-                      title="No upcoming events"
-                      description="Schedule the next session for this group."
-                    />
-                  )}
-                </section>
-              )}
+              <section>
+                <h2 className="mb-3 text-lg font-extrabold tracking-tight">
+                  Upcoming events
+                </h2>
+                {!canAccessEvents ? (
+                  <EmptyCard
+                    icon={Lock}
+                    title="Only club admin can see this"
+                    description="Events and matches have been turned off for your role by the club administrator."
+                  />
+                ) : groupEvents.length > 0 ? (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {groupEvents.slice(0, 2).map((event) => (
+                      <EventCard key={event.id} event={event} />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyCard
+                    title="No upcoming events"
+                    description="Schedule the next session for this group."
+                  />
+                )}
+              </section>
 
-              {canAccessChat && (
-                <section>
-                  <h2 className="mb-3 text-lg font-extrabold tracking-tight">
-                    Recent posts
-                  </h2>
-                  {groupPosts.length > 0 ? (
-                    <div className="space-y-3">
-                      {groupPosts.slice(0, 3).map((post) => (
-                        <Card key={post.id} className="p-4">
-                          <p className="text-sm leading-relaxed">{post.content}</p>
-                          <p className="mt-2 text-xs font-semibold text-muted-foreground">
-                            {post.author} · {formatDate(post.createdAt)}
-                          </p>
-                        </Card>
-                      ))}
-                    </div>
-                  ) : (
-                    <EmptyCard
-                      title="No posts yet"
-                      description="Announcements from coaches and admins will appear here."
-                    />
-                  )}
-                </section>
-              )}
+              <section>
+                <h2 className="mb-3 text-lg font-extrabold tracking-tight">
+                  Recent posts
+                </h2>
+                {!canAccessChat ? (
+                  <EmptyCard
+                    icon={Lock}
+                    title="Only club admin can see this"
+                    description="Team chat and announcements have been turned off for your role by the club administrator."
+                  />
+                ) : groupPosts.length > 0 ? (
+                  <div className="space-y-3">
+                    {groupPosts.slice(0, 3).map((post) => (
+                      <Card key={post.id} className="p-4">
+                        <p className="text-sm leading-relaxed">{post.content}</p>
+                        <p className="mt-2 text-xs font-semibold text-muted-foreground">
+                          {post.author} · {formatDate(post.createdAt)}
+                        </p>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyCard
+                    title="No posts yet"
+                    description="Announcements from coaches and admins will appear here."
+                  />
+                )}
+              </section>
             </div>
 
             <section>
@@ -586,169 +600,205 @@ export function GroupDetailsPage() {
           )}
         </TabsContent>
 
-        {canAccessEvents && (
-          <TabsContent value="events" className="space-y-4">
-            {isOwnerOrAdmin && (
-              <div className="flex justify-end">
-                <Button asChild variant="accent" size="sm">
-                  <Link href={ROUTES.SPORTS_EVENTS_CREATE}>
-                    <Plus />
-                    New event
-                  </Link>
-                </Button>
-              </div>
-            )}
-            <EventsTable events={groupEvents} />
-          </TabsContent>
-        )}
-
-        {canAccessPolls && (
-          <TabsContent value="polls" className="space-y-4">
-            {isOwnerOrAdmin && (
-              <div className="flex justify-end">
-                <Button asChild variant="accent" size="sm">
-                  <Link href={ROUTES.SPORTS_POLLS_CREATE}>
-                    <Plus />
-                    New poll
-                  </Link>
-                </Button>
-              </div>
-            )}
-            {groupPolls.length > 0 ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                {groupPolls.map((poll) => (
-                  <PollCard key={poll.id} poll={poll} groupName={group.name} />
-                ))}
-              </div>
-            ) : (
-              <EmptyCard
-                title="No polls yet"
-                description="Create a poll to gather votes from this group."
-              />
-            )}
-          </TabsContent>
-        )}
-
-        {canAccessFiles && (
-          <TabsContent value="files" className="space-y-4">
-            {groupFiles.length > 0 ? (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {groupFiles.map((file) => (
-                  <FileCard key={file.id} file={file} />
-                ))}
-              </div>
-            ) : (
-              <EmptyCard
-                title="No files yet"
-                description="Shared documents, drills and media will appear here."
-              />
-            )}
-          </TabsContent>
-        )}
-
-        {canAccessPayments && (
-          <TabsContent value="payments" className="space-y-4">
-            {isOwnerOrAdmin && (
-              <div className="flex justify-end">
-                <Button asChild variant="accent" size="sm">
-                  <Link href={ROUTES.SPORTS_PAYMENTS_CREATE}>
-                    <Plus />
-                    Request payment
-                  </Link>
-                </Button>
-              </div>
-            )}
-            <PaymentsTable
-              payments={groupPayments}
-              groupNameById={{ [group.id]: group.name }}
+        <TabsContent value="events" className="space-y-4">
+          {!canAccessEvents ? (
+            <EmptyCard
+              icon={Lock}
+              title="Only club admin can see this"
+              description="Events and matches have been turned off for your role by the club administrator."
             />
-          </TabsContent>
-        )}
-
-        {canAccessChat && (
-          <TabsContent value="posts" className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold">Recent announcements & posts</h3>
-              <Button
-                variant="accent"
-                size="sm"
-                onClick={() => setShowNewPostInput((prev) => !prev)}
-              >
-                <Plus className="mr-1.5 h-4 w-4" /> Create post
-              </Button>
-            </div>
-
-            {showNewPostInput ? (
-              <Card className="p-4 space-y-3 animate-fade-in-up border-accent/40">
-                <textarea
-                  value={newPostContent}
-                  onChange={(e) => setNewPostContent(e.target.value)}
-                  placeholder="Write an announcement or message for the group..."
-                  rows={3}
-                  className="w-full rounded-lg border border-border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                />
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setShowNewPostInput(false);
-                      setNewPostContent("");
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="accent"
-                    size="sm"
-                    disabled={!newPostContent.trim()}
-                    onClick={() => {
-                      if (!newPostContent.trim()) return;
-                      setCustomPosts((prev) => [
-                        {
-                          id: `post-${Date.now()}`,
-                          groupId,
-                          author: "You",
-                          content: newPostContent.trim(),
-                          createdAt: new Date().toISOString(),
-                          updatedAt: new Date().toISOString(),
-                        },
-                        ...prev,
-                      ]);
-                      setNewPostContent("");
-                      setShowNewPostInput(false);
-                      dispatch(
-                        notificationAdded({
-                          title: "Post created",
-                          message: "Your post was shared with the group.",
-                          variant: "success",
-                        })
-                      );
-                    }}
-                  >
-                    Publish post
+          ) : (
+            <>
+              {isOwnerOrAdmin && (
+                <div className="flex justify-end">
+                  <Button asChild variant="accent" size="sm">
+                    <Link href={ROUTES.SPORTS_EVENTS_CREATE}>
+                      <Plus />
+                      New event
+                    </Link>
                   </Button>
                 </div>
-              </Card>
-            ) : null}
+              )}
+              <EventsTable events={groupEvents} />
+            </>
+          )}
+        </TabsContent>
 
-            {groupPosts.length > 0 ? (
-              groupPosts.map((post) => (
-                <Card key={post.id} className="p-5">
-                  <p className="text-sm leading-relaxed">{post.content}</p>
-                  <p className="mt-3 text-xs font-semibold text-muted-foreground">
-                    {post.author} · {formatDate(post.createdAt)}
-                  </p>
-                </Card>
-              ))
-            ) : (
-              <EmptyCard
-                title="No posts yet"
-                description="Posts from coaches and admins will appear here."
+        <TabsContent value="polls" className="space-y-4">
+          {!canAccessPolls ? (
+            <EmptyCard
+              icon={Lock}
+              title="Only club admin can see this"
+              description="Polls and team voting have been turned off for your role by the club administrator."
+            />
+          ) : (
+            <>
+              {isOwnerOrAdmin && (
+                <div className="flex justify-end">
+                  <Button asChild variant="accent" size="sm">
+                    <Link href={ROUTES.SPORTS_POLLS_CREATE}>
+                      <Plus />
+                      New poll
+                    </Link>
+                  </Button>
+                </div>
+              )}
+              {groupPolls.length > 0 ? (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {groupPolls.map((poll) => (
+                    <PollCard key={poll.id} poll={poll} groupName={group.name} />
+                  ))}
+                </div>
+              ) : (
+                <EmptyCard
+                  title="No polls yet"
+                  description="Create a poll to gather votes from this group."
+                />
+              )}
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="files" className="space-y-4">
+          {!canAccessFiles ? (
+            <EmptyCard
+              icon={Lock}
+              title="Only club admin can see this"
+              description="Shared files and documents have been turned off for your role by the club administrator."
+            />
+          ) : groupFiles.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {groupFiles.map((file) => (
+                <FileCard key={file.id} file={file} />
+              ))}
+            </div>
+          ) : (
+            <EmptyCard
+              title="No files yet"
+              description="Shared documents, drills and media will appear here."
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="payments" className="space-y-4">
+          {!canAccessPayments ? (
+            <EmptyCard
+              icon={Lock}
+              title="Only club admin can see this"
+              description="Payments and fee requests have been turned off for your role by the club administrator."
+            />
+          ) : (
+            <>
+              {isOwnerOrAdmin && (
+                <div className="flex justify-end">
+                  <Button asChild variant="accent" size="sm">
+                    <Link href={ROUTES.SPORTS_PAYMENTS_CREATE}>
+                      <Plus />
+                      Request payment
+                    </Link>
+                  </Button>
+                </div>
+              )}
+              <PaymentsTable
+                payments={groupPayments}
+                groupNameById={{ [group.id]: group.name }}
               />
-            )}
-          </TabsContent>
-        )}
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="posts" className="space-y-4">
+          {!canAccessChat ? (
+            <EmptyCard
+              icon={Lock}
+              title="Only club admin can see this"
+              description="Team chat and announcements have been turned off for your role by the club administrator."
+            />
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold">Recent announcements & posts</h3>
+                <Button
+                  variant="accent"
+                  size="sm"
+                  onClick={() => setShowNewPostInput((prev) => !prev)}
+                >
+                  <Plus className="mr-1.5 h-4 w-4" /> Create post
+                </Button>
+              </div>
+
+              {showNewPostInput ? (
+                <Card className="p-4 space-y-3 animate-fade-in-up border-accent/40">
+                  <textarea
+                    value={newPostContent}
+                    onChange={(e) => setNewPostContent(e.target.value)}
+                    placeholder="Write an announcement or message for the group..."
+                    rows={3}
+                    className="w-full rounded-lg border border-border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setShowNewPostInput(false);
+                        setNewPostContent("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="accent"
+                      size="sm"
+                      disabled={!newPostContent.trim()}
+                      onClick={() => {
+                        if (!newPostContent.trim()) return;
+                        setCustomPosts((prev) => [
+                          {
+                            id: `post-${Date.now()}`,
+                            groupId,
+                            author: "You",
+                            content: newPostContent.trim(),
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                          },
+                          ...prev,
+                        ]);
+                        setNewPostContent("");
+                        setShowNewPostInput(false);
+                        dispatch(
+                          notificationAdded({
+                            title: "Post created",
+                            message: "Your post was shared with the group.",
+                            variant: "success",
+                          })
+                        );
+                      }}
+                    >
+                      Publish post
+                    </Button>
+                  </div>
+                </Card>
+              ) : null}
+
+              {groupPosts.length > 0 ? (
+                groupPosts.map((post) => (
+                  <Card key={post.id} className="p-5">
+                    <p className="text-sm leading-relaxed">{post.content}</p>
+                    <p className="mt-3 text-xs font-semibold text-muted-foreground">
+                      {post.author} · {formatDate(post.createdAt)}
+                    </p>
+                  </Card>
+                ))
+              ) : (
+                <EmptyCard
+                  title="No posts yet"
+                  description="Posts from coaches and admins will appear here."
+                />
+              )}
+            </>
+          )}
+        </TabsContent>
 
         {isOwnerOrAdmin && (
           <TabsContent value="settings" className="space-y-6">

@@ -58,6 +58,7 @@ export interface FeatureToggles {
   payments: boolean;
   files: boolean;
   chat: boolean;
+  attendance?: boolean;
 }
 
 export interface GroupRolePermissions {

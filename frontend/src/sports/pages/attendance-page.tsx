@@ -23,6 +23,7 @@ import { AttendanceBadge } from "../components/attendance-badge";
 import { StatusBadge } from "../components/status-badge";
 import { AttendanceTable, type AttendanceRecord } from "../tables/attendance-table";
 import { MOCK_ATTENDANCE_RECORDS } from "../mocks/attendance.mock";
+import { canUserAccessFeatureInGroups } from "../utils/permissions";
 import { formatDate } from "@/utils/date";
 import { ROUTES } from "@/constants";
 import type { AttendanceResponse } from "@/types";
@@ -41,6 +42,10 @@ export function AttendancePage() {
   const dispatch = useAppDispatch();
   const events = useAppSelector(selectAllEvents);
   const groups = useAppSelector(selectAllGroups);
+
+  const canAccessAttendance = useMemo(() => {
+    return canUserAccessFeatureInGroups(groups, currentUser, "attendance");
+  }, [groups, currentUser]);
 
   const sortedEvents = useMemo(
     () =>
@@ -318,7 +323,17 @@ export function AttendancePage() {
         className="animate-fade-in-up"
       />
 
-      {showSuccessScreen ? (
+      {!canAccessAttendance ? (
+        <div className="mt-8">
+          <EmptyCard
+            icon={Lock}
+            title="Only club admin can see this"
+            description="Attendance tracking has been turned off for your role by the club administrator."
+          />
+        </div>
+      ) : (
+        <>
+          {showSuccessScreen ? (
         <div className="mt-4 flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-600 dark:text-emerald-400 animate-fade-in-up">
           <CheckCircle2 className="h-5 w-5 shrink-0" />
           <div>
@@ -747,6 +762,8 @@ export function AttendancePage() {
           )}
         </TabsContent>
       </Tabs>
+        </>
+      )}
     </PageContainer>
   );
 }

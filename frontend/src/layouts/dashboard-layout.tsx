@@ -5,17 +5,28 @@ import { BAND_CLIENT_NAV, BAND_ARTIST_NAV, BAND_VENUE_NAV, PRODUCT_CONFIGS, SPOR
 import { useSidebar } from "@/hooks";
 import { usePathname } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { selectUnreadMessagesCount } from "@/store/sports/selectors";
+import { selectAllGroups, selectUnreadMessagesCount } from "@/store/sports/selectors";
+import { fetchGroupsThunk } from "@/store/sports/groups-slice";
 import { fetchConversations } from "@/store/sports/messages-slice";
 import { fetchNotifications, notificationAdded } from "@/store/slices/notification-slice";
+import { canUserAccessFeatureInGroups } from "@/sports/utils/permissions";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { Sidebar, SidebarNav } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { LogoMark } from "@/components/shared/brand";
 import { pathToBreadcrumbs } from "@/utils/helpers";
-import type { ProductKey } from "@/types";
+import type { FeatureToggles, ProductKey } from "@/types";
 import { cn } from "@/utils/cn";
 import { notificationWs } from "@/features/notifications/websocket";
+
+const ROUTE_FEATURE_MAP: Partial<Record<string, keyof FeatureToggles>> = {
+  [ROUTES.SPORTS_EVENTS]: "events",
+  [ROUTES.SPORTS_ATTENDANCE]: "attendance",
+  [ROUTES.SPORTS_POLLS]: "polls",
+  [ROUTES.SPORTS_PAYMENTS]: "payments",
+  [ROUTES.SPORTS_MESSAGES]: "chat",
+  [ROUTES.SPORTS_FILES]: "files",
+};
 
 export interface DashboardLayoutProps {
   product: ProductKey;
@@ -36,6 +47,7 @@ export function DashboardLayout({
   const user = useAppSelector((state) => state.auth.user);
   const accessToken = useAppSelector((state) => state.auth.accessToken);
   const unreadMessagesCount = useAppSelector(selectUnreadMessagesCount);
+  const groups = useAppSelector(selectAllGroups);
   const pathname = usePathname();
 
   React.useEffect(() => {
@@ -43,6 +55,7 @@ export function DashboardLayout({
     dispatch(fetchNotifications());
     if (product === "sports") {
       dispatch(fetchConversations());
+      dispatch(fetchGroupsThunk());
     }
   }, [dispatch, product]);
   
@@ -72,15 +85,25 @@ export function DashboardLayout({
   const effectiveRole = user?.role || (pathname?.includes("/band/artist") || pathname?.includes("/band/bands") ? "artist" : pathname?.includes("/band/venue") ? "venue_owner" : "client");
 
   const sportsNav = React.useMemo(() => {
-    return SPORTS_NAV.map((section) => ({
-      ...section,
-      items: section.items.map((item) =>
-        item.href === ROUTES.SPORTS_MESSAGES
-          ? { ...item, badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined }
-          : item
-      ),
-    }));
-  }, [unreadMessagesCount]);
+    return SPORTS_NAV.map((section) => {
+      const visibleItems = section.items.filter((item) => {
+        const featureKey = ROUTE_FEATURE_MAP[item.href];
+        if (featureKey && !canUserAccessFeatureInGroups(groups, user, featureKey)) {
+          return false;
+        }
+        return true;
+      });
+
+      return {
+        ...section,
+        items: visibleItems.map((item) =>
+          item.href === ROUTES.SPORTS_MESSAGES
+            ? { ...item, badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined }
+            : item
+        ),
+      };
+    }).filter((section) => section.items.length > 0);
+  }, [groups, user, unreadMessagesCount]);
 
   const sections =
     !mounted

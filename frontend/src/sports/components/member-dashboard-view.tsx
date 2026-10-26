@@ -10,6 +10,7 @@ import {
   CalendarDays,
   Vote,
   Users,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyCard } from "@/components/cards";
@@ -76,10 +77,18 @@ export function MemberDashboardView({
     return "member";
   };
 
-  const canAccessEvents = groups.length === 0 || groups.some((g) => canAccessFeature(g, getUserRoleInGroup(g), "events"));
-  const canAccessPolls = groups.length === 0 || groups.some((g) => canAccessFeature(g, getUserRoleInGroup(g), "polls"));
-  const canAccessPayments = groups.length === 0 || groups.some((g) => canAccessFeature(g, getUserRoleInGroup(g), "payments"));
-  const canAccessChat = groups.length === 0 || groups.some((g) => canAccessFeature(g, getUserRoleInGroup(g), "chat"));
+  const memberGroups = groups.filter((g) => {
+    if (currentUser?.role === "player" && (g.createdBy === currentUser.id || g.created_by === currentUser.id)) {
+      return false;
+    }
+    return true;
+  });
+  const activeGroups = memberGroups.length > 0 ? memberGroups : groups;
+
+  const canAccessEvents = activeGroups.length === 0 || activeGroups.some((g) => canAccessFeature(g, getUserRoleInGroup(g), "events"));
+  const canAccessPolls = activeGroups.length === 0 || activeGroups.some((g) => canAccessFeature(g, getUserRoleInGroup(g), "polls"));
+  const canAccessPayments = activeGroups.length === 0 || activeGroups.some((g) => canAccessFeature(g, getUserRoleInGroup(g), "payments"));
+  const canAccessChat = activeGroups.length === 0 || activeGroups.some((g) => canAccessFeature(g, getUserRoleInGroup(g), "chat"));
 
   const filteredUpcomingEvents = upcomingEvents.filter((event) => {
     const g = groups.find((grp) => grp.id === event.groupId);
@@ -104,36 +113,30 @@ export function MemberDashboardView({
     <div className="space-y-8 animate-fade-in">
       {/* 1. Member Stat Cards */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {canAccessEvents && (
-          <StatsCard
-            label="My upcoming events"
-            value={filteredUpcomingEvents.length}
-            icon={CalendarCheck}
-            className="animate-fade-in-up"
-          />
-        )}
+        <StatsCard
+          label="My upcoming events"
+          value={canAccessEvents ? filteredUpcomingEvents.length : "Locked"}
+          icon={canAccessEvents ? CalendarCheck : Lock}
+          className={cn("animate-fade-in-up", !canAccessEvents && "opacity-80")}
+        />
         <StatsCard
           label="My clubs & groups"
           value={groups.length}
           icon={Users}
           className="animate-fade-in-up [animation-delay:60ms]"
         />
-        {canAccessPayments && (
-          <StatsCard
-            label="Pending dues"
-            value={filteredPendingPayments.length > 0 ? formatCurrency(dueAmount) : "₹0"}
-            icon={CreditCard}
-            className="animate-fade-in-up [animation-delay:120ms]"
-          />
-        )}
-        {canAccessChat && (
-          <StatsCard
-            label="Unread messages"
-            value={unreadMessagesCount}
-            icon={MessageSquare}
-            className="animate-fade-in-up [animation-delay:180ms]"
-          />
-        )}
+        <StatsCard
+          label="Pending dues"
+          value={!canAccessPayments ? "Locked" : filteredPendingPayments.length > 0 ? formatCurrency(dueAmount) : "₹0"}
+          icon={canAccessPayments ? CreditCard : Lock}
+          className={cn("animate-fade-in-up [animation-delay:120ms]", !canAccessPayments && "opacity-80")}
+        />
+        <StatsCard
+          label="Unread messages"
+          value={canAccessChat ? unreadMessagesCount : "Locked"}
+          icon={canAccessChat ? MessageSquare : Lock}
+          className={cn("animate-fade-in-up [animation-delay:180ms]", !canAccessChat && "opacity-80")}
+        />
       </div>
 
       {/* 2. Next Fixture RSVP Banner */}
@@ -169,114 +172,130 @@ export function MemberDashboardView({
       ) : null}
 
       {/* 3. Upcoming Schedule & Active Polls */}
-      {(canAccessEvents || canAccessPolls) && (
-        <div className={cn("grid gap-6", canAccessEvents && canAccessPolls ? "lg:grid-cols-2" : "grid-cols-1")}>
-          {/* Events Column */}
-          {canAccessEvents && (
-            <section className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-extrabold tracking-tight">
-                  My Schedule
-                </h2>
-                <Button asChild variant="link" size="sm">
-                  <Link href={ROUTES.SPORTS_EVENTS}>View all</Link>
-                </Button>
-              </div>
-              {filteredUpcomingEvents.length > 0 ? (
-                <div className="grid gap-4">
-                  {filteredUpcomingEvents.slice(0, 3).map((event) => (
-                    <EventCard key={event.id} event={event} />
-                  ))}
-                </div>
-              ) : (
-                <EmptyCard
-                  title="No upcoming matches"
-                  description="You have no matches or training sessions scheduled right now."
-                />
-              )}
-            </section>
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Events Column */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-extrabold tracking-tight">
+              My Schedule
+            </h2>
+            {canAccessEvents && (
+              <Button asChild variant="link" size="sm">
+                <Link href={ROUTES.SPORTS_EVENTS}>View all</Link>
+              </Button>
+            )}
+          </div>
+          {!canAccessEvents ? (
+            <EmptyCard
+              icon={Lock}
+              title="Only club admin can see this"
+              description="Events and matches have been turned off for your role by the club administrator."
+            />
+          ) : filteredUpcomingEvents.length > 0 ? (
+            <div className="grid gap-4">
+              {filteredUpcomingEvents.slice(0, 3).map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+            </div>
+          ) : (
+            <EmptyCard
+              title="No upcoming matches"
+              description="You have no matches or training sessions scheduled right now."
+            />
           )}
+        </section>
 
-          {/* Polls Column */}
-          {canAccessPolls && (
-            <section className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-extrabold tracking-tight">
-                  Team Polls
-                </h2>
-                <Button asChild variant="link" size="sm">
-                  <Link href={ROUTES.SPORTS_POLLS}>View all</Link>
-                </Button>
-              </div>
-              {filteredActivePolls.length > 0 ? (
-                <div className="grid gap-4">
-                  {filteredActivePolls.slice(0, 2).map((poll) => (
-                    <PollCard
-                      key={poll.id}
-                      poll={poll}
-                      groupName={groupNames[poll.groupId]}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <EmptyCard
-                  title="No active polls"
-                  description="There are no active votes right now across your teams."
+        {/* Polls Column */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-extrabold tracking-tight">
+              Team Polls
+            </h2>
+            {canAccessPolls && (
+              <Button asChild variant="link" size="sm">
+                <Link href={ROUTES.SPORTS_POLLS}>View all</Link>
+              </Button>
+            )}
+          </div>
+          {!canAccessPolls ? (
+            <EmptyCard
+              icon={Lock}
+              title="Only club admin can see this"
+              description="Polls and team voting have been turned off for your role by the club administrator."
+            />
+          ) : filteredActivePolls.length > 0 ? (
+            <div className="grid gap-4">
+              {filteredActivePolls.slice(0, 2).map((poll) => (
+                <PollCard
+                  key={poll.id}
+                  poll={poll}
+                  groupName={groupNames[poll.groupId]}
                 />
-              )}
-            </section>
+              ))}
+            </div>
+          ) : (
+            <EmptyCard
+              title="No active polls"
+              description="There are no active votes right now across your teams."
+            />
           )}
-        </div>
-      )}
+        </section>
+      </div>
 
       {/* 4. Pending Payments & Quick Actions */}
-      <div className={cn("grid gap-6", canAccessPayments ? "xl:grid-cols-3" : "grid-cols-1")}>
-        {canAccessPayments && (
-          <section className="space-y-4 xl:col-span-2">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-extrabold tracking-tight">
-                My Fees & Payments
-              </h2>
+      <div className="grid gap-6 xl:grid-cols-3">
+        <section className="space-y-4 xl:col-span-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-extrabold tracking-tight">
+              My Fees & Payments
+            </h2>
+            {canAccessPayments && (
               <Button asChild variant="link" size="sm">
                 <Link href={ROUTES.SPORTS_PAYMENTS}>History</Link>
               </Button>
-            </div>
-            {filteredPendingPayments.length > 0 ? (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  You have {filteredPendingPayments.length} pending request(s) totaling{" "}
-                  <span className="font-bold text-foreground">
-                    {formatCurrency(dueAmount)}
-                  </span>
-                </p>
-                <div className="grid gap-4 md:grid-cols-2">
-                  {filteredPendingPayments.slice(0, 4).map((payment) => (
-                    <div key={payment.id} className="relative flex flex-col">
-                      <PaymentCard
-                        payment={payment}
-                        groupName={groupNames[payment.groupId]}
-                      />
-                      <div className="mt-2 flex justify-end">
-                        <Button
-                          size="sm"
-                          variant="accent"
-                          onClick={() => setSelectedPayment(payment)}
-                        >
-                          Pay Now ({formatCurrency(payment.amount)})
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <EmptyCard
-                title="All settled"
-                description="You have no outstanding membership fees or payments."
-              />
             )}
-          </section>
-        )}
+          </div>
+          {!canAccessPayments ? (
+            <EmptyCard
+              icon={Lock}
+              title="Only club admin can see this"
+              description="Payments and dues have been turned off for your role by the club administrator."
+            />
+          ) : filteredPendingPayments.length > 0 ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                You have {filteredPendingPayments.length} pending request(s) totaling{" "}
+                <span className="font-bold text-foreground">
+                  {formatCurrency(dueAmount)}
+                </span>
+              </p>
+              <div className="grid gap-4 md:grid-cols-2">
+                {filteredPendingPayments.slice(0, 4).map((payment) => (
+                  <div key={payment.id} className="relative flex flex-col">
+                    <PaymentCard
+                      payment={payment}
+                      groupName={groupNames[payment.groupId]}
+                    />
+                    <div className="mt-2 flex justify-end">
+                      <Button
+                        size="sm"
+                        variant="accent"
+                        onClick={() => setSelectedPayment(payment)}
+                      >
+                        Pay Now ({formatCurrency(payment.amount)})
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <EmptyCard
+              title="All settled"
+              description="You have no outstanding membership fees or payments."
+            />
+          )}
+        </section>
 
         <section className="space-y-4">
           <h2 className="text-lg font-extrabold tracking-tight">Quick Actions</h2>

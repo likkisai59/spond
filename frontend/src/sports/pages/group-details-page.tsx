@@ -7,6 +7,7 @@ import {
   LayoutGrid,
   Lock,
   MapPin,
+  MessageSquare,
   Plus,
   Search,
   SearchX,
@@ -392,6 +393,14 @@ export function GroupDetailsPage() {
           </div>
           <div className="flex shrink-0 flex-col gap-2">
             <div className="flex flex-col gap-2 sm:flex-row">
+              {canAccessChat && (
+                <Button asChild variant="outline">
+                  <Link href={`/sports/messages?conversationId=${groupId}`}>
+                    <MessageSquare className="mr-1.5 h-4 w-4 text-primary" />
+                    Team Chat
+                  </Link>
+                </Button>
+              )}
               {isOwnerOrAdmin && (
                 <Button variant="outline" onClick={handleInvite}>
                   <UserPlus />
@@ -496,19 +505,34 @@ export function GroupDetailsPage() {
               </h2>
               <Card className="p-5">
                 <ul className="space-y-3">
-                  {(group.members ?? []).slice(0, 5).map((member) => (
-                    <li key={member.id} className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold">{member.name}</p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {member.role}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
+                  {(group.members ?? []).slice(0, 5).map((member) => {
+                    const targetUserId = member.userId || member.user_id || member.id;
+                    const isMe = Boolean(currentUser?.id && targetUserId === currentUser.id);
+
+                    return (
+                      <li key={member.id} className="flex items-center gap-3">
+                        <Avatar className="h-9 w-9">
+                          <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-bold">{member.name}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {member.role}
+                          </p>
+                        </div>
+                        {!isMe && targetUserId ? (
+                          <Link
+                            href={`/sports/messages?userId=${targetUserId}`}
+                            className="inline-flex items-center gap-1 rounded-full border border-border/80 px-2.5 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+                            title={`Chat with ${member.name}`}
+                          >
+                            <MessageSquare className="h-3.5 w-3.5 text-primary" />
+                            <span>Chat</span>
+                          </Link>
+                        ) : null}
+                      </li>
+                    );
+                  })}
                 </ul>
                 <p className="mt-4 text-center text-xs font-semibold text-muted-foreground">
                   {group.memberCount ?? (group.members ?? []).length} members in total

@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { UserX, Send } from "lucide-react";
+import Link from "next/link";
+import { MessageSquare, Send, UserX } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/shared/card";
+import { useAuth } from "@/hooks";
 import { useAppDispatch } from "@/store/hooks";
 import { notificationAdded } from "@/store/slices/notification-slice";
 import { removeMemberThunk, addMemberThunk } from "@/store/sports/groups-slice";
@@ -28,8 +30,11 @@ export function MemberCard({
   className,
 }: MemberCardProps) {
   const dispatch = useAppDispatch();
+  const { user: currentUser } = useAuth();
   const [isResending, setIsResending] = useState(false);
 
+  const targetUserId = member.userId || member.user_id || member.id;
+  const isMe = Boolean(currentUser?.id && targetUserId === currentUser.id);
   const isOwner = member.role?.toLowerCase() === "owner";
   const isPendingOrInvited =
     member.status?.toLowerCase() === "pending" ||
@@ -116,9 +121,21 @@ export function MemberCard({
         </div>
       </div>
 
-      <div className="mt-3.5 flex flex-wrap items-center gap-2">
-        <Badge variant="accent">{member.role}</Badge>
-        <StatusBadge status={member.status} />
+      <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="accent">{member.role}</Badge>
+          <StatusBadge status={member.status} />
+        </div>
+        {!isMe && targetUserId ? (
+          <Link
+            href={`/sports/messages?userId=${targetUserId}`}
+            className="inline-flex items-center gap-1 rounded-full border border-border/80 px-2.5 py-1 text-xs font-semibold text-foreground transition-colors hover:bg-muted"
+            title={`Message ${member.name}`}
+          >
+            <MessageSquare className="h-3.5 w-3.5 text-primary" />
+            <span>Chat</span>
+          </Link>
+        ) : null}
       </div>
 
       {canManage && !isOwner ? (

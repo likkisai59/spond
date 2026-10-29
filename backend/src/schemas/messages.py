@@ -31,12 +31,18 @@ class MessageSchema(BaseModel):
 
 class ConversationResponse(BaseModel):
     id: str
-    booking_id: str
-    client_id: str
-    band_id: str
+    booking_id: Optional[str] = None
+    client_id: Optional[str] = None
+    band_id: Optional[str] = None
     venue_owner_id: Optional[str] = None
     pinned_message_id: Optional[str] = None
     status: str = "ACTIVE"
+    type: Optional[str] = "DIRECT"
+    group_id: Optional[str] = None
+    participant_ids: Optional[List[str]] = []
+    name: Optional[str] = None
+    last_message: Optional[str] = None
+    unread_count: Optional[int] = 0
     last_message_at: Optional[str] = None
     created_at: str
     updated_at: str
@@ -44,7 +50,18 @@ class ConversationResponse(BaseModel):
     pinned_message: Optional[MessageSchema] = None
 
 class CreateConversationPayload(BaseModel):
-    booking_id: str
+    booking_id: Optional[str] = None
+    target_user_id: Optional[str] = None
+    group_id: Optional[str] = None
+    group_name: Optional[str] = None
+    type: Optional[str] = None
+
+class CreateDirectConversationPayload(BaseModel):
+    target_user_id: str
+
+class CreateGroupConversationPayload(BaseModel):
+    group_id: str
+    group_name: str
 
 class SendMessagePayload(BaseModel):
     content: str

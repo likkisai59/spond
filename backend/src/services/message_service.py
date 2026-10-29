@@ -31,16 +31,44 @@ class MessageService:
         self.venue_bookings = VenueBookingRepository()
 
     async def get_user_conversations(self, user_id: str) -> List[Dict[str, Any]]:
-        # A user is in a conversation if they are the client, the band, or the venue owner
-        query = {
+        from bson import ObjectId
+        from src.constants.collections import SPORTS_GROUPS, SPORTS_GROUP_MEMBERS
+
+        db = self.conversations.collection.database
+        sports_groups_col = db[SPORTS_GROUPS]
+        sports_members_col = db[SPORTS_GROUP_MEMBERS]
+
+        # 1. Fetch user's sports groups (where user is creator or member)
+        member_cursor = sports_members_col.find({"user_id": user_id})
+        member_group_ids = [str(m["group_id"]) async for m in member_cursor if m.get("group_id")]
+        valid_oids = [ObjectId(gid) for gid in member_group_ids if ObjectId.is_valid(gid)]
+
+        user_groups_cursor = sports_groups_col.find({
             "$or": [
-                {"client_id": user_id},
-                {"band_id": user_id},
-                {"venue_owner_id": user_id}
+                {"createdBy": user_id},
+                {"created_by": user_id},
+                {"_id": {"$in": valid_oids}} if valid_oids else {"_id": None},
             ]
-        }
+        })
+        user_groups = [g async for g in user_groups_cursor]
+        group_ids = [str(g["_id"]) for g in user_groups]
+        group_map = {str(g["_id"]): g for g in user_groups}
+
+        # 2. Query conversations collection
+        query_conditions = [
+            {"client_id": user_id},
+            {"band_id": user_id},
+            {"venue_owner_id": user_id},
+            {"participant_ids": user_id},
+        ]
+        if group_ids:
+            query_conditions.append({"group_id": {"$in": group_ids}})
+
+        query = {"$or": query_conditions}
         cursor = self.conversations.collection.find(query).sort("last_message_at", -1)
         conversations = []
+        seen_group_ids = set()
+
         async for doc in cursor:
             doc["id"] = str(doc.pop("_id"))
             
@@ -55,18 +83,68 @@ class MessageService:
             # If there's a pinned message, format it
             if doc.get("pinned_message"):
                 doc["pinned_message"]["id"] = str(doc["pinned_message"].pop("_id", doc["pinned_message"].get("id")))
+
+            # If it's a direct conversation, set display name to the other member's name
+            if doc.get("type") == "DIRECT" and doc.get("participant_ids"):
+                other_id = next((pid for pid in doc["participant_ids"] if pid != user_id), None)
+                if other_id:
+                    from src.repositories import UserRepository
+                    other_user = await UserRepository().find_by_id(other_id)
+                    if other_user:
+                        doc["name"] = other_user.get("full_name") or other_user.get("name") or doc.get("name")
+
+            if doc.get("group_id"):
+                seen_group_ids.add(str(doc["group_id"]))
+                if str(doc["group_id"]) in group_map:
+                    doc["name"] = group_map[str(doc["group_id"])].get("name", doc.get("name"))
                 
             conversations.append(doc)
+
+        # 3. For any user's sports groups not yet in conversations collection, include them as Group conversations
+        now_iso = utc_now().isoformat()
+        for gid, grp in group_map.items():
+            if gid not in seen_group_ids:
+                conversations.append({
+                    "id": gid,
+                    "type": "GROUP",
+                    "group_id": gid,
+                    "name": grp.get("name", "Team Discussion"),
+                    "last_message": "No messages yet. Start team discussion.",
+                    "last_message_at": grp.get("updated_at").isoformat() if hasattr(grp.get("updated_at"), "isoformat") else (grp.get("updated_at") or now_iso),
+                    "unread_count": 0,
+                    "messages": [],
+                    "created_at": grp.get("created_at").isoformat() if hasattr(grp.get("created_at"), "isoformat") else (grp.get("created_at") or now_iso),
+                    "updated_at": grp.get("updated_at").isoformat() if hasattr(grp.get("updated_at"), "isoformat") else (grp.get("updated_at") or now_iso),
+                })
             
         return conversations
 
     async def get_conversation(self, conversation_id: str, user_id: str) -> Dict[str, Any]:
         doc = await self.conversations.find_by_id(conversation_id)
         if not doc:
-            raise ValueError("Conversation not found")
+            # Check if this conversation_id is a sports group ID or a group_id in conversations
+            existing_group_conv = await self.conversations.find_one({"group_id": conversation_id})
+            if existing_group_conv:
+                doc = existing_group_conv
+            else:
+                from bson import ObjectId
+                from src.constants.collections import SPORTS_GROUPS
+                sports_groups_col = self.conversations.collection.database[SPORTS_GROUPS]
+                if ObjectId.is_valid(conversation_id):
+                    group = await sports_groups_col.find_one({"_id": ObjectId(conversation_id)})
+                    if group:
+                        return await self.get_or_create_group_conversation(conversation_id, group.get("name", "Team Discussion"), user_id)
+                raise ValueError("Conversation not found")
         
         # Verify participation
-        if doc.get("client_id") != user_id and doc.get("band_id") != user_id and doc.get("venue_owner_id") != user_id:
+        is_participant = (
+            doc.get("client_id") == user_id or
+            doc.get("band_id") == user_id or
+            doc.get("venue_owner_id") == user_id or
+            user_id in (doc.get("participant_ids") or []) or
+            doc.get("type") == "GROUP"
+        )
+        if not is_participant:
             raise PermissionError("Not authorized to access this conversation")
             
         if doc.get("created_at") and hasattr(doc["created_at"], 'isoformat'):
@@ -77,6 +155,76 @@ class MessageService:
             doc["last_message_at"] = doc["last_message_at"].isoformat()
             
         return doc
+
+    async def get_or_create_direct_conversation(self, user1_id: str, user2_id: str) -> Dict[str, Any]:
+        if user1_id == user2_id:
+            raise ValueError("Cannot start a direct conversation with yourself")
+            
+        # Check if conversation between these two already exists
+        existing = await self.conversations.find_one({
+            "type": "DIRECT",
+            "participant_ids": {"$all": [user1_id, user2_id]}
+        })
+        if existing:
+            existing["id"] = str(existing.pop("_id", existing.get("id")))
+            for field in ["created_at", "updated_at", "last_message_at"]:
+                if existing.get(field) and hasattr(existing[field], 'isoformat'):
+                    existing[field] = existing[field].isoformat()
+            return existing
+
+        from src.repositories import UserRepository
+        target_user = await UserRepository().find_by_id(user2_id)
+        target_name = (target_user.get("full_name") or target_user.get("name") or "Member") if target_user else "Member"
+
+        now = utc_now()
+        new_conv = {
+            "type": "DIRECT",
+            "participant_ids": [user1_id, user2_id],
+            "name": target_name,
+            "created_by": user1_id,
+            "status": "ACTIVE",
+            "last_message": "Started a conversation",
+            "last_message_at": now,
+            "created_at": now,
+            "updated_at": now
+        }
+        created = await self.conversations.insert(new_conv)
+        created["id"] = str(created.pop("_id", created.get("id")))
+        for field in ["created_at", "updated_at", "last_message_at"]:
+            if created.get(field) and hasattr(created[field], 'isoformat'):
+                created[field] = created[field].isoformat()
+        return created
+
+    async def get_or_create_group_conversation(self, group_id: str, group_name: str, user_id: str) -> Dict[str, Any]:
+        existing = await self.conversations.find_one({
+            "type": "GROUP",
+            "group_id": group_id
+        })
+        if existing:
+            existing["id"] = str(existing.pop("_id", existing.get("id")))
+            for field in ["created_at", "updated_at", "last_message_at"]:
+                if existing.get(field) and hasattr(existing[field], 'isoformat'):
+                    existing[field] = existing[field].isoformat()
+            return existing
+
+        now = utc_now()
+        new_conv = {
+            "type": "GROUP",
+            "group_id": group_id,
+            "name": group_name or "Team Discussion",
+            "created_by": user_id,
+            "status": "ACTIVE",
+            "last_message": "Team discussion started",
+            "last_message_at": now,
+            "created_at": now,
+            "updated_at": now
+        }
+        created = await self.conversations.insert(new_conv)
+        created["id"] = str(created.pop("_id", created.get("id")))
+        for field in ["created_at", "updated_at", "last_message_at"]:
+            if created.get(field) and hasattr(created[field], 'isoformat'):
+                created[field] = created[field].isoformat()
+        return created
 
     async def create_conversation(self, payload: CreateConversationPayload, user_id: str) -> Dict[str, Any]:
         # Check if conversation for this booking already exists
@@ -243,7 +391,8 @@ class MessageService:
         
         # Update conversation last message
         await self.conversations.update_by_id(conversation_id, {
-            "last_message_at": now
+            "last_message_at": now,
+            "last_message": payload.content if payload.content else "Sent an attachment"
         })
         
         if created_msg.get("created_at") and hasattr(created_msg["created_at"], 'isoformat'):
@@ -253,9 +402,27 @@ class MessageService:
         
         # Broadcast real-time message
         from src.services.websocket_manager import manager
+
+        # Broadcast directly to connected chat room participants
+        await manager.broadcast_to_room(
+            {
+                "id": created_msg.get("id"),
+                "conversationId": conversation_id,
+                "senderId": sender_id,
+                "senderName": sender_name,
+                "content": created_msg.get("content", ""),
+                "sentAt": created_msg.get("created_at"),
+                "isMine": False,
+                "type": "messaging",
+                "event": "message.created",
+                "data": created_msg
+            },
+            conversation_id
+        )
+
         conv = await self.conversations.find_by_id(conversation_id)
         if conv:
-            participants = [p for p in [conv.get("client_id"), conv.get("band_id"), conv.get("venue_owner_id")] if p]
+            participants = list(set([p for p in [conv.get("client_id"), conv.get("band_id"), conv.get("venue_owner_id")] if p] + (conv.get("participant_ids") or [])))
             
             # Send Notifications to everyone except sender
             notif_service = NotificationService()
@@ -266,7 +433,6 @@ class MessageService:
                 )
                 
                 if p != sender_id:
-                    # Resolve sender name (optional improvement: fetch real name)
                     msg_preview = payload.content if payload.content else "Sent an attachment"
                     if len(msg_preview) > 50:
                         msg_preview = msg_preview[:47] + "..."

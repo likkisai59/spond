@@ -35,6 +35,19 @@ export const fetchHistory = createAsyncThunk(
   }
 );
 
+export const startDirectChatThunk = createAsyncThunk(
+  "sports/messages/startDirectChat",
+  async (targetUserId: string) => {
+    return await messagesService.createDirectConversation(targetUserId);
+  }
+);
+
+export const sendMessageThunk = createAsyncThunk(
+  "sports/messages/sendMessage",
+  async ({ conversationId, content }: { conversationId: string; content: string }) => {
+    return await messagesService.sendMessage(conversationId, content);
+  }
+);
 
 const messagesSlice = createSlice({
   name: "sports/messages",
@@ -78,17 +91,32 @@ const messagesSlice = createSlice({
       if (!conversation) return;
       if (!conversation.messages) conversation.messages = [];
       
-      // Prevent duplicates
+      // Prevent duplicates by ID
       if (conversation.messages.find((m: ChatMessage) => m.id === action.payload.message.id)) return;
 
-      conversation.messages.push(action.payload.message);
+      // Check if this matches a locally sent optimistic message
+      const pendingIndex = conversation.messages.findIndex(
+        (m: ChatMessage) =>
+          (m.isMine || m.senderId === "me" || m.senderId === action.payload.message.senderId) &&
+          m.content === action.payload.message.content
+      );
+
+      if (pendingIndex !== -1) {
+        conversation.messages[pendingIndex] = {
+          ...action.payload.message,
+          isMine: true,
+        };
+      } else {
+        conversation.messages.push(action.payload.message);
+        conversation.unreadCount += 1;
+      }
+
       conversation.lastMessage = action.payload.message.content;
       conversation.lastMessageAt = action.payload.message.sentAt;
-      conversation.unreadCount += 1;
     },
   },
 
-   extraReducers(builder) {
+  extraReducers(builder) {
     builder
       .addCase(fetchConversations.pending, (state) => {
         state.status = "loading";
@@ -96,15 +124,28 @@ const messagesSlice = createSlice({
       .addCase(fetchConversations.fulfilled, (state, action) => {
         state.status = "succeeded";
         const fetched = action.payload || [];
-        state.conversations = fetched.map((conv: Conversation) => ({
-          ...conv,
-          messages: state.conversations.find(c => c.id === conv.id)?.messages || conv.messages || []
+        const formattedFetched = fetched.map((conv: any) => ({
+          id: conv.id || conv._id,
+          groupId: conv.group_id || conv.groupId,
+          type: (conv.type === "GROUP" || conv.type === "Group") ? ("Group" as const) : ("Direct" as const),
+          name: conv.name || (conv.type === "GROUP" ? "Team Chat" : "Member"),
+          lastMessage: conv.lastMessage || conv.last_message || "No messages yet.",
+          lastMessageAt: conv.lastMessageAt || conv.last_message_at || new Date().toISOString(),
+          unreadCount: conv.unreadCount || conv.unread_count || 0,
+          messages: state.conversations.find(c => c.id === (conv.id || conv._id))?.messages || conv.messages || [],
+          createdAt: conv.createdAt || conv.created_at || new Date().toISOString(),
+          updatedAt: conv.updatedAt || conv.updated_at || new Date().toISOString(),
         }));
+        const map = new Map<string, Conversation>();
+        formattedFetched.forEach((c: Conversation) => map.set(c.id, c));
+        state.conversations.forEach((c: Conversation) => {
+          if (!map.has(c.id)) map.set(c.id, c);
+        });
+        state.conversations = Array.from(map.values());
       })
       .addCase(fetchConversations.rejected, (state, action) => {
         state.status = "failed";
         state.error = action.error.message || "Failed to fetch conversations";
-        state.conversations = [];
       })
       .addCase(fetchHistory.fulfilled, (state, action) => {
         const conversation = state.conversations.find(c => c.id === action.payload.conversationId);
@@ -112,11 +153,37 @@ const messagesSlice = createSlice({
           conversation.messages = action.payload.history;
         }
       })
+      .addCase(startDirectChatThunk.fulfilled, (state, action) => {
+        const conv = action.payload as any;
+        if (!conv) return;
+        const formatted: Conversation = {
+          id: conv.id || conv._id,
+          type: "Direct",
+          name: conv.name || "Member",
+          lastMessage: conv.lastMessage || conv.last_message || "Started a conversation",
+          lastMessageAt: conv.lastMessageAt || conv.last_message_at || new Date().toISOString(),
+          unreadCount: 0,
+          messages: [],
+          createdAt: conv.createdAt || conv.created_at || new Date().toISOString(),
+          updatedAt: conv.updatedAt || conv.updated_at || new Date().toISOString(),
+        };
+        const existingIdx = state.conversations.findIndex(c => c.id === formatted.id);
+        if (existingIdx >= 0) {
+          state.conversations[existingIdx] = {
+            ...state.conversations[existingIdx],
+            ...formatted,
+            messages: state.conversations[existingIdx].messages
+          };
+        } else {
+          state.conversations.unshift(formatted);
+        }
+      })
       .addCase(fetchGroupsThunk.fulfilled, (state, action) => {
         const groups = (action.payload as SportsGroup[]) || [];
-        const directChats = state.conversations.filter((c) => c.type === "Direct");
+        const nonGroupChats = state.conversations.filter((c) => c.type !== "Group");
+        const existingGroupChats = state.conversations.filter((c) => c.type === "Group");
         const groupChats: Conversation[] = groups.map((group) => {
-          const existing = state.conversations.find((c) => c.id === group.id);
+          const existing = existingGroupChats.find((c: any) => c.id === group.id || c.groupId === group.id);
           return (
             existing ?? {
               id: group.id,
@@ -132,7 +199,7 @@ const messagesSlice = createSlice({
             }
           );
         });
-        state.conversations = [...groupChats, ...directChats];
+        state.conversations = [...groupChats, ...nonGroupChats];
       });
   }
 

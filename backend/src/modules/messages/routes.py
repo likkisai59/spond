@@ -1,14 +1,17 @@
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form, WebSocket, WebSocketDisconnect
 from src.dependencies.auth import get_current_user
 from src.schemas.messages import (
     ConversationResponse,
     MessageSchema,
     CreateConversationPayload,
+    CreateDirectConversationPayload,
+    CreateGroupConversationPayload,
     SendMessagePayload,
     MessageUpdatePayload
 )
 from src.services.message_service import MessageService
+from src.database.mongo import utc_now
 
 router = APIRouter(prefix="", tags=["Messages"])
 
@@ -31,6 +34,30 @@ async def create_conversation(
 ):
     try:
         conversation = await service.create_conversation(payload, current_user["id"])
+        return {"data": conversation}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/conversations/direct", response_model=Dict[str, Any])
+async def create_direct_conversation(
+    payload: CreateDirectConversationPayload,
+    current_user: dict = Depends(get_current_user),
+    service: MessageService = Depends(get_service)
+):
+    try:
+        conversation = await service.get_or_create_direct_conversation(current_user["id"], payload.target_user_id)
+        return {"data": conversation}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/conversations/group", response_model=Dict[str, Any])
+async def create_group_conversation(
+    payload: CreateGroupConversationPayload,
+    current_user: dict = Depends(get_current_user),
+    service: MessageService = Depends(get_service)
+):
+    try:
+        conversation = await service.get_or_create_group_conversation(payload.group_id, payload.group_name, current_user["id"])
         return {"data": conversation}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -225,3 +252,43 @@ async def get_user_presence(user_id: str, current_user: dict = Depends(get_curre
         "is_online": True,
         "last_seen": utc_now().isoformat()
     }}
+
+@router.websocket("/messages/ws/{conversation_id}")
+@router.websocket("/ws/{conversation_id}")
+async def chat_websocket_endpoint(websocket: WebSocket, conversation_id: str):
+    await websocket.accept()
+    from src.services.websocket_manager import manager
+    await manager.connect_room(websocket, conversation_id)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            import json
+            try:
+                payload_dict = json.loads(data)
+                content = payload_dict.get("content", "").strip()
+                sender_id = payload_dict.get("senderId", "me")
+                sender_name = payload_dict.get("senderName", "You")
+                if content:
+                    from src.schemas.messages import SendMessagePayload
+                    service = MessageService()
+                    if sender_id and sender_id != "me":
+                        await service.save_message(
+                            conversation_id=conversation_id,
+                            sender_id=sender_id,
+                            payload=SendMessagePayload(content=content)
+                        )
+                    else:
+                        now_iso = utc_now().isoformat()
+                        await manager.broadcast_to_room({
+                            "id": f"msg-{int(utc_now().timestamp()*1000)}",
+                            "conversationId": conversation_id,
+                            "senderId": sender_id,
+                            "senderName": sender_name,
+                            "content": content,
+                            "sentAt": now_iso,
+                            "isMine": False
+                        }, conversation_id)
+            except Exception as err:
+                print("Error processing chat websocket message:", err)
+    except WebSocketDisconnect:
+        manager.disconnect_room(websocket, conversation_id)

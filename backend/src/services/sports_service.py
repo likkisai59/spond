@@ -886,6 +886,7 @@ class SportsService:
             "created_by": user_id,
             "status": "Pending",
             "paid_count": 0,
+            "paid_member_ids": [],
             "total_members": group.get("member_count", 1),
             "created_at": utc_now(),
             "updated_at": utc_now(),
@@ -906,7 +907,12 @@ class SportsService:
                     {"group_id": {"$in": user_group_ids}}
                 ]
             }
-        return await self.payment_requests.find_many(query, sort=[("created_at", -1)])
+        items = await self.payment_requests.find_many(query, sort=[("created_at", -1)])
+        if user_id:
+            for item in items:
+                paid_ids = item.get("paid_member_ids") or []
+                item["has_paid"] = user_id in paid_ids or item.get("status") == "Paid"
+        return items
 
     async def get_payment_request(self, request_id: str) -> dict:
         req = await self.payment_requests.find_by_id(request_id)
@@ -914,7 +920,25 @@ class SportsService:
             raise NotFoundError("Payment request not found")
         return req
 
-    async def update_payment_request_status(self, request_id: str, status: str) -> dict:
+    async def record_member_payment(self, request_id: str, user_id: str) -> dict:
+        req = await self.get_payment_request(request_id)
+        paid_ids = list(set((req.get("paid_member_ids") or []) + [user_id]))
+        total = req.get("total_members", 1)
+        new_status = "Paid" if len(paid_ids) >= total else req.get("status", "Pending")
+        updated = await self.payment_requests.update_by_id(request_id, {
+            "paid_member_ids": paid_ids,
+            "paid_count": len(paid_ids),
+            "status": new_status,
+            "updated_at": utc_now()
+        })
+        if not updated:
+            raise NotFoundError("Payment request not found")
+        updated["has_paid"] = True
+        return updated
+
+    async def update_payment_request_status(self, request_id: str, status: str = "Paid", user_id: str = None) -> dict:
+        if user_id and status == "Paid":
+            return await self.record_member_payment(request_id, user_id)
         updated = await self.payment_requests.update_by_id(request_id, {
             "status": status,
             "paid_count": 1 if status == "Paid" else 0,

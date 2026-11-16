@@ -1,6 +1,10 @@
-import { CalendarDays, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { CalendarDays, CheckCircle2, CreditCard } from "lucide-react";
 import { Card } from "@/components/shared/card";
+import { Button } from "@/components/ui/button";
 import { StatusBadge } from "./status-badge";
+import { PaymentModal } from "./payment-modal";
+import { useAuth } from "@/hooks";
 import { formatCurrency } from "@/utils/helpers";
 import { formatDate } from "@/utils/date";
 import type { PaymentRequest } from "@/types";
@@ -13,6 +17,14 @@ export interface PaymentCardProps {
 }
 
 export function PaymentCard({ payment, groupName, className }: PaymentCardProps) {
+  const { user: currentUser } = useAuth();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const currentUserId = currentUser?.id || (currentUser as any)?._id;
+  const hasPaid = Boolean(
+    payment.hasPaid ||
+    (currentUserId && payment.paidMemberIds?.includes(currentUserId)) ||
+    payment.status === "Paid"
+  );
   const progress =
     payment.totalMembers > 0
       ? Math.round((payment.paidCount / payment.totalMembers) * 100)
@@ -75,6 +87,30 @@ export function PaymentCard({ payment, groupName, className }: PaymentCardProps)
           />
         </div>
       </div>
+
+      {!hasPaid ? (
+        <Button
+          variant="accent"
+          size="sm"
+          className="mt-4 w-full gap-2 font-bold shadow-sm"
+          onClick={() => setIsModalOpen(true)}
+        >
+          <CreditCard className="h-4 w-4" />
+          Pay Now
+        </Button>
+      ) : (
+        <div className="mt-4 flex items-center justify-center gap-1.5 rounded-lg bg-emerald-500/10 py-2 text-xs font-bold text-emerald-500">
+          <CheckCircle2 className="h-4 w-4" />
+          Paid
+        </div>
+      )}
+
+      <PaymentModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        payment={payment}
+        groupName={groupName}
+      />
     </Card>
   );
 }

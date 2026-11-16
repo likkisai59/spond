@@ -102,6 +102,15 @@ class PaymentService:
             "created_at": utc_now()
         })
 
+        # Sync Sports payment request if applicable
+        if payment.get("module") == "sports" and payment.get("module_id"):
+            try:
+                from src.services.sports_service import SportsService
+                sports_svc = SportsService()
+                await sports_svc.record_member_payment(payment["module_id"], payment["user_id"])
+            except Exception as e:
+                logger.warning(f"Could not automatically sync sports payment request: {e}")
+
         # Sync EventHub / Band booking status if applicable
         if payment.get("module") in ["band", "eventhub"] and payment.get("module_id"):
             from src.repositories.band import BandVenueBookingRepository

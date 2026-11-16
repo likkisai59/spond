@@ -156,6 +156,8 @@ export interface PaymentRequest extends BaseEntity {
   status: PaymentStatus;
   paidCount: number;
   totalMembers: number;
+  paidMemberIds?: string[];
+  hasPaid?: boolean;
 }
 
 export const PAYMENT_METHODS = ["UPI", "Card", "Net Banking", "Cash"] as const;

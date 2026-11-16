@@ -331,8 +331,13 @@ async def get_payment_request(id: str, _: dict = Depends(get_current_user)) -> d
     return {"status": "success", "data": req}
 
 @router.put("/payment-requests/{id}/status")
-async def update_payment_request_status(id: str, status: str = "Paid", _: dict = Depends(get_current_user)) -> dict:
-    req = await service.update_payment_request_status(id, status)
+async def update_payment_request_status(id: str, status: str = "Paid", user: dict = Depends(get_current_user)) -> dict:
+    req = await service.update_payment_request_status(id, status, user_id=user["id"])
+    return {"status": "success", "data": req}
+
+@router.put("/payment-requests/{id}/pay")
+async def record_payment(id: str, user: dict = Depends(get_current_user)) -> dict:
+    req = await service.record_member_payment(id, user["id"])
     return {"status": "success", "data": req}
 
 # --- Polls ---

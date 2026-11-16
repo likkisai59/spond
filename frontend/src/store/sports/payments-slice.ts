@@ -56,6 +56,7 @@ const paymentsSlice = createSlice({
       payment.status = action.payload.status;
       if (action.payload.status === "Paid") {
         payment.paidCount = (payment.paidCount || 0) + 1;
+        payment.hasPaid = true;
       }
       payment.updatedAt = new Date().toISOString();
     },

@@ -75,9 +75,13 @@ export function PaymentModal({ isOpen, onClose, payment, groupName }: PaymentMod
 
             // Update Payment Request status in DB
             try {
-              await apiClient.put(`/api/v1/sports/payment-requests/${payment.id}/status`, { status: "Paid" });
+              await apiClient.put(`/api/v1/sports/payment-requests/${payment.id}/pay`);
             } catch (err) {
-              console.warn("Could not update payment request status in DB", err);
+              try {
+                await apiClient.put(`/api/v1/sports/payment-requests/${payment.id}/status`, { status: "Paid" });
+              } catch {
+                console.warn("Could not update payment request status in DB", err);
+              }
             }
 
             dispatch(paymentStatusSet({ id: payment.id, status: "Paid" }));

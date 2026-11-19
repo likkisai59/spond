@@ -9,7 +9,7 @@ from src.repositories.sports import (
     GroupRepository, GroupMemberRepository, EventRepository,
     RsvpRepository, AttendanceRepository,
     SportsVenueRepository, SportsSlotRepository, SportsBookingRepository,
-    PaymentRequestRepository, PollRepository
+    PaymentRequestRepository, PollRepository, PCMARecordRepository
 )
 from src.repositories import UserRepository
 from src.exceptions.handlers import NotFoundError, AppException
@@ -23,7 +23,8 @@ from src.schemas.sports import (
     SlotCreateRequest, SlotUpdateRequest,
     BookingCreateRequest,
     PaymentRequestCreateRequest,
-    PollCreateRequest, PollVoteRequest
+    PollCreateRequest, PollVoteRequest,
+    PCMASettingsUpdateRequest, PCMAQuestionnaireSubmitRequest, PCMAAssessmentSubmitRequest
 )
 from bson import ObjectId
 
@@ -42,6 +43,7 @@ class SportsService:
         self.bookings = SportsBookingRepository()
         self.payment_requests = PaymentRequestRepository()
         self.polls = PollRepository()
+        self.pcma_records = PCMARecordRepository()
         self.email_service = EmailService()
 
     async def create_group(self, user_id: str, data: GroupCreateRequest) -> dict:
@@ -66,7 +68,9 @@ class SportsService:
             "created_by": user_id,
             "created_at": utc_now(),
             "updated_at": utc_now(),
-            "member_count": 1
+            "member_count": 1,
+            "is_pcma_enabled": False,
+            "assigned_doctor_email": None
         })
         created = await self.groups.insert(group_doc)
         group_id = created["id"]
@@ -115,11 +119,18 @@ class SportsService:
                     if ObjectId.is_valid(str(gid)):
                         group_ids.append(ObjectId(str(gid)))
                     group_ids.append(gid)
+            user_doc = await self.users.find_by_id(user_id)
+            user_email = (user_doc.get("email") or "").strip().lower() if user_doc else None
+
+            or_conditions = [
+                {"created_by": user_id},
+                {"_id": {"$in": group_ids}}
+            ]
+            if user_email:
+                or_conditions.append({"assigned_doctor_email": user_email})
+
             query = {
-                "$or": [
-                    {"created_by": user_id},
-                    {"_id": {"$in": group_ids}}
-                ]
+                "$or": or_conditions
             }
         groups = await self.groups.find_many(query)
         for group in groups:
@@ -429,7 +440,7 @@ class SportsService:
 
         user_id = current_user["id"]
 
-        existing = await self.members.find_one({"group_id": group_id, "user_id": user_id, "status": "Confirmed"})
+        existing = await self.members.find_one({"group_id": group_id, "user_id": user_id})
         if existing:
             return {
                 "status": "success",
@@ -1046,5 +1057,315 @@ class SportsService:
         deleted = await self.polls.delete_by_id(poll_id)
         if not deleted:
             raise NotFoundError("Poll not found")
+
+    # --- PCMA (Pre-Competition Medical Assessment) ---
+    async def update_pcma_settings(self, group_id: str, data: PCMASettingsUpdateRequest, user_id: str) -> dict:
+        if not await self.check_is_group_admin_or_owner(group_id, user_id):
+            raise AppException(403, "Only club administrators can modify medical clearance settings")
+        
+        group = await self.groups.find_by_id(group_id)
+        if not group:
+            raise NotFoundError("Group not found")
+        old_doctor = (group.get("assigned_doctor_email") or "").strip().lower()
+        new_doctor = data.assigned_doctor_email.strip().lower() if data.assigned_doctor_email else None
+
+        updated = await self.groups.update_by_id(group_id, {
+            "is_pcma_enabled": data.is_pcma_enabled,
+            "assigned_doctor_email": new_doctor,
+            "updated_at": utc_now()
+        })
+        if not updated:
+            raise NotFoundError("Group not found")
+
+        # Send notification email if doctor was newly assigned or updated
+        if data.is_pcma_enabled and new_doctor and new_doctor != old_doctor:
+            try:
+                admin_name = "Club Admin"
+                if ObjectId.is_valid(str(user_id)):
+                    admin_user = await self.users.find_by_id(user_id)
+                    if admin_user:
+                        admin_name = admin_user.get("full_name", "Club Admin")
+                await self.email_service.send_doctor_assignment_email(
+                    to_email=new_doctor,
+                    group_name=group.get("name", "Sports Club"),
+                    admin_name=admin_name
+                )
+            except Exception as e:
+                logger.warning(f"Failed to dispatch doctor notification email: {e}")
+
+        return updated
+
+    async def get_medical_dashboard(self, group_id: str, user: dict) -> dict:
+        group = await self.get_group(group_id)
+        if not group.get("is_pcma_enabled", False):
+            raise AppException(403, "Player Medical Clearance (PCMA) is not enabled for this group")
+
+        user_id = user["id"]
+        user_email = user.get("email", "").strip().lower()
+        assigned_doc_email = (group.get("assigned_doctor_email") or "").strip().lower()
+        is_admin_or_owner = await self.check_is_group_admin_or_owner(group_id, user_id)
+        is_assigned_doctor = bool(assigned_doc_email and user_email == assigned_doc_email)
+
+        # Ensure user has authorized access to this group
+        if not is_admin_or_owner and not is_assigned_doctor:
+            user_member = await self.members.find_one({"group_id": group_id, "user_id": user_id})
+            if not user_member:
+                raise AppException(403, "You are not authorized to access this group's medical dashboard")
+
+        members = await self.members.find_many({"group_id": group_id})
+        records = await self.pcma_records.find_many({"group_id": group_id})
+        records_by_player = {str(r.get("player_id")): r for r in records}
+
+        now = utc_now()
+        roster = []
+        cleared_count = 0
+        pending_count = 0
+        unfit_count = 0
+        expired_count = 0
+
+        for member in members:
+            p_id = str(member.get("user_id") or member.get("id"))
+            record = records_by_player.get(p_id, {})
+            
+            status = record.get("status", "Pending")
+            cert = record.get("certificate") or {}
+            expires_at = cert.get("expires_at")
+            if expires_at and isinstance(expires_at, str):
+                try:
+                    expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+                except Exception:
+                    pass
+            if expires_at and isinstance(expires_at, datetime) and expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+            if status == "Cleared" and expires_at and expires_at < now:
+                status = "Expired"
+
+            if status == "Cleared":
+                cleared_count += 1
+            elif status == "Unfit":
+                unfit_count += 1
+            elif status == "Expired":
+                expired_count += 1
+            else:
+                status = "Pending"
+                pending_count += 1
+
+            q_data = record.get("questionnaire") or {}
+            assessment_data = record.get("assessment") or {}
+
+            roster.append({
+                "player_id": p_id,
+                "player_name": member.get("name") or member.get("full_name") or "Squad Member",
+                "player_email": member.get("email"),
+                "role": member.get("role", "Member"),
+                "medical_status": status,
+                "questionnaire_submitted": bool(q_data.get("submitted", False)),
+                "questionnaire_submitted_at": q_data.get("submitted_at"),
+                "assigned_doctor_email": assigned_doc_email or None,
+                "assessed_by": assessment_data.get("doctor_name"),
+                "assessed_at": assessment_data.get("assessed_at"),
+                "certificate_number": cert.get("certificate_number"),
+                "certificate_id": cert.get("certificate_number"),
+                "expires_at": expires_at,
+                "verification_url": cert.get("verification_url"),
+            })
+
+        return {
+            "group_id": group_id,
+            "is_pcma_enabled": True,
+            "assigned_doctor_email": assigned_doc_email or None,
+            "stats": {
+                "total_players": len(roster),
+                "cleared_count": cleared_count,
+                "pending_count": pending_count,
+                "unfit_count": unfit_count,
+                "expired_count": expired_count,
+            },
+            "roster": roster
+        }
+
+    async def submit_pcma_questionnaire(self, group_id: str, player_id: str, data: PCMAQuestionnaireSubmitRequest) -> dict:
+        group = await self.get_group(group_id)
+        if not group.get("is_pcma_enabled", False):
+            raise AppException(403, "PCMA is not enabled for this group")
+
+        member = await self.members.find_one({"group_id": group_id, "user_id": player_id})
+        if not member:
+            member = await self.members.find_one({"group_id": group_id, "id": player_id})
+        if not member:
+            raise AppException(403, "Player is not a member of this group")
+
+        existing = await self.pcma_records.find_one({"group_id": group_id, "player_id": player_id})
+        q_payload = {
+            "submitted": True,
+            "submitted_at": utc_now(),
+            "answers": data.model_dump(exclude_unset=True)
+        }
+
+        player_name = member.get("name") or member.get("full_name") or "Squad Member"
+        if existing:
+            new_status = existing.get("status", "Pending")
+            if new_status == "Expired":
+                new_status = "Pending"
+            await self.pcma_records.update_by_id(existing["id"], {
+                "player_name": player_name,
+                "questionnaire": q_payload,
+                "status": new_status,
+                "updated_at": utc_now()
+            })
+            return await self.pcma_records.find_by_id(existing["id"])
+        else:
+            doc = {
+                "group_id": group_id,
+                "player_id": player_id,
+                "player_name": player_name,
+                "player_email": member.get("email"),
+                "status": "Pending",
+                "questionnaire": q_payload,
+                "assessment": None,
+                "certificate": None,
+                "created_at": utc_now(),
+                "updated_at": utc_now()
+            }
+            return await self.pcma_records.insert(doc)
+
+    async def get_player_clinical_details(self, group_id: str, player_id: str, user: dict) -> dict:
+        group = await self.get_group(group_id)
+        if not group.get("is_pcma_enabled", False):
+            raise AppException(403, "PCMA is not enabled for this group")
+
+        user_email = user.get("email", "").strip().lower()
+        assigned_doc_email = (group.get("assigned_doctor_email") or "").strip().lower()
+        is_admin_or_owner = await self.check_is_group_admin_or_owner(group_id, user["id"])
+        is_assigned_doc = bool(assigned_doc_email and user_email == assigned_doc_email)
+
+        # Allow assigned doctor or owner
+        if not is_assigned_doc and not is_admin_or_owner and user["id"] != player_id:
+            raise AppException(403, "Only the authorized medical doctor can inspect private clinical questionnaires")
+
+        record = await self.pcma_records.find_one({"group_id": group_id, "player_id": player_id})
+        if not record:
+            raise NotFoundError("No medical questionnaire found for this player")
+        return record
+
+    async def conduct_pcma_assessment(self, group_id: str, doctor_user: dict, data: PCMAAssessmentSubmitRequest) -> dict:
+        group = await self.get_group(group_id)
+        if not group.get("is_pcma_enabled", False):
+            raise AppException(403, "PCMA is not enabled for this group")
+
+        doc_email = doctor_user.get("email", "").strip().lower()
+        assigned_doc_email = (group.get("assigned_doctor_email") or "").strip().lower()
+        is_owner = await self.check_is_group_admin_or_owner(group_id, doctor_user["id"])
+
+        if assigned_doc_email and doc_email != assigned_doc_email and not is_owner:
+            raise AppException(403, "Only the assigned club medical doctor can submit clinical assessments")
+
+        member = await self.members.find_one({"group_id": group_id, "user_id": data.player_id})
+        if not member:
+            member = await self.members.find_one({"group_id": group_id, "id": data.player_id})
+        if not member:
+            raise NotFoundError("Player not found in group")
+
+        now = utc_now()
+        doctor_name = doctor_user.get("full_name") or doctor_user.get("name") or "Dr. Medical Officer"
+
+        assessment_payload = {
+            "doctor_id": doctor_user["id"],
+            "doctor_name": doctor_name,
+            "doctor_email": doctor_user.get("email"),
+            "assessed_at": now,
+            "vitals": {
+                "blood_pressure": data.blood_pressure,
+                "heart_rate_bpm": data.heart_rate_bpm,
+                "vision": data.vision,
+                "cardiovascular": data.cardiovascular,
+                "musculoskeletal": data.musculoskeletal,
+            },
+            "clinical_notes": data.clinical_notes,
+            "outcome": data.outcome,
+        }
+
+        certificate_payload = None
+        status = data.outcome  # "Fit" -> "Cleared", "Unfit" -> "Unfit"
+        if data.outcome == "Fit":
+            status = "Cleared"
+            cert_code = uuid.uuid4().hex[:8].upper()
+            cert_number = f"PCMA-{now.year}-{cert_code}"
+            expires_at = now + timedelta(days=data.validity_months * 30)
+            certificate_payload = {
+                "certificate_number": cert_number,
+                "issued_at": now,
+                "expires_at": expires_at,
+                "verification_url": f"/verify-certificate/{cert_number}",
+                "qr_code_data": f"/verify-certificate/{cert_number}"
+            }
+
+        player_name = member.get("name") or member.get("full_name") or "Squad Member"
+        existing = await self.pcma_records.find_one({"group_id": group_id, "player_id": data.player_id})
+        if existing:
+            await self.pcma_records.update_by_id(existing["id"], {
+                "player_name": player_name,
+                "assessment": assessment_payload,
+                "certificate": certificate_payload,
+                "status": status,
+                "updated_at": now
+            })
+            return await self.pcma_records.find_by_id(existing["id"])
+        else:
+            doc = {
+                "group_id": group_id,
+                "player_id": data.player_id,
+                "player_name": player_name,
+                "player_email": member.get("email"),
+                "status": status,
+                "questionnaire": {"submitted": False},
+                "assessment": assessment_payload,
+                "certificate": certificate_payload,
+                "created_at": now,
+                "updated_at": now
+            }
+            return await self.pcma_records.insert(doc)
+
+    async def verify_pcma_certificate(self, certificate_id: str) -> dict:
+        query = {
+            "$or": [
+                {"certificate.certificate_number": certificate_id},
+                {"certificate_number": certificate_id}
+            ]
+        }
+        record = await self.pcma_records.find_one(query)
+        if not record:
+            raise NotFoundError("Medical clearance certificate not found or invalid")
+
+        cert = record.get("certificate") or {}
+        expires_at = cert.get("expires_at")
+        now = utc_now()
+        is_valid = True
+        status = record.get("status", "Cleared")
+
+        if expires_at and isinstance(expires_at, str):
+            try:
+                expires_at = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+            except Exception:
+                pass
+        if expires_at and isinstance(expires_at, datetime) and expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        if expires_at and expires_at < now:
+            is_valid = False
+            status = "Expired"
+
+        return {
+            "certificate_number": cert.get("certificate_number") or certificate_id,
+            "player_name": record.get("player_name"),
+            "status": status,
+            "is_valid": is_valid,
+            "issued_at": cert.get("issued_at"),
+            "expires_at": expires_at,
+            "doctor_name": (record.get("assessment") or {}).get("doctor_name", "Authorized Medical Officer"),
+            "verification_url": cert.get("verification_url")
+        }
+
 
 

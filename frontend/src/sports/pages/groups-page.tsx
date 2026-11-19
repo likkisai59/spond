@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Plus, Users, SearchX } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Users, SearchX, HeartPulse } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { EmptyCard } from "@/components/cards";
+import { Card } from "@/components/shared/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -25,6 +27,7 @@ import { GROUP_CATEGORIES, type GroupCategory } from "@/types";
 import { ROUTES } from "@/constants";
 
 export function GroupsPage() {
+  const router = useRouter();
   const { user: currentUser } = useAuth();
   const isClubAdmin = currentUser?.role === "member" || currentUser?.role === "admin" || currentUser?.role === "super_admin" || currentUser?.role === "sports_admin";
   const dispatch = useAppDispatch();
@@ -60,6 +63,36 @@ export function GroupsPage() {
       dispatch(fetchGroupsThunk());
     }
   }, [dispatch, status]);
+
+  // For doctors: directly display the PCMA Medical Clearance page
+  useEffect(() => {
+    if (currentUser?.role === "doctor" && status === "succeeded") {
+      if (groups.length > 0) {
+        router.replace(`${ROUTES.SPORTS_GROUPS}/${groups[0].id}/medical`);
+      }
+    }
+  }, [currentUser, status, groups, router]);
+
+  if (currentUser?.role === "doctor") {
+    if (status === "loading" || status === "idle" || (status === "succeeded" && groups.length > 0)) {
+      return (
+        <PageContainer as="main">
+          <Card className="p-12 text-center text-sm text-muted-foreground animate-pulse">
+            Loading Medical Clearance Workspace...
+          </Card>
+        </PageContainer>
+      );
+    }
+    return (
+      <PageContainer as="main">
+        <EmptyCard
+          icon={HeartPulse}
+          title="No Medical Squads Assigned"
+          description="You are registered as a Club Doctor. Once a club administrator assigns you to their squad, their players' medical clearance dashboard will appear here."
+        />
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer as="main">

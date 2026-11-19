@@ -61,6 +61,8 @@ export function getDefaultRouteForRole(role: string): string {
   switch (String(role || "").toLowerCase()) {
     case "sports_venue_owner":
       return ROUTES.SPORTS_OWNER_DASHBOARD;
+    case "doctor":
+      return ROUTES.SPORTS_GROUPS;
     case "client":
       return "/band/client/dashboard";
     case "artist":

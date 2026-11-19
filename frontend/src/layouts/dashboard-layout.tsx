@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { BAND_CLIENT_NAV, BAND_ARTIST_NAV, BAND_VENUE_NAV, PRODUCT_CONFIGS, SPORTS_NAV, OWNER_NAV, ROUTES } from "@/constants";
+import { BAND_CLIENT_NAV, BAND_ARTIST_NAV, BAND_VENUE_NAV, PRODUCT_CONFIGS, SPORTS_NAV, OWNER_NAV, DOCTOR_NAV, ROUTES } from "@/constants";
 import { useSidebar } from "@/hooks";
 import { usePathname } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -109,9 +109,11 @@ export function DashboardLayout({
     !mounted
       ? []
       : product === "sports"
-      ? (user?.role === "venue_owner" || user?.role === "sports_venue_owner")
-        ? OWNER_NAV
-        : sportsNav
+      ? user?.role === "doctor"
+        ? DOCTOR_NAV
+        : (user?.role === "venue_owner" || user?.role === "sports_venue_owner")
+          ? OWNER_NAV
+          : sportsNav
       : effectiveRole === "artist" || effectiveRole === "band"
         ? BAND_ARTIST_NAV
         : effectiveRole === "venue_owner"

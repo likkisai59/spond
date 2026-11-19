@@ -256,4 +256,69 @@ class EmailService:
             user_name
         )
 
+    def _send_sync_doctor_assignment_email(
+        self,
+        to_email: str,
+        group_name: str,
+        admin_name: str,
+    ) -> None:
+        from dotenv import load_dotenv
+        load_dotenv(override=True)
+
+        smtp_email = os.environ.get("SMTP_EMAIL")
+        smtp_password = os.environ.get("SMTP_PASSWORD")
+
+        if not smtp_email or not smtp_password:
+            logger.warning(f"SMTP credentials missing. Mock Doctor Assignment email to {to_email} for group {group_name}")
+            return
+
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["From"] = f"Spond Medical <{smtp_email}>"
+            msg["To"] = to_email
+            msg["Subject"] = f"You have been appointed Official Club Doctor for {group_name}"
+
+            app_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+            login_url = f"{app_url}/login"
+
+            html = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                <h2 style="color: #0f172a; margin-top: 0;">Official Club Doctor Appointment</h2>
+                <p>Hello,</p>
+                <p>You have been designated as the <strong>Official Club Doctor</strong> for <strong>{group_name}</strong> by {admin_name}.</p>
+                <p>You can now log in to the medical clearance portal to review player health questionnaires, conduct Pre-Competition Medical Assessments (PCMA), and issue digital clearance certificates.</p>
+                <div style="margin: 25px 0;">
+                    <a href="{login_url}" style="background-color: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Login to Medical Portal</a>
+                </div>
+                <p style="color: #64748b; font-size: 13px;">If you do not have an account yet, click the link above, select Register, and sign up with this email address.</p>
+            </div>
+            """
+            msg.attach(MIMEText(html, "html"))
+
+            with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                server.starttls()
+                server.login(smtp_email, smtp_password)
+                server.send_message(msg)
+
+            logger.info(f"Successfully sent doctor assignment email to {to_email}")
+        except Exception as e:
+            logger.error(f"Failed to send doctor assignment email to {to_email}: {str(e)}")
+
+    async def send_doctor_assignment_email(
+        self,
+        to_email: str,
+        group_name: str,
+        admin_name: str,
+    ) -> None:
+        """
+        Sends doctor assignment notification email asynchronously without blocking.
+        """
+        await asyncio.to_thread(
+            self._send_sync_doctor_assignment_email,
+            to_email,
+            group_name,
+            admin_name,
+        )
+
+
 

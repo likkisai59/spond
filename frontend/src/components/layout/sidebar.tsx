@@ -217,7 +217,7 @@ function SidebarProfile({
     ? getUserDisplayName(user, "Guest user")
     : "Guest user";
   const displayRole = mounted && user
-    ? (user.role === "member" ? "Club Owner" : user.role === "sports_venue_owner" ? "Sports Venue Owner" : user.role === "venue_owner" ? "Venue Owner" : user.role)
+    ? (user.role === "member" ? "Club Owner" : user.role === "sports_venue_owner" ? "Sports Venue Owner" : user.role === "venue_owner" ? "Venue Owner" : user.role === "doctor" ? "Club Doctor" : user.role)
     : null;
   const role = user ? user.role : null;
 

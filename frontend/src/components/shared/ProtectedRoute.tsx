@@ -20,7 +20,7 @@ import { selectAuthStatus } from "@/store/selectors";
 import { Loader as Spinner } from "@/components/ui/loader";
 
 
-type Role = "client" | "artist" | "venue_owner" | "admin" | "super-admin" | "user" | "band" | "member" | "sports_venue_owner" | "player";
+type Role = "client" | "artist" | "venue_owner" | "admin" | "super-admin" | "user" | "band" | "member" | "sports_venue_owner" | "player" | "doctor";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

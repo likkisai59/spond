@@ -342,6 +342,7 @@ export function RegisterForm() {
           options={[
             { label: "Group Member", value: "player" },
             { label: "Club Owner", value: "member" },
+            { label: "Club Doctor / Medical Officer", value: "doctor" },
             { label: "Sports Venue Owner (Courts & Grounds)", value: "sports_venue_owner" },
             { label: "Venue Owner (Band)", value: "venue_owner" },
             { label: "Artist", value: "artist" },

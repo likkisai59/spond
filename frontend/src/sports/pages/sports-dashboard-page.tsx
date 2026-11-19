@@ -96,6 +96,10 @@ export function SportsDashboardPage() {
       router.replace("/band/artist/dashboard");
       return;
     }
+    if (user?.role === "doctor") {
+      router.replace(ROUTES.SPORTS_GROUPS);
+      return;
+    }
     const fetchStats = async () => {
       try {
         const response = await apiClient.get("/api/v1/sports/dashboard");

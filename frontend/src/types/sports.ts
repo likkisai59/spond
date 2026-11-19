@@ -85,6 +85,79 @@ export interface SportsGroup extends BaseEntity {
   cover_image?: string;
   role_permissions?: GroupRolePermissions;
   rolePermissions?: GroupRolePermissions;
+  is_pcma_enabled?: boolean;
+  isPcmaEnabled?: boolean;
+  assigned_doctor_email?: string;
+  assignedDoctorEmail?: string;
+}
+
+export type PCMAStatus = "Cleared" | "Pending" | "Unfit" | "Expired";
+
+export interface PCMAQuestionnaireAnswers {
+  heartCondition?: boolean;
+  chestPainExercise?: boolean;
+  dizzinessOrFainting?: boolean;
+  boneOrJointProblem?: boolean;
+  currentMedications?: string;
+  allergies?: string;
+  additionalNotes?: string;
+}
+
+export interface PCMACertificate {
+  certificateNumber: string;
+  issuedAt: string;
+  expiresAt: string;
+  verificationUrl?: string;
+  qrCodeData?: string;
+}
+
+export interface PCMAAssessment {
+  doctorId: string;
+  doctorName: string;
+  doctorEmail?: string;
+  assessedAt: string;
+  vitals?: {
+    bloodPressure?: string;
+    heartRateBpm?: number;
+    vision?: string;
+    cardiovascular?: string;
+    musculoskeletal?: string;
+  };
+  clinicalNotes?: string;
+  outcome: "Fit" | "Unfit";
+}
+
+export interface PCMAPlayerSummary {
+  playerId: string;
+  playerName: string;
+  playerEmail?: string;
+  role: string;
+  medicalStatus: PCMAStatus;
+  questionnaireSubmitted: boolean;
+  questionnaireSubmittedAt?: string;
+  assignedDoctorEmail?: string;
+  assessedBy?: string;
+  assessedAt?: string;
+  certificateNumber?: string;
+  certificateId?: string;
+  expiresAt?: string;
+  verificationUrl?: string;
+}
+
+export interface PCMASquadStats {
+  totalPlayers: number;
+  clearedCount: number;
+  pendingCount: number;
+  unfitCount: number;
+  expiredCount: number;
+}
+
+export interface PCMADashboardData {
+  groupId: string;
+  isPcmaEnabled: boolean;
+  assignedDoctorEmail?: string;
+  stats: PCMASquadStats;
+  roster: PCMAPlayerSummary[];
 }
 
 export const EVENT_TYPES = [

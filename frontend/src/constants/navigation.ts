@@ -16,6 +16,7 @@ import {
   Home,
   User,
   Heart,
+  HeartPulse,
   Inbox,
   IndianRupee,
 } from "lucide-react";
@@ -79,6 +80,28 @@ export const SPORTS_NAV: NavSection[] = [
   {
     items: [
       { label: "Settings", href: ROUTES.SPORTS_SETTINGS, icon: Settings },
+    ],
+  },
+];
+
+export const DOCTOR_NAV: NavSection[] = [
+  {
+    title: "Player Medical Clearance",
+    items: [
+      {
+        label: "Medical Clearance (PCMA)",
+        href: ROUTES.SPORTS_GROUPS,
+        icon: HeartPulse,
+      },
+    ],
+  },
+  {
+    items: [
+      {
+        label: "Settings",
+        href: ROUTES.SPORTS_SETTINGS,
+        icon: Settings,
+      },
     ],
   },
 ];

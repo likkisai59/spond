@@ -11,6 +11,7 @@ ARTIST = "artist"
 BAND_MANAGER = "band_manager"
 PLAYER = "player"
 MEMBER = "member"
+DOCTOR = "doctor"
 
 CLIENT = "client"
 BAND = "band"
@@ -27,6 +28,7 @@ ALL_ROLES = [
     BAND_MANAGER,
     PLAYER,
     MEMBER,
+    DOCTOR,
     CLIENT,
     BAND,
 ]
@@ -49,6 +51,7 @@ ROLE_MODULES: dict[str, list[str]] = {
     ARTIST: [MODULE_BAND],
     BAND_MANAGER: [MODULE_BAND],
     PLAYER: [MODULE_SPORTS],
+    DOCTOR: [MODULE_SPORTS],
     MEMBER: ALL_MODULES,
     CLIENT: [MODULE_BAND],
     BAND: [MODULE_BAND],
@@ -141,6 +144,7 @@ ROLE_PERMISSIONS: dict[str, list[str]] = {
         PERM_ANALYTICS_READ,
     ],
     MEMBER: [PERM_FILES_READ, PERM_PAYMENTS_READ],
+    DOCTOR: [PERM_USERS_READ, PERM_FILES_READ],
     CLIENT: [PERM_FILES_READ, PERM_PAYMENTS_READ, PERM_PAYMENTS_WRITE],
     BAND: [PERM_FILES_READ, PERM_FILES_WRITE, PERM_PAYMENTS_READ],
 }
@@ -157,6 +161,7 @@ ROLE_DESCRIPTIONS = {
     BAND_MANAGER: "Manages bands and bookings (Band)",
     PLAYER: "Team member participation (Sports)",
     MEMBER: "Basic access to permitted modules",
+    DOCTOR: "Official Club Doctor conducting pre-competition medical clearances (PCMA)",
     CLIENT: "Books artists and venues (Band)",
     BAND: "Band group profile and gigs (Band)",
 }

@@ -18,6 +18,7 @@ export const ROLES = [
   "client",
   "band",
   "owner",
+  "doctor",
 ] as const;
 export type Role = (typeof ROLES)[number];
 

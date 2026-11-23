@@ -1,5 +1,5 @@
 import { apiClient } from "@/services/api-client";
-import type { ApiResponse, Paginated, SportsGroup, GroupRolePermissions } from "@/types";
+import type { ApiResponse, Paginated, SportsGroup, GroupRolePermissions, PCMADashboardData } from "@/types";
 
 export interface GroupQuery {
   category?: string;
@@ -13,6 +13,12 @@ export interface GroupsService {
   removeMember(groupId: string, memberId: string): Promise<ApiResponse<void>>;
   updateMemberRole(groupId: string, memberId: string, role: string): Promise<ApiResponse<void>>;
   updatePermissions(groupId: string, permissions: GroupRolePermissions): Promise<ApiResponse<SportsGroup>>;
+  updatePcmaSettings(groupId: string, data: { is_pcma_enabled: boolean; assigned_doctor_email?: string }): Promise<ApiResponse<SportsGroup>>;
+  getMedicalDashboard(groupId: string): Promise<ApiResponse<PCMADashboardData>>;
+  submitQuestionnaire(groupId: string, data: any): Promise<ApiResponse<any>>;
+  getClinicalDetails(groupId: string, playerId: string): Promise<ApiResponse<any>>;
+  submitAssessment(groupId: string, data: any): Promise<ApiResponse<any>>;
+  verifyCertificate(certificateId: string): Promise<ApiResponse<any>>;
   delete(id: string): Promise<ApiResponse<void>>;
 }
 
@@ -45,6 +51,30 @@ export const groupsService: GroupsService = {
     const { data } = await apiClient.patch(`/api/v1/sports/groups/${groupId}/permissions`, {
       role_permissions: permissions,
     });
+    return data;
+  },
+  updatePcmaSettings: async (groupId, settings) => {
+    const { data } = await apiClient.patch(`/api/v1/sports/groups/${groupId}/pcma-settings`, settings);
+    return data;
+  },
+  getMedicalDashboard: async (groupId) => {
+    const { data } = await apiClient.get(`/api/v1/sports/groups/${groupId}/medical-dashboard`);
+    return data;
+  },
+  submitQuestionnaire: async (groupId, questionnaireData) => {
+    const { data } = await apiClient.post(`/api/v1/sports/groups/${groupId}/pcma/questionnaire`, questionnaireData);
+    return data;
+  },
+  getClinicalDetails: async (groupId, playerId) => {
+    const { data } = await apiClient.get(`/api/v1/sports/groups/${groupId}/pcma/player/${playerId}/clinical`);
+    return data;
+  },
+  submitAssessment: async (groupId, assessmentData) => {
+    const { data } = await apiClient.post(`/api/v1/sports/groups/${groupId}/pcma/assessments`, assessmentData);
+    return data;
+  },
+  verifyCertificate: async (certificateId) => {
+    const { data } = await apiClient.get(`/api/v1/sports/pcma/certificates/${certificateId}/verify`);
     return data;
   },
   delete: async (id) => {

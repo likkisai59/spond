@@ -20,7 +20,8 @@ from src.schemas.sports import (
     SlotCreateRequest, SlotUpdateRequest,
     BookingCreateRequest, GenerateSlotsRequest,
     PaymentRequestCreateRequest, UpdateBookingStatusRequest,
-    PollCreateRequest, PollVoteRequest
+    PollCreateRequest, PollVoteRequest,
+    PCMASettingsUpdateRequest, PCMAQuestionnaireSubmitRequest, PCMAAssessmentSubmitRequest
 )
 
 router = APIRouter(prefix="/sports", tags=["Sports"])
@@ -365,5 +366,37 @@ async def vote_poll(id: str, data: PollVoteRequest, user: dict = Depends(get_cur
 async def delete_poll(id: str, _: dict = Depends(get_current_user)) -> dict:
     await service.delete_poll(id)
     return {"status": "success"}
+
+# --- PCMA (Pre-Competition Medical Assessment) ---
+@router.patch("/groups/{id}/pcma-settings")
+async def update_pcma_settings(id: str, data: PCMASettingsUpdateRequest, user: dict = Depends(get_current_user)) -> dict:
+    group = await service.update_pcma_settings(id, data, user["id"])
+    return {"status": "success", "data": group}
+
+@router.get("/groups/{id}/medical-dashboard")
+async def get_medical_dashboard(id: str, user: dict = Depends(get_current_user)) -> dict:
+    data = await service.get_medical_dashboard(id, user)
+    return {"status": "success", "data": data}
+
+@router.post("/groups/{id}/pcma/questionnaire")
+async def submit_pcma_questionnaire(id: str, data: PCMAQuestionnaireSubmitRequest, user: dict = Depends(get_current_user)) -> dict:
+    record = await service.submit_pcma_questionnaire(id, user["id"], data)
+    return {"status": "success", "data": record}
+
+@router.get("/groups/{id}/pcma/player/{player_id}/clinical")
+async def get_player_clinical_details(id: str, player_id: str, user: dict = Depends(get_current_user)) -> dict:
+    record = await service.get_player_clinical_details(id, player_id, user)
+    return {"status": "success", "data": record}
+
+@router.post("/groups/{id}/pcma/assessments")
+async def conduct_pcma_assessment(id: str, data: PCMAAssessmentSubmitRequest, user: dict = Depends(get_current_user)) -> dict:
+    record = await service.conduct_pcma_assessment(id, user, data)
+    return {"status": "success", "data": record}
+
+@router.get("/pcma/certificates/{certificate_id}/verify")
+async def verify_pcma_certificate(certificate_id: str) -> dict:
+    data = await service.verify_pcma_certificate(certificate_id)
+    return {"status": "success", "data": data}
+
 
 

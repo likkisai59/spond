@@ -8,7 +8,7 @@ from src.exceptions.handlers import (
     UnauthorizedError,
 )
 from src.models.user import new_user_document, public_user
-from src.constants.roles import ALL_ROLES, MEMBER, effective_modules
+from src.constants.roles import ALL_ROLES, MEMBER, DOCTOR, effective_modules
 from src.models.otp import new_otp_document
 from src.repositories import TokenRepository, UserRepository, OtpRepository
 from src.services.audit_service import AuditService
@@ -69,7 +69,7 @@ class AuthService:
             raise ConflictError("An account with this email already exists")
             
         # Allow public registration for standard client/provider/sports roles (prevent admin privilege escalation)
-        valid_roles = [MEMBER, "venue_owner", "sports_venue_owner", "client", "artist", "band", "player", "coach"]
+        valid_roles = [MEMBER, DOCTOR, "venue_owner", "sports_venue_owner", "client", "artist", "band", "player", "coach"]
         assign_role: str = role if role in valid_roles else MEMBER
         
         document = new_user_document(
@@ -158,7 +158,7 @@ class AuthService:
         if await self.users.email_exists(email):
             raise ConflictError("An account with this email already exists")
             
-        valid_roles = [MEMBER, "venue_owner", "sports_venue_owner", "client", "artist", "band", "player", "coach"]
+        valid_roles = [MEMBER, DOCTOR, "venue_owner", "sports_venue_owner", "client", "artist", "band", "player", "coach"]
         assign_role = role if role in valid_roles else MEMBER
         
         document = new_user_document(

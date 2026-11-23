@@ -33,6 +33,8 @@ class GroupResponse(CamelModel):
     logo: str | None = None
     logo_url: str | None = None
     cover_image: str | None = None
+    is_pcma_enabled: bool | None = None
+    assigned_doctor_email: str | None = None
     visibility: str | None = None
     created_by: str
     created_at: datetime
@@ -52,6 +54,8 @@ class GroupCreateRequest(CamelModel):
     logo: str | None = None
     logo_url: str | None = None
     cover_image: str | None = None
+    is_pcma_enabled: bool | None = None
+    assigned_doctor_email: str | None = None
 
 class GroupUpdateRequest(CamelModel):
     name: str | None = Field(default=None, min_length=2, max_length=100)
@@ -64,6 +68,8 @@ class GroupUpdateRequest(CamelModel):
     logo: str | None = None
     logo_url: str | None = None
     cover_image: str | None = None
+    is_pcma_enabled: bool | None = None
+    assigned_doctor_email: str | None = None
 
 class UpdateGroupPermissionsRequest(CamelModel):
     role_permissions: dict
@@ -296,4 +302,60 @@ class PollCreateRequest(CamelModel):
 
 class PollVoteRequest(CamelModel):
     option_id: str
+
+# --- PCMA (Pre-Competition Medical Assessment) ---
+class PCMASettingsUpdateRequest(CamelModel):
+    is_pcma_enabled: bool
+    assigned_doctor_email: str | None = None
+
+class PCMAQuestionnaireSubmitRequest(CamelModel):
+    heart_condition: bool = False
+    chest_pain_exercise: bool = False
+    dizziness_or_fainting: bool = False
+    bone_or_joint_problem: bool = False
+    current_medications: str | None = None
+    allergies: str | None = None
+    additional_notes: str | None = None
+
+class PCMAAssessmentSubmitRequest(CamelModel):
+    player_id: str
+    blood_pressure: str = "120/80"
+    heart_rate_bpm: int = 72
+    vision: str = "Normal"
+    cardiovascular: str = "Normal"
+    musculoskeletal: str = "Normal"
+    clinical_notes: str | None = None
+    outcome: Literal["Fit", "Unfit"]
+    validity_months: int = 6
+
+class PCMASquadStats(CamelModel):
+    total_players: int = 0
+    cleared_count: int = 0
+    pending_count: int = 0
+    unfit_count: int = 0
+    expired_count: int = 0
+
+class PCMAPlayerSummary(CamelModel):
+    player_id: str
+    player_name: str
+    player_email: str | None = None
+    role: str = "Member"
+    medical_status: Literal["Cleared", "Pending", "Unfit", "Expired"]
+    questionnaire_submitted: bool = False
+    questionnaire_submitted_at: datetime | None = None
+    assigned_doctor_email: str | None = None
+    assessed_by: str | None = None
+    assessed_at: datetime | None = None
+    certificate_number: str | None = None
+    certificate_id: str | None = None
+    expires_at: datetime | None = None
+    verification_url: str | None = None
+
+class PCMADashboardResponse(CamelModel):
+    group_id: str
+    is_pcma_enabled: bool
+    assigned_doctor_email: str | None = None
+    stats: PCMASquadStats
+    roster: list[PCMAPlayerSummary]
+
 

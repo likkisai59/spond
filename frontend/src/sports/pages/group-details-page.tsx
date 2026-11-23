@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
+  Activity,
   CalendarDays,
   LayoutGrid,
   Lock,
@@ -32,6 +33,7 @@ import { removeMemberThunk, fetchGroupsThunk, deleteGroupThunk, updateGroupPermi
 import { fetchPaymentsThunk } from "@/store/sports/payments-slice";
 import { fetchEventsThunk } from "@/store/sports/events-slice";
 import type { FeatureToggles, GroupRolePermissions } from "@/types";
+import { groupsService } from "@/services/sports/groups.service";
 import { DEFAULT_FEATURE_TOGGLES, DEFAULT_ROLE_PERMISSIONS, canAccessFeature } from "../utils/permissions";
 import {
   selectAllFiles,
@@ -181,8 +183,46 @@ export function GroupDetailsPage() {
       if (perms) {
         setPermissionsState(perms);
       }
+      setIsPcmaEnabled(Boolean(group.is_pcma_enabled || (group as any)?.isPcmaEnabled));
+      setAssignedDoctorEmail(group.assigned_doctor_email || (group as any)?.assignedDoctorEmail || "");
     }
   }, [group]);
+
+  const [isPcmaEnabled, setIsPcmaEnabled] = useState<boolean>(() => {
+    return Boolean(group?.is_pcma_enabled || (group as any)?.isPcmaEnabled);
+  });
+  const [assignedDoctorEmail, setAssignedDoctorEmail] = useState<string>(() => {
+    return group?.assigned_doctor_email || (group as any)?.assignedDoctorEmail || "";
+  });
+  const [savingPcma, setSavingPcma] = useState(false);
+
+  const handleSavePcmaSettings = async () => {
+    setSavingPcma(true);
+    try {
+      await groupsService.updatePcmaSettings(groupId, {
+        is_pcma_enabled: isPcmaEnabled,
+        assigned_doctor_email: assignedDoctorEmail,
+      });
+      await dispatch(fetchGroupsThunk());
+      dispatch(
+        notificationAdded({
+          title: "Settings saved",
+          message: "Player Medical Clearance (PCMA) settings updated successfully.",
+          variant: "success",
+        })
+      );
+    } catch (error: any) {
+      dispatch(
+        notificationAdded({
+          title: "Error saving PCMA settings",
+          message: error?.message || "Failed to update medical clearance settings.",
+          variant: "error",
+        })
+      );
+    } finally {
+      setSavingPcma(false);
+    }
+  };
 
   const [selectedRole, setSelectedRole] = useState<"member" | "coach" | "treasurer" | "admin">("member");
   const [savingPermissions, setSavingPermissions] = useState(false);
@@ -415,6 +455,14 @@ export function GroupDetailsPage() {
                   </Link>
                 </Button>
               )}
+              {(group.is_pcma_enabled || (group as any)?.isPcmaEnabled) && (
+                <Button asChild variant="outline">
+                  <Link href={`/sports/groups/${groupId}/medical`}>
+                    <Activity className="mr-1.5 h-4 w-4 text-emerald-500" />
+                    Medical & PCMA
+                  </Link>
+                </Button>
+              )}
             </div>
             {isOwnerOrAdmin && (
               <Button
@@ -439,6 +487,13 @@ export function GroupDetailsPage() {
           <TabsTrigger value="files">Files</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
           <TabsTrigger value="posts">Posts</TabsTrigger>
+          {(group.is_pcma_enabled || (group as any)?.isPcmaEnabled) && (
+            <Button asChild variant="ghost" size="sm" className="h-9 px-3 text-sm font-medium">
+              <Link href={`/sports/groups/${groupId}/medical`}>
+                Medical & PCMA
+              </Link>
+            </Button>
+          )}
           {isOwnerOrAdmin && <TabsTrigger value="settings">Settings</TabsTrigger>}
         </TabsList>
 
@@ -903,6 +958,68 @@ export function GroupDetailsPage() {
                   );
                 })}
               </div>
+            </Card>
+
+            <Card className="p-6">
+              <div className="flex flex-col gap-2 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-bold tracking-tight">Player Medical Clearance (PCMA)</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Pre-competition health questionnaires, doctor medical assessments, and digital fitness clearance certificates.
+                  </p>
+                </div>
+                <Button
+                  variant="accent"
+                  size="sm"
+                  onClick={handleSavePcmaSettings}
+                  disabled={savingPcma}
+                  className="self-start sm:self-auto"
+                >
+                  {savingPcma ? "Saving..." : "Save PCMA Settings"}
+                </Button>
+              </div>
+
+              <div className="mt-6 flex items-center justify-between py-2">
+                <div className="pr-4">
+                  <p className="text-sm font-semibold">Enable Player Medical Clearance (PCMA)</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    When enabled, players submit health questionnaires and the assigned doctor certifies squad members.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isPcmaEnabled}
+                  onClick={() => setIsPcmaEnabled((prev) => !prev)}
+                  className={cn(
+                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2",
+                    isPcmaEnabled ? "bg-accent" : "bg-muted"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                      isPcmaEnabled ? "translate-x-5" : "translate-x-0"
+                    )}
+                  />
+                </button>
+              </div>
+
+              {isPcmaEnabled && (
+                <div className="mt-4 border-t border-border pt-4">
+                  <label className="text-sm font-semibold">Assigned Club Doctor Email</label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Only this doctor will be authorized to review private questionnaires and issue clearance certificates.
+                  </p>
+                  <Input
+                    type="email"
+                    placeholder="doctor@example.com"
+                    value={assignedDoctorEmail}
+                    onChange={(e) => setAssignedDoctorEmail(e.target.value)}
+                    className="max-w-md"
+                  />
+                </div>
+              )}
             </Card>
           </TabsContent>
         )}

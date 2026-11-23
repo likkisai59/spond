@@ -8,7 +8,8 @@ from src.constants.collections import (
     SPORTS_VENUE_SLOTS,
     SPORTS_BOOKINGS,
     SPORTS_PAYMENT_REQUESTS,
-    SPORTS_POLLS
+    SPORTS_POLLS,
+    SPORTS_PCMA_RECORDS
 )
 from src.database.base_repository import BaseRepository
 
@@ -78,4 +79,12 @@ class PollRepository(BaseRepository):
     async def ensure_indexes(self) -> None:
         await self.create_index([("group_id", 1)])
         await self.create_index([("created_at", -1)])
+
+class PCMARecordRepository(BaseRepository):
+    collection_name = SPORTS_PCMA_RECORDS
+
+    async def ensure_indexes(self) -> None:
+        await self.create_index([("group_id", 1), ("player_id", 1)])
+        await self.create_index([("certificate_number", 1)])
+
 

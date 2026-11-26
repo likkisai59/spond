@@ -5,15 +5,22 @@ import asyncio
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+from src.core.config import get_backend_url, get_frontend_url
+
 logger = logging.getLogger("spond.email")
 
 
 class EmailService:
     """Service for sending emails. Uses standard Python smtplib with Gmail."""
 
-    def _send_sync_email(self, to_email: str, otp: str, purpose: str) -> None:
+    @staticmethod
+    def _load_env() -> None:
         from dotenv import load_dotenv
-        load_dotenv(override=True)
+        # Do not override explicit OS/container environment variables (e.g. AWS EC2/Docker).
+        load_dotenv(override=False)
+
+    def _send_sync_email(self, to_email: str, otp: str, purpose: str) -> None:
+        self._load_env()
         
         smtp_email = os.environ.get("SMTP_EMAIL")
         smtp_password = os.environ.get("SMTP_PASSWORD")
@@ -55,8 +62,7 @@ class EmailService:
         group_name: str,
         invite_token: str
     ) -> None:
-        from dotenv import load_dotenv
-        load_dotenv(override=True)
+        self._load_env()
 
         smtp_email = os.environ.get("SMTP_EMAIL")
         smtp_password = os.environ.get("SMTP_PASSWORD")
@@ -71,8 +77,8 @@ class EmailService:
             msg["To"] = to_email
             msg["Subject"] = f"Invitation: {admin_name} invited you to join {group_name} on Spond"
 
-            backend_url = os.environ.get("BACKEND_URL", "http://localhost:8000")
-            frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+            backend_url = get_backend_url()
+            frontend_url = get_frontend_url()
             accept_url = f"{frontend_url}/sports/invite/{invite_token}"
             reject_url = f"{backend_url}/api/v1/sports/groups/invite/respond?token={invite_token}&action=reject"
 
@@ -164,8 +170,7 @@ class EmailService:
         reset_url: str,
         user_name: str = "User"
     ) -> None:
-        from dotenv import load_dotenv
-        load_dotenv(override=True)
+        self._load_env()
 
         smtp_email = os.environ.get("SMTP_EMAIL")
         smtp_password = os.environ.get("SMTP_PASSWORD")
@@ -262,8 +267,7 @@ class EmailService:
         group_name: str,
         admin_name: str,
     ) -> None:
-        from dotenv import load_dotenv
-        load_dotenv(override=True)
+        self._load_env()
 
         smtp_email = os.environ.get("SMTP_EMAIL")
         smtp_password = os.environ.get("SMTP_PASSWORD")
@@ -278,7 +282,7 @@ class EmailService:
             msg["To"] = to_email
             msg["Subject"] = f"You have been appointed Official Club Doctor for {group_name}"
 
-            app_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+            app_url = get_frontend_url()
             login_url = f"{app_url}/login"
 
             html = f"""

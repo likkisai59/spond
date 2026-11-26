@@ -7,12 +7,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      APP_ENV: dev
+      APP_ENV: ${APP_ENV:-dev}
       MONGODB_URI: ${MONGODB_URI}
       MONGODB_DB_NAME: unify_platform
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-in-env}
-      CORS_ORIGINS: http://localhost:3000
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8000}
       BOOTSTRAP_SUPER_ADMIN_EMAIL: admin@unify.com
       BOOTSTRAP_SUPER_ADMIN_PASSWORD: Admin@12345
     depends_on:

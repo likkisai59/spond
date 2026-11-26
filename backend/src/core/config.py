@@ -1,4 +1,5 @@
 """Application configuration (env-driven, Pydantic v2 Settings)."""
+import os
 from functools import lru_cache
 
 from pydantic import Field
@@ -31,6 +32,10 @@ class Settings(BaseSettings):
     # CORS (comma separated)
     CORS_ORIGINS: str = "http://localhost:3000"
 
+    # Public URLs
+    FRONTEND_URL: str = ""
+    BACKEND_URL: str = ""
+
     # Redis (Phase 2+ cache; container provisioned now)
     REDIS_URL: str = "redis://localhost:6379/0"
 
@@ -58,3 +63,38 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
+
+
+def _resolve_public_url(env_key: str, settings_value: str, dev_default: str) -> str:
+    """Resolve a public base URL from env/settings without a trailing slash."""
+    env_name = (os.environ.get("APP_ENV") or settings.APP_ENV or "dev").strip().lower()
+    if env_key in os.environ:
+        raw_url = os.environ[env_key].strip().rstrip("/")
+    else:
+        raw_url = (settings_value or "").strip().rstrip("/")
+
+    if raw_url:
+        return raw_url
+    if env_name in ("prod", "production"):
+        raise ValueError(f"{env_key} environment variable must be configured in production")
+    return dev_default
+
+
+def get_frontend_url() -> str:
+    """Return the frontend base URL, requiring FRONTEND_URL in production."""
+    return _resolve_public_url("FRONTEND_URL", settings.FRONTEND_URL, "http://localhost:3000")
+
+
+def get_backend_url() -> str:
+    """Return the backend base URL, falling back to FRONTEND_URL in prod or localhost in dev."""
+    env_name = (os.environ.get("APP_ENV") or settings.APP_ENV or "dev").strip().lower()
+    if "BACKEND_URL" in os.environ:
+        raw_url = os.environ["BACKEND_URL"].strip().rstrip("/")
+    else:
+        raw_url = (settings.BACKEND_URL or "").strip().rstrip("/")
+
+    if raw_url:
+        return raw_url
+    if env_name in ("prod", "production"):
+        return get_frontend_url()
+    return "http://localhost:8000"
